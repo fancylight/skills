@@ -1,0 +1,26 @@
+【归档汇报】
+服务：{{service_name}}
+Change：{{change_name}}
+功能：{{summary}}
+Commit：{{commit_id}}
+
+{{#if interface_changes}}
+【接口变更】
+{{#each interface_changes}}
+- {{this.action}}：{{this.method}} {{this.path}}{{#if this.note}}（{{this.note}}）{{/if}}
+{{/each}}
+{{/if}}
+
+{{#if knowledge_updates}}
+【知识库更新】
+{{#each knowledge_updates}}
+- {{this.path}} — {{this.description}}
+{{/each}}
+{{/if}}
+
+{{#if issues}}
+【遗留问题】
+{{#each issues}}
+- {{this}}
+{{/each}}
+{{/if}}

@@ -1,0 +1,29 @@
+# {{service_name}} 待开发任务
+
+## 上下文
+
+{{context}}
+
+---
+
+{{#each tasks}}
+## 任务 {{@index}}: {{this.title}}
+
+### 需求
+{{this.requirement}}
+
+### 涉及接口/文件
+{{this.interfaces}}
+
+### 注意事项
+{{this.notes}}
+
+---
+
+{{/each}}
+
+## 待明确问题
+
+{{#each open_questions}}
+{{@index}}. {{this}}
+{{/each}}

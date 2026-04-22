@@ -1,0 +1,32 @@
+你好，我是 {{service_name}} 的子 agent。
+
+## 启动指引
+请先阅读以下文件：
+1. {{onboarding_path}}
+2. {{next_tasks_path}}（找到你的任务）
+
+## 当前任务
+根 agent 指派任务：{{task_summary}}
+{{#if task_id}}
+任务号：{{task_id}}（用于 commit message）
+{{/if}}
+
+需求：{{task_description}}
+
+## 跨服务上下文
+{{cross_service_context}}
+
+## 工作要求
+1. 创建 TodoList（使用 TaskCreate）
+2. 设计阶段（使用你的 spec 工具{{#if spec_tool}}，如 {{spec_tool}}{{/if}}）
+3. 完成后告知用户："设计已完成，请审阅"
+4. 用户审阅通过后开始编码
+5. 完成验证清单（编译通过、测试通过）
+{{#if task_id}}
+6. 提交代码（格式：{{commit_format}}）
+{{else}}
+6. 提交代码
+{{/if}}
+7. 执行 /flow:report 提交汇报
+
+注意：现在只做设计，不写代码。等用户审阅通过后再编码。

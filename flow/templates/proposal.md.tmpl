@@ -1,0 +1,38 @@
+# {{requirement.title}}
+
+## 背景
+
+{{requirement.background}}
+
+## 目标
+
+{{requirement.goals}}
+
+## 涉及服务
+
+| 服务 | 职责 | 依赖 |
+|------|------|------|
+{{#each services}}
+| {{this.name}} | {{this.responsibility}} | {{this.depends_on}} |
+{{/each}}
+
+## 开发顺序
+
+{{#each development_order}}
+{{@index}}. {{this.service}} — {{this.reason}}
+{{/each}}
+
+## 接口契约
+
+> 初稿可粗略，开发过程中持续修正。
+
+{{interface_contracts}}
+
+## 分支策略
+
+分支：`{{branch}}`
+所有服务使用相同分支名。
+
+## 非目标
+
+{{non_goals}}

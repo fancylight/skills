@@ -1,0 +1,30 @@
+---
+requirement: {{requirement.title}}
+status: planning
+tier: {{tier}}
+branch: {{branch}}
+services: [{{services_list}}]
+created: {{date}}
+updated: {{date}}
+---
+
+## 开发顺序
+
+{{#each development_order}}
+{{@index}}. {{this.service}} — {{this.reason}}
+{{/each}}
+
+---
+
+{{#each services}}
+## {{this.name}}
+> child agent change: `待创建`
+{{#if this.blocked_by}}
+> blocked by: [{{this.blocked_by}}]
+{{/if}}
+
+{{#each this.tasks}}
+- [ ] {{this}}
+{{/each}}
+
+{{/each}}
