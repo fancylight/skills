@@ -3,6 +3,7 @@ name: "Flow: Init"
 description: "Initialize a multi-agent project or create a new requirement"
 category: Workflow
 tags: [workflow, orchestration, multi-agent]
+version: "0.1.0"
 ---
 
 初始化多 agent 编排项目，或在已有项目中创建新需求。
@@ -106,19 +107,21 @@ tags: [workflow, orchestration, multi-agent]
    └── config.yaml
    ```
 
-   内容：
-   ```yaml
-   project:
-     name: "{项目名}"
-     role: "executor"
-     root_path: "{到根目录的相对路径}"
-     service_name: "{服务名}"
+   使用 `child-config.yaml.tmpl` 模板渲染，注入以下变量：
 
-   knowledge_base:
-     enabled: true/false
-     path: "{与根相同}"
-     child_write: true
-   ```
+   | 变量名 | 来源 | 说明 |
+   |--------|------|------|
+   | `project.name` | 用户输入 | 项目名称 |
+   | `root_path` | 计算得出 | 从服务目录到根目录的相对路径 |
+   | `service_name` | 服务列表 | 当前服务名 |
+   | `knowledge_base.enabled` | 用户输入 | 知识库是否启用 |
+   | `knowledge_base.path` | 用户输入 | 知识库路径 |
+   | `knowledge_base.child_write` | 用户输入 | 子 agent 写权限 |
+   | `conventions.task_id_prefix` | 用户输入 | 任务号前缀 |
+   | `conventions.branch_pattern` | 用户输入 | 分支命名模式 |
+   | `conventions.commit_format` | 用户输入 | 提交格式 |
+   | `child_agent.spec_tool` | 用户输入 | 子 agent spec 工具 |
+   | `child_agent.onboarding_doc` | 用户输入 | onboarding 文档路径 |
 
    **重要**：写入服务目录前必须征求用户同意。部分服务可能有独立 git 仓库。
 
@@ -150,7 +153,7 @@ tags: [workflow, orchestration, multi-agent]
    - 复杂度等级：
      - Tier 1：单服务，无跨服务变更
      - Tier 2：2-5 个服务，有明确依赖链
-     - Tier 3：5+ 个服务，需分阶段上线
+     - Tier 3：5+ 个服务，需分阶段上线（当前尚未实现，按 Tier 2 处理）
 
    如需求不清晰，使用 **AskUserQuestion** 澄清：
    - 涉及哪些服务？

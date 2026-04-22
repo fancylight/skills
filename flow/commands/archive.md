@@ -3,6 +3,7 @@ name: "Flow: Archive"
 description: "Archive a completed requirement"
 category: Workflow
 tags: [workflow, orchestration, multi-agent]
+version: "0.1.0"
 ---
 
 归档已完成的需求。检查完成条件，确认后移入归档目录。
@@ -79,10 +80,10 @@ tags: [workflow, orchestration, multi-agent]
 
 4. **执行归档**
 
-   ```bash
-   mkdir -p .flow/changes/archive
-   mv .flow/changes/{change-name} .flow/changes/archive/{change-name}
-   ```
+   使用文件操作完成归档（不依赖平台特定命令）：
+   1. 确保 `.flow/changes/archive/` 目录存在
+   2. 将 `.flow/changes/{change-name}/` 移动到 `.flow/changes/archive/{change-name}/`
+   3. 更新移动后的 `tasks.md` 元数据头部
 
    更新归档后的 `tasks.md` 元数据：
    ```yaml

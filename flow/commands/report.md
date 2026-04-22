@@ -3,6 +3,7 @@ name: "Flow: Report"
 description: "Child agent submits a structured completion report"
 category: Workflow
 tags: [workflow, orchestration, multi-agent, executor]
+version: "0.1.0"
 ---
 
 子 agent 完成任务后提交结构化汇报，同时尝试更新根目录 tasks.md。
@@ -23,7 +24,10 @@ tags: [workflow, orchestration, multi-agent, executor]
 1. **收集工作信息**
 
    自动检测：
-   - **Git 提交**：读取最近的 git log，找到本次工作的 commit（按任务号或时间范围）
+   - **Git 提交**：读取 git log，按以下规则定位本次工作的 commit：
+     1. 优先匹配：commit message 包含当前任务号格式（`{task_id_prefix}-{id}`）
+     2. 次优匹配：自上次 `/flow:receive` 执行时间起、或最近 24 小时内的 commit
+     3. 兜底：最近 5 个 commit，由用户确认
    - **Change 名称**：扫描本服务的 spec 工作区（如 `openspec/changes/`），找到最近活跃的 change
    - **接口变更**：扫描是否有 `api.md` 或 `{service}-api.md` 文件
 

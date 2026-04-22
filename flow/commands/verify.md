@@ -3,6 +3,7 @@ name: "Flow: Verify"
 description: "Verify cross-service API contract consistency"
 category: Workflow
 tags: [workflow, orchestration, multi-agent]
+version: "0.1.0"
 ---
 
 验证跨服务接口契约的一致性：消费者期望 vs 提供者实现。
