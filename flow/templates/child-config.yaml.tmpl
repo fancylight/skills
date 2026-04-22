@@ -1,0 +1,22 @@
+# Flow 子 Agent 配置
+# 由 /flow:init 自动生成
+
+project:
+  name: "{{project.name}}"
+  role: "executor"
+  root_path: "{{root_path}}"
+  service_name: "{{service_name}}"
+
+knowledge_base:
+  enabled: {{knowledge_base.enabled}}
+  path: "{{knowledge_base.path}}"
+  child_write: {{knowledge_base.child_write}}
+
+conventions:
+  task_id_prefix: "{{conventions.task_id_prefix}}"
+  branch_pattern: "{{conventions.branch_pattern}}"
+  commit_format: "{{conventions.commit_format}}"
+
+child_agent:
+  spec_tool: "{{child_agent.spec_tool}}"
+  onboarding_doc: "{{child_agent.onboarding_doc}}"

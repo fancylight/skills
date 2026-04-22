@@ -58,7 +58,7 @@ V2 范式从 glm-attendance 的视角出发，解决了**独立闭环服务**的
 |------|--------|------|
 | 服务内开发 | 完全自主 | propose → apply → archive |
 | design-blocks | 完全自主 | 仅复杂需求需要，根 Claude 不关注 |
-| 知识沉淀 | 完全自主 | 直接写入 `E:\local_rag`，先向用户确认 |
+| 知识沉淀 | 完全自主 | 直接写入 `{knowledge_base_path}`，先向用户确认 |
 | 接口文档 | 完全自主 | api.md + {上游服务}-api.md |
 | 进度汇报 | 按需 | 有 GLW 任务号时汇报根 Claude，否则自行更新 |
 
@@ -235,8 +235,8 @@ openspec/
 
 **根 Claude 动作**：
 1. 分析需求，识别涉及哪些服务
-2. 查阅 `E:\local_rag\` 了解相关服务的现有架构和已知坑
-3. 查阅 `services/index.md` 确认服务目录映射
+2. 查阅 `{knowledge_base_path}/` 了解相关服务的现有架构和已知坑
+3. 查阅 `.flow/services.md` 确认服务目录映射
 4. 判断复杂度等级（Tier 1/2/3）
 5. 输出 proposal.md + tasks.md
 
@@ -284,7 +284,7 @@ openspec/
 
 **子 Claude 主动沉淀**：
 1. 任务完成后判断是否有值得沉淀的知识
-2. 有则列变更确认表，向用户确认后写入 `E:\local_rag\`
+2. 有则列变更确认表，向用户确认后写入 `{knowledge_base_path}/`
 3. 在归档汇报中追加【知识库更新】小节
 
 **根 Claude 审核**（需求完成后）：
@@ -298,7 +298,7 @@ openspec/
 1. 确认所有服务的任务已完成（tasks.md 全部 [x]）
 2. 确认接口契约一致
 3. 将 change 移入 `changes/archive/`
-4. 更新 `services/index.md`（如有新服务纳入）
+4. 更新 `.flow/services.md`（如有新服务纳入）
 
 ---
 
@@ -311,8 +311,8 @@ openspec/
 
 ## 启动指引
 请先阅读以下规范文件：
-1. D:/code/glm/openspec/specs/workflow/onboarding.md
-2. D:/code/glm/openspec/changes/{change-name}/next-tasks.md（找到你的任务）
+1. {root_path}/.flow/onboarding.md
+2. {root_path}/.flow/changes/{change-name}/next-tasks.md（找到你的任务）
 
 ## 当前任务
 根 Claude 指派任务：{任务简述}
@@ -349,7 +349,7 @@ Commit：{commit-id}
 - 需要上游：{服务名} 提供 GET /zzz（见 {服务名}-api.md）
 
 【知识库更新】（如有）
-- 更新：E:\local_rag\{path}\{file}.md — {说明}
+- 更新：{knowledge_base_path}/{path}\{file}.md — {说明}
 
 【遗留问题】（如有）
 - {问题描述}
@@ -370,7 +370,7 @@ Commit：{commit-id}
 
 ## 七、知识库协作模型
 
-### 7.1 四级知识库（`E:\local_rag\`）
+### 7.1 四级知识库（`{knowledge_base_path}/`）
 
 **维护权限**：
 
@@ -390,8 +390,8 @@ Commit：{commit-id}
 - `specs/knowledge/`：需求级知识
 - `specs/standards/`：需求级规范
 
-**需求完成后**，子 Claude 判断哪些知识值得沉淀到 `E:\local_rag\`：
-- 服务级通用知识 → 写入 `E:\local_rag\{服务名}\`
+**需求完成后**，子 Claude 判断哪些知识值得沉淀到 `{knowledge_base_path}/`：
+- 服务级通用知识 → 写入 `{knowledge_base_path}/{服务名}\`
 - 需求专属知识 → 保留在 openspec 内部作为历史归档
 
 **根 Claude 不关注这些内部结构**，只在需求完成后做最终审核。
@@ -427,7 +427,7 @@ Commit：{commit-id}
 |---------|------|------|
 | `/glm/openspec/需求名/index.md` 做状态管理 | 不采纳 | 与 tasks.md 重复，增加同步负担 |
 | changes/ 不分 active/archive | 子 Claude 自行决定 | 根 Claude 不关注子服务内部结构 |
-| 子 Claude 直接写入 `E:\local_rag` | 已采纳（现有规范已支持） | 先确认后写入 |
+| 子 Claude 直接写入 `{knowledge_base_path}` | 已采纳（现有规范已支持） | 先确认后写入 |
 | 三层上下文模型（L1/L2/L3） | 部分采纳 | L1 = onboarding.md，L2 = 子服务 index.md（可选），L3 = change |
 | design-blocks 机制 | 认可但不强制 | 只有复杂长期需求才需要 |
 | review 规范 | 认可但不强制 | 子 Claude 自行决定是否输出 review 报告 |
@@ -538,8 +538,8 @@ Commit：{commit-id}
 ### 第二步：更新根目录规范文件
 
 如果方案通过，需要更新：
-1. `openspec/specs/workflow/spec.md` — 增加 Tier 分级说明
-2. `openspec/config.yaml` — 增加复杂度分级的 context
+1. `.flow/spec.md` — 增加 Tier 分级说明
+2. `.flow/config.yaml` — 增加复杂度分级的 context
 3. `MEMORY.md` — 更新开发范式相关记忆
 4. 子 Claude 的 `onboarding.md` — 增加 Tier 感知（Tier 2 时需要关注跨服务上下文）
 

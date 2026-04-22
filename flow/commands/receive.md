@@ -3,6 +3,7 @@ name: "Flow: Receive"
 description: "Child agent receives and starts an assigned task"
 category: Workflow
 tags: [workflow, orchestration, multi-agent, executor]
+version: "0.1.0"
 ---
 
 子 agent 接收根 agent 分配的任务并启动工作。

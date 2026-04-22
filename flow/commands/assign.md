@@ -3,6 +3,7 @@ name: "Flow: Assign"
 description: "Generate an instruction package for a child agent"
 category: Workflow
 tags: [workflow, orchestration, multi-agent]
+version: "0.1.0"
 ---
 
 为指定服务生成子 agent 指令包，用户复制给子 agent 会话即可启动工作。
@@ -53,36 +54,21 @@ tags: [workflow, orchestration, multi-agent]
 
 4. **生成指令包**
 
-   根据 `.flow/templates/assign.md` 模板（如存在）或默认格式生成：
+   使用 `assign.md.tmpl` 模板渲染（项目级 `.flow/templates/assign.md.tmpl` 优先，否则使用 Skill 内置模板 `templates/assign.md.tmpl`）。
 
-   ```markdown
-   你好，我是 {service-name} 的子 agent。
+   向模板注入以下变量：
 
-   ## 启动指引
-   请先阅读以下文件：
-   1. {onboarding_doc 的绝对路径}
-   2. {next-tasks.md 的绝对路径}（找到你的任务）
-
-   ## 当前任务
-   根 agent 指派任务：{任务简述}
-   任务号：{prefix}-{id}（用于 commit message）
-
-   需求：{具体需求描述}
-
-   ## 跨服务上下文
-   {依赖服务状态、已就绪的接口契约}
-
-   ## 工作要求
-   1. 创建 TodoList（使用 TaskCreate）
-   2. 设计阶段（使用你的 spec 工具，如 /opsx:propose）
-   3. 完成后告知用户："设计已完成，请审阅"
-   4. 用户审阅通过后开始编码
-   5. 完成验证清单（编译通过、测试通过）
-   6. 提交代码（格式：{commit_format}）
-   7. 执行 /flow:report 提交汇报
-
-   注意：现在只做设计，不写代码。等用户审阅通过后再编码。
-   ```
+   | 变量名 | 来源 | 说明 |
+   |--------|------|------|
+   | `service_name` | 用户输入 | 目标服务名 |
+   | `onboarding_path` | `config.yaml` 的 `child_agent.onboarding_doc` | onboarding 文档绝对路径 |
+   | `next_tasks_path` | 活跃 change 的 `next-tasks.md` | 详细任务说明文件绝对路径 |
+   | `task_summary` | `tasks.md` 或用户输入 | 任务简述 |
+   | `task_id` | 步骤 3 生成 | 任务号（如配置了前缀） |
+   | `task_description` | `proposal.md` + `next-tasks.md` | 具体需求描述 |
+   | `cross_service_context` | 依赖分析结果 | 依赖服务状态、已就绪接口契约 |
+   | `spec_tool` | `config.yaml` 的 `child_agent.spec_tool` | 子 agent spec 工具名 |
+   | `commit_format` | `config.yaml` 的 `conventions.commit_format` | 提交格式 |
 
 5. **输出指令包**
 

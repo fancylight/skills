@@ -3,6 +3,7 @@ name: "Flow: Status"
 description: "View requirement progress across all services"
 category: Workflow
 tags: [workflow, orchestration, multi-agent]
+version: "0.1.0"
 ---
 
 查看需求在所有服务中的进度，聚合展示。
@@ -44,11 +45,16 @@ tags: [workflow, orchestration, multi-agent]
    - 是否有已归档的 spec change
    - 是否有 api.md 产出
 
-   综合判断服务状态：
-   - ✅ 完成：tasks.md 中该服务所有任务已 [x]，且有归档的 change
-   - 🔄 开发中：有活跃的 spec change
-   - ⏳ 阻塞：有 `blocked by` 依赖且依赖未完成
-   - 📋 待开始：tasks.md 中有任务但无 spec change
+   综合判断服务状态（按以下优先级，高优先级优先）：
+
+   **状态优先级**
+   1. ⏳ 阻塞：有 `blocked by` 依赖且依赖未完成
+   2. 🔄 开发中：有活跃的 spec change
+   3. 📋 待开始：tasks.md 中有任务但无 spec change
+   4. ✅ 完成：tasks.md 中该服务所有任务已 [x]，且有归档的 change
+   5. ❓ 未知：无法访问服务目录或缺少信息
+
+   判定规则：逐项检查，命中高优先级即停止，不再检查低优先级。
 
 4. **输出进度报告**
 
