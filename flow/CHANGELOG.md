@@ -1,5 +1,17 @@
 # Flow Changelog
 
+## 0.2.0 — 2026-04-24
+
+### 新增（Agent 行为约束机制）
+- `onboarding.md.tmpl` 增加「禁区」章节：明确允许/禁止的行为矩阵，以及越权时的处理方式。
+- `assign.md.tmpl` 增加「红线提醒」：派任务时强制提醒 5 条越权停止规则。
+- `receive.md` 增加「边界确认」步骤：子 agent 启动时必须向用户声明工作范围；增加 `blocked by` 硬约束（依赖未完成时只允许设计、禁止编码）。
+- `report.md` 增加「越权行为自检清单」：5 项回溯检查，未通过必须在【遗留问题】中如实汇报。
+- `child-config.yaml.tmpl` 增加 `constraints` 配置段：声明跨服务写入、数据库结构变更、用户确认等权限开关。
+- `schema.md` 同步更新 `child-config.yaml` 的字段定义，增加 `constraints` 规范。
+
+---
+
 ## 0.1.0 — 2026-04-22
 
 ### 新增

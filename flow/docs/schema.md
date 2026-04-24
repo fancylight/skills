@@ -64,6 +64,12 @@ conventions:
 child_agent:
   spec_tool: string         # 可选。
   onboarding_doc: string    # 必填。
+
+constraints:                # 新增。行为约束声明
+  allow_cross_service_write: boolean   # 必填。默认 false
+  allow_schema_migration: boolean      # 必填。默认 false
+  require_user_confirm_for:            # 必填。默认包含 knowledge_base_write, api_contract_change, db_schema_drop
+    - string
 ```
 
 ---

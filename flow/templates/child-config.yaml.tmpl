@@ -20,3 +20,12 @@ conventions:
 child_agent:
   spec_tool: "{{child_agent.spec_tool}}"
   onboarding_doc: "{{child_agent.onboarding_doc}}"
+
+# agent 行为约束（由 /flow:init 自动生成，供 onboarding.md 引用）
+constraints:
+  allow_cross_service_write: false       # 禁止修改其他服务的文件
+  allow_schema_migration: false          # 数据库结构变更需用户显式确认
+  require_user_confirm_for:
+    - knowledge_base_write               # 写入知识库前需用户确认
+    - api_contract_change                # 变更接口契约前需根 agent 确认
+    - db_schema_drop                     # 删除表/字段前需用户确认
