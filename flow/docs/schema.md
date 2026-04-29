@@ -22,6 +22,8 @@ services:                   # 必填。非空数组
     path: string            # 必填。相对根目录的路径
     type: string            # 可选。服务类型：bff / data-service / admin / gateway / ...
     description: string     # 可选。一句话职责
+    flow_initialized: boolean  # 必填。该服务是否已完成 flow:init
+    flow_initialized_at: string  # 可选。初始化日期（YYYY-MM-DD）
 
 knowledge_base:
   enabled: boolean          # 必填。默认 false
@@ -63,7 +65,18 @@ conventions:
 
 child_agent:
   spec_tool: string         # 可选。
-  onboarding_doc: string    # 必填。
+  onboarding_doc: string    # 必填。指向根目录 onboarding.md
+
+inline_agents:
+  review:
+    enabled: boolean        # 必填。默认 true
+    knowledge_base_rules_path: string  # 可选。知识库中审核规范路径
+  unit_test:
+    enabled: boolean        # 必填。默认 true
+    test_command: string    # 必填（若 enabled=true）。如 "mvn test"
+  knowledge_maintenance:
+    enabled: boolean        # 必填。默认 true
+    auto_trigger: boolean   # 必填。默认 false
 ```
 
 ---
@@ -75,6 +88,7 @@ child_agent:
 ```yaml
 ---
 requirement: string         # 必填。需求标题
+type: string                # 必填。枚举：feature / hotfix / refactor
 status: string              # 必填。枚举：planning / in_progress / completed / archived
 tier: integer               # 必填。1 / 2 / 3
 branch: string              # 必填。完整分支名
@@ -255,6 +269,10 @@ Change：{change_name}
 功能：{summary}
 Commit：{commit_id}
 
+【测试验证】
+单元测试：✅ 通过（X/X）/ ❌ 失败（详情见下）
+集成测试：⏳ 待根 agent 触发 /flow:test
+
 【接口变更】（如有）
 - 新增：{METHOD} {path}（见 api.md）
 - 修改：{METHOD} {path}（见 api.md）
@@ -266,3 +284,56 @@ Commit：{commit_id}
 【遗留问题】（如有）
 - {问题描述}
 ```
+
+---
+
+## 7. fix.md（hotfix 专用）
+
+由 `/flow:hotfix` 生成，位于 spec 工作区 `changes/hotfix-{YYYYMMDD}-{slug}/fix.md`。
+
+```yaml
+---
+type: hotfix
+status: in_progress / completed
+service: string             # 必填。受影响的主要服务
+created: string             # 必填。YYYY-MM-DD
+updated: string             # 必填。YYYY-MM-DD
+---
+
+## Bug 描述
+{用户输入}
+
+## 复现步骤
+{待填写}
+
+## 根因分析
+{待填写}
+
+## 修复方案
+{待填写}
+```
+
+---
+
+## 8. 工作流程.md（子 agent 持久化）
+
+由 `/flow:init`（子模式）生成，位于服务目录 `.flow/工作流程.md`。
+
+内容：服务基本信息 + 三阶段工作循环说明（阶段一设计 → 阶段二编码 → 阶段三汇报）。
+
+---
+
+## 9. 概要设计.md
+
+由 `/flow:design`（根模式）生成，位于 `.flow/changes/{change-name}/概要设计.md`。
+
+必须章节：
+- 背景
+- 目标
+- 涉及服务
+- 开发顺序
+- 接口契约草稿
+- **验收标准**（集成测试依据，必须）
+- 非目标
+- 变更记录（如有变更）
+

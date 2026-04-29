@@ -19,4 +19,15 @@ conventions:
 
 child_agent:
   spec_tool: "{{child_agent.spec_tool}}"
-  onboarding_doc: "{{child_agent.onboarding_doc}}"
+  onboarding_doc: "{{root_path}}/.flow/onboarding.md"
+
+inline_agents:
+  review:
+    enabled: true
+    knowledge_base_rules_path: ""
+  unit_test:
+    enabled: true
+    test_command: "{{test_command}}"
+  knowledge_maintenance:
+    enabled: true
+    auto_trigger: false

@@ -2,27 +2,29 @@
 # 由 /flow:init 生成，可手动编辑
 
 project:
-  name: ""                          # 项目名称
-  role: "orchestrator"              # orchestrator（根）或 executor（子）
-  created: ""                       # 创建日期
+  name: ""
+  role: "orchestrator"
+  created: ""
 
-services:                            # 服务列表
-  - name: ""                         # 服务名
-    path: ""                         # 相对路径
-    type: ""                         # BFF / data-service / admin / gateway / ...
-    description: ""                  # 职责简述
+services:
+  - name: ""
+    path: ""
+    type: ""
+    description: ""
+    flow_initialized: false
+    flow_initialized_at: ""
 
 knowledge_base:
-  enabled: false                     # 是否启用知识库
-  path: ""                           # 知识库路径
-  child_write: true                  # 子 agent 是否可直接写入
-  review_on_archive: true            # 归档时是否审核知识更新
+  enabled: false
+  path: ""
+  child_write: true
+  review_on_archive: true
 
 conventions:
-  task_id_prefix: ""                 # 任务号前缀（如 GLW），留空则不使用任务号
+  task_id_prefix: ""
   branch_pattern: "feature/<kebab-case>"
-  commit_format: "{type}: {description}"  # 如有前缀："{prefix}-{id} {type}: {description}"
+  commit_format: "{type}: {description}"
 
 child_agent:
-  spec_tool: ""                      # 子 agent 使用的 spec 工具（openspec / custom / none）
+  spec_tool: ""
   onboarding_doc: ".flow/onboarding.md"

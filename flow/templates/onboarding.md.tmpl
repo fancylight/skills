@@ -1,101 +1,95 @@
-# 子 Agent 启动指南
+# 子 Agent 启动指南（二级 Agent 架构规范）
 
-> 本文件由 `/flow:init` 自动生成，可根据项目需要编辑。
-
----
-
-你是 **{{project.name}}** 项目中的子 agent（执行者）。本文档帮助你快速了解工作方式。
+> 本文件由 `/flow:init` 自动生成，位于根目录 `.flow/`，所有子 agent 共享。
 
 ---
 
-## 你的角色
-
-- **工作范围**：当前服务目录内的开发
-- **协作方式**：与根 agent（编排者）协作，或接受用户直接指派任务
-- **独立性**：你可以使用自己熟悉的 spec 工具完成开发
-
----
-
-## 工作循环
+## 一、二级 Agent 架构
 
 ```
-接收任务（根 agent 指派 或 用户直接沟通）
-   ↓
-创建 TodoList（TaskCreate）
-   ↓
-设计阶段（使用你的 spec 工具）
-   ↓
-告知用户："设计已完成，请审阅"
-   ↓
-【等待审阅通过】
-   ↓
-编码实现
-   ↓
-验证清单：
-   - [ ] 编译通过
-   - [ ] 测试通过
-   - [ ] 接口文档已更新（如有接口变动）
-   ↓
-Git 提交
-   ↓
-执行 /flow:report 提交汇报
+根 Agent（orchestrator）
+  职责：需求拆分、概要设计、task.md 维护、进度聚合、集成测试、归档
+  位置：项目根目录
+  命令：/flow:init /flow:design /flow:assign /flow:status
+        /flow:verify /flow:test /flow:change /flow:archive
+
+      ↕ 文件通信（task.md / 概要设计.md）
+      ↕ 用户手动传递指令包（平台限制，无法自动启动）
+
+子 Agent（executor）
+  职责：接收任务、spec 设计、编码实现、内联自检/审核/测试、汇报
+  位置：各服务目录
+  命令：/flow:init /flow:receive /flow:design /flow:report /flow:hotfix
 ```
 
----
+**平台限制**：根 agent 无法自动启动子 agent 独立会话，根→子的启动必须由用户手动操作。
 
-## 任务来源
-
-### 方式 1：根 agent 指派
-
-根 agent 会提供完整的指令包，包含：
-- 任务描述和任务号
-- 跨服务上下文
-- 工作要求
-
-按指令包执行即可。
-
-### 方式 2：用户直接沟通
-
-1. 查看根目录的待办任务：`{{root_path}}/.flow/changes/{active_change}/next-tasks.md`
-2. 与用户讨论具体实现方案
-3. 开始开发
+**内联 Agent**：子 agent 可通过 Agent tool 自动启动内联 agent（审核/测试/知识库维护），无需用户介入。
 
 ---
 
-## 汇报
+## 二、子 Agent 工作规范
 
-任务完成后执行 `/flow:report`，自动生成结构化汇报并尝试更新根目录 tasks.md。
+### 提交格式
+`{{conventions.commit_format}}`
 
-汇报包含：
-- 完成的 change 和 commit
-- 接口变更（新增/修改）
-- 知识库更新（如有）
-- 遗留问题（如有）
+### 分支规范
+`{{conventions.branch_pattern}}`
 
----
-
-## 提交约定
-
-- 格式：`{{conventions.commit_format}}`
-- 任务号由根 agent 在指派时提供
-
----
-
-## 知识库
-
+### 知识库规则
 {{#if knowledge_base.enabled}}
 - 路径：`{{knowledge_base.path}}`
-- 你可以直接写入知识库，但**写入前先向用户确认**
-- 触发条件：新增业务规则、澄清历史决策、发现坑、接口变更
-- 不需要写入：bug 修复、内部重构
+- 写入前必须列出变更内容并向用户确认
+- 触发条件：新业务规则、坑点发现、接口变更
+- 不触发：bug 修复、内部重构、代码格式调整
 {{else}}
 知识库未启用。
 {{/if}}
 
 ---
 
-## 服务地图
+## 三、子 Agent 工作循环（三阶段）
 
-查看其他服务信息：`{{root_path}}/.flow/services.md`
+### 阶段一：设计
 
-如需参考其他服务代码，暂停并向根 agent 请求协助。
+```
+/flow:receive
+  → 读取本服务 spec 列表（来自根 task.md）
+  → 读取概要设计.md + 知识库
+  → 检查变更通知
+
+/flow:design（子模式）
+  → 为每个 spec 创建 proposal.md + design.md
+  → 内联启动设计评审 agent（自检）
+  → 告知用户："设计完成，请评审"
+  → [等待评审通过]
+```
+
+### 阶段二：编码
+
+```
+按 spec 依赖顺序逐个执行：
+  apply spec
+  → 内联审核 agent（代码 vs spec design，不发散）
+      通过 → 继续 | 驳回 → 修改 → 重新审核
+  → 单元测试
+      通过 → 继续 | 失败 → 修复 → 重新测试
+  → 下一个 spec
+```
+
+### 阶段三：汇报
+
+```
+/flow:report
+  → 生成结构化汇报
+  → 更新根 task.md（勾选完成 spec）
+  → 强制知识库维护判断（不可跳过）
+```
+
+---
+
+## 四、服务地图
+
+查看所有服务：`{{root_path}}/.flow/services.md`
+
+如需参考其他服务代码或接口，查阅概要设计.md 中的接口契约章节，或联系根 agent 获取协助。

@@ -1,0 +1,43 @@
+# {{service_name}} 工作流程
+
+> 本文件由 /flow:init 自动生成，持久化在服务目录 .flow/
+
+---
+
+## 基本信息
+- 服务名：{{service_name}}
+- 根目录：{{root_path}}
+- spec 工具：{{spec_tool}}
+- 测试命令：{{test_command}}
+- onboarding：{{root_path}}/.flow/onboarding.md
+
+---
+
+## 阶段一：设计
+
+1. 执行 /flow:receive，读取根 task.md 中本服务的 spec 列表
+2. 读取 {{root_path}}/.flow/changes/{change}/概要设计.md 和知识库
+3. 为每个 spec 创建 proposal.md + design.md
+4. 执行 /flow:design 进行自检（内联评审 agent）
+5. 自检通过后告知用户："设计完成，请评审"
+6. 评审通过 → 进入阶段二；评审驳回 → 修改后重新自检
+
+---
+
+## 阶段二：编码
+
+1. 按 spec 依赖顺序逐个执行 apply
+2. 每个 spec 完成后自动触发：
+   a. 内联审核 agent（审核代码与 spec 一致性）
+   b. 单元测试（{{test_command}}）
+3. 审核/测试通过 → 下一个 spec；失败 → 修复后重试
+4. 所有 spec 完成 → 执行 /flow:report
+
+---
+
+## 阶段三：汇报
+
+1. /flow:report 生成结构化汇报
+2. 自动更新根 task.md（勾选完成的 spec）
+3. 强制判断知识库维护（不可跳过）
+4. 结束
