@@ -45,80 +45,34 @@ version: "0.1.0"
 
 3. **与用户协力生成 `概要设计.md`**
 
-   结构：
-   ```markdown
-   # {需求标题}
+   使用 `overview-design.md.tmpl` 模板渲染，注入以下变量：
 
-   ## 背景
-   {为什么要做}
+   | 变量名 | 来源 | 说明 |
+   |--------|------|------|
+   | `requirement_title` | 用户输入 | 需求标题 |
+   | `services` | config.yaml | 涉及服务列表（name, responsibility, dependency） |
+   | `branch_pattern` | config.yaml | 分支模式 |
+   | `change_name` | 步骤 1 | change 目录名 |
+   | `acceptance_criteria` | 用户输入 | 验收标准（必须章节） |
+   | `non_goals` | 用户输入 | 非目标 |
 
-   ## 目标
-   {要达到什么效果}
-
-   ## 涉及服务
-   | 服务 | 职责 | 依赖 |
-   |------|------|------|
-   | {name} | {做什么} | {依赖谁} |
-
-   ## 开发顺序
-   1. {service-a}（无依赖，先开发）
-   2. {service-b}（依赖 service-a 的接口）
-
-   ## 接口契约草稿
-   {跨服务 API 定义初稿}
-
-   ## 分支策略
-   分支：{branch-pattern}/{change-name}，所有服务使用同一分支名。
-
-   ## 验收标准
-   {集成测试的依据，必须章节，描述端到端可验证的行为}
-
-   ## 非目标
-   {明确不做的事项}
-   ```
+   渲染后的结构见模板文件 `flow/templates/overview-design.md.tmpl`。
 
 4. **生成 `task.md`**
 
-   按服务分组，每个 spec 含名称 + 一句话边界 + 依赖：
+   使用 `tasks.md.tmpl` 模板渲染，注入以下变量：
 
-   ```markdown
-   ---
-   requirement: {标题}
-   type: feature
-   status: planning
-   tier: {1/2/3}
-   branch: {分支名}
-   services: [{服务列表}]
-   created: {YYYY-MM-DD}
-   updated: {YYYY-MM-DD}
-   ---
+   | 变量名 | 来源 | 说明 |
+   |--------|------|------|
+   | `requirement_title` | 用户输入 | 需求标题 |
+   | `type` | 分析结果 | feature / hotfix / refactor |
+   | `tier` | 分析结果 | 1 / 2 / 3 |
+   | `branch` | config.yaml | 完整分支名（branch-pattern + change-name） |
+   | `services` | config.yaml | 涉及服务名列表 |
+   | `specs` | 用户输入 | 每个服务的 spec 列表（name, boundary, dependency） |
+   | `created` | 当前日期 | YYYY-MM-DD |
 
-   ## 开发顺序
-
-   1. {service-b}（无依赖）
-   2. {service-a}（依赖 service-b spec1）
-
-   ---
-
-   ## {service-b}
-
-   > 状态：📋 待开始 | 分配日期：—
-
-   - [ ] spec1: {名称}
-         边界：{一句话，明确不做什么}
-         依赖：无
-   - [ ] spec2: {名称}
-         边界：{一句话}
-         依赖：spec1
-
-   ## {service-a}
-
-   > 状态：⏳ 阻塞（等待 service-b spec1）| 分配日期：—
-
-   - [ ] spec1: {名称}
-         边界：{一句话}
-         依赖：service-b spec1（{接口描述}）
-   ```
+   渲染后的结构见模板文件 `flow/templates/tasks.md.tmpl`。
 
 5. **展示并确认，写入文件**
 

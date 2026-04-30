@@ -43,42 +43,30 @@ version: "0.2.0"
    └── 知识库说明.md         ← 仅在 knowledge_base.enabled=true 时生成
    ```
 
-   **config.yaml**：
-   ```yaml
-   project:
-     name: "{用户输入}"
-     role: "orchestrator"
-     created: "{YYYY-MM-DD}"
+   **config.yaml**：使用 `config.yaml.tmpl` 模板渲染，注入以下变量：
 
-   services:
-     - name: "{服务名}"
-       path: "./{目录}"
-       type: "{bff/data-service/admin/...}"
-       description: ""
-       flow_initialized: false
-       flow_initialized_at: ""
+   | 变量名 | 来源 | 说明 |
+   |--------|------|------|
+   | `project_name` | 用户输入 | 项目名称 |
+   | `services` | 检测结果 | 服务列表（name, path, type, description） |
+   | `knowledge_base` | 用户输入 | 是否启用、路径 |
+   | `conventions` | 用户输入 | task_id_prefix, branch_pattern, commit_format |
+   | `spec_tool` | 用户输入 | 子 agent spec 工具 |
 
-   knowledge_base:
-     enabled: {true/false}
-     path: "{用户输入或空}"
-     child_write: true
-     review_on_archive: true
-
-   conventions:
-     task_id_prefix: "{用户输入或空}"
-     branch_pattern: "feature/<kebab-case>"
-     commit_format: "{type}: {description}"
-
-   child_agent:
-     spec_tool: "{用户输入或空}"
-     onboarding_doc: ".flow/onboarding.md"
-   ```
+   渲染后的结构见模板文件 `flow/templates/config.yaml.tmpl`。
 
    **onboarding.md** 内容（模板渲染）：
    - 二级 agent 架构说明（根职责：设计/编排；子职责：实现）
    - 平台限制说明（根无法自动启动子，子可内联启动审核/测试 agent）
    - 子 agent 三阶段工作循环（阶段一设计 → 阶段二编码 → 阶段三汇报）
    - 提交格式、分支规范、知识库读写规则
+
+   **services.md**：使用 `services.md.tmpl` 模板渲染，注入以下变量：
+
+   | 变量名 | 来源 | 说明 |
+   |--------|------|------|
+   | `project_name` | 用户输入 | 项目名称 |
+   | `services` | 检测结果 | 服务列表（name, path, type, description） |
 
    **注意**：不再提前写入服务子目录，子 agent 自己 init 时注册。
 
@@ -114,39 +102,20 @@ version: "0.2.0"
    └── 工作流程.md        ← 本服务工作循环说明（持久化）
    ```
 
-   **config.yaml**：
-   ```yaml
-   project:
-     name: "{从根 config.yaml 读取，否则留空}"
-     role: "executor"
-     root_path: "{用户输入}"
-     service_name: "{用户输入}"
+   **config.yaml**：使用 `child-config.yaml.tmpl` 模板渲染，注入以下变量：
 
-   knowledge_base:
-     enabled: "{从根继承}"
-     path: "{从根继承}"
-     child_write: true
+   | 变量名 | 来源 | 说明 |
+   |--------|------|------|
+   | `project_name` | 根 config.yaml | 项目名称 |
+   | `root_path` | 用户输入 | 到根目录的相对路径 |
+   | `service_name` | 用户输入 | 当前服务名 |
+   | `knowledge_base` | 根 config.yaml | 继承知识库配置 |
+   | `conventions` | 根 config.yaml | 继承约定配置 |
+   | `spec_tool` | 用户输入 | 本服务 spec 工具 |
+   | `test_command` | 用户输入 | 单元测试命令 |
+   | `inline_agents` | 用户输入 | 审核/测试/知识库维护配置 |
 
-   conventions:
-     task_id_prefix: "{从根继承}"
-     branch_pattern: "{从根继承}"
-     commit_format: "{从根继承}"
-
-   child_agent:
-     spec_tool: "{用户输入}"
-     onboarding_doc: "{root_path}/.flow/onboarding.md"
-
-   inline_agents:
-     review:
-       enabled: true
-       knowledge_base_rules_path: ""
-     unit_test:
-       enabled: true
-       test_command: "{用户输入}"
-     knowledge_maintenance:
-       enabled: true
-       auto_trigger: false
-   ```
+   渲染后的结构见模板文件 `flow/templates/child-config.yaml.tmpl`。
 
    **工作流程.md** 内容（模板渲染，注入服务信息）：
    - 基本信息（服务名、根路径、spec 工具、测试命令）

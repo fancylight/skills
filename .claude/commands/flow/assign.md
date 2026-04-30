@@ -41,34 +41,54 @@ version: "0.2.0"
 
 4. **生成指令包**
 
+   使用 `assign.md.tmpl` 模板渲染，注入以下变量：
+
+   | 变量名 | 来源 | 说明 |
+   |--------|------|------|
+   | `service_name` | config.yaml | 目标服务名 |
+   | `onboarding_path` | config.yaml | 根目录 onboarding.md 绝对路径 |
+   | `change_name` | 活跃 change | 需求目录名 |
+   | `task_id` | 步骤 3 生成 | 任务号（如配置了前缀） |
+   | `spec_list` | task.md | 本服务未完成的 spec 列表（Markdown 格式） |
+   | `overview_design_path` | 活跃 change | 概要设计.md 绝对路径 |
+   | `knowledge_base_path` | config.yaml | 知识库路径（如启用） |
+   | `cross_service_context` | 依赖分析 | 依赖服务状态、已就绪接口契约 |
+   | `commit_format` | config.yaml | 提交格式 |
+
+   渲染后的指令包示例：
+
    ```
-   你好，我是 {service_name} 的子 agent。
+   你好，我是 {{service_name}} 的子 agent。
 
    ## 启动指引
    请先阅读：
-   1. {onboarding_path}（二级架构说明和开发规范）
+   1. {{onboarding_path}}（二级架构说明和开发规范）
    2. 确认本服务的 .flow/config.yaml 存在，否则先执行 /flow:init
 
    ## 当前任务
-   需求：{change-name}
-   {task_id 如有：任务号：{prefix}-{id}}
+   需求：{{change_name}}
+   {{#if task_id}}任务号：{{task_id}}{{/if}}
 
    ## 待完成 Spec
-   {每个 spec 一行：- spec{n}: {名称}（边界：{边界}，依赖：{依赖}）}
+   {{spec_list}}
 
    ## 参考文档
-   - 概要设计：{概要设计.md 绝对路径}
-   - 知识库：{knowledge_base_path 如启用}
+   - 概要设计：{{overview_design_path}}
+   {{#if knowledge_base_path}}
+   - 知识库：{{knowledge_base_path}}
+   {{/if}}
 
    ## 跨服务上下文
-   {cross_service_context：依赖服务状态、已就绪接口契约}
+   {{cross_service_context}}
 
    ## 工作要求
    1. 执行 /flow:receive 接收任务（自动加载工作协议）
    2. 执行 /flow:design 完成 spec 设计并自检
    3. 设计评审通过后进入编码（每个 spec：apply → 内联审核 → 单元测试）
    4. 所有 spec 完成后执行 /flow:report
-   {commit_format 如有：提交格式：{commit_format}}
+   {{#if commit_format}}
+   提交格式：{{commit_format}}
+   {{/if}}
 
    注意：先做设计，等评审通过再编码。
    ```

@@ -30,18 +30,27 @@ version: "0.1.0"
    └── tasks.md    ← 极简任务列表
    ```
 
-   **fix.md** 结构：
+   使用 `fix.md.tmpl` 模板渲染，注入以下变量：
+
+   | 变量名 | 来源 | 说明 |
+   |--------|------|------|
+   | `service_name` | config.yaml | 当前服务名 |
+   | `created_date` | 当前日期 | 创建日期（YYYY-MM-DD） |
+   | `updated_date` | 当前日期 | 更新日期（YYYY-MM-DD） |
+   | `bug_description` | 用户输入 | bug 描述 |
+
+   渲染后的 fix.md 结构：
    ```markdown
    ---
    type: hotfix
    status: in_progress
-   service: {service_name}
-   created: {YYYY-MM-DD}
-   updated: {YYYY-MM-DD}
+   service: {{service_name}}
+   created: {{created_date}}
+   updated: {{updated_date}}
    ---
 
    ## Bug 描述
-   {用户输入的描述}
+   {{bug_description}}
 
    ## 复现步骤
    {待填写}

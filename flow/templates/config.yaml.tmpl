@@ -2,29 +2,31 @@
 # 由 /flow:init 生成，可手动编辑
 
 project:
-  name: ""
+  name: "{{project_name}}"
   role: "orchestrator"
-  created: ""
+  created: "{{created_date}}"
 
 services:
-  - name: ""
-    path: ""
-    type: ""
-    description: ""
+{{#each services}}
+  - name: "{{name}}"
+    path: "{{path}}"
+    type: "{{type}}"
+    description: "{{description}}"
     flow_initialized: false
     flow_initialized_at: ""
+{{/each}}
 
 knowledge_base:
-  enabled: false
-  path: ""
+  enabled: {{knowledge_base.enabled}}
+  path: "{{knowledge_base.path}}"
   child_write: true
   review_on_archive: true
 
 conventions:
-  task_id_prefix: ""
-  branch_pattern: "feature/<kebab-case>"
-  commit_format: "{type}: {description}"
+  task_id_prefix: "{{conventions.task_id_prefix}}"
+  branch_pattern: "{{conventions.branch_pattern}}"
+  commit_format: "{{conventions.commit_format}}"
 
 child_agent:
-  spec_tool: ""
+  spec_tool: "{{spec_tool}}"
   onboarding_doc: ".flow/onboarding.md"

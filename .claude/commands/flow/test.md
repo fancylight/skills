@@ -45,6 +45,17 @@ version: "0.1.0"
    - 环境配置（服务地址、DB、MQ）
    - 概要设计.md 路径（完整背景）
 
+   测试 agent 使用 `integration-test.md.tmpl` 模板生成测试用例，注入以下变量：
+
+   | 变量名 | 来源 | 说明 |
+   |--------|------|------|
+   | `requirement_name` | change | 需求标题 |
+   | `generated_at` | 当前时间 | 生成时间 |
+   | `services` | 步骤 3 | 服务地址列表（name, url） |
+   | `db_connection` | 步骤 3 | 数据库连接信息 |
+   | `mq_connection` | 步骤 3 | MQ 连接信息（如涉及） |
+   | `test_case_*` | 验收标准 | 从验收标准推导的用例 |
+
    测试 agent 执行：
 
    a. **HTTP 接口验证**

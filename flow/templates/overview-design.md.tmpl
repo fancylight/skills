@@ -1,0 +1,45 @@
+# {{requirement_title}}
+
+> 本文件由 `/flow:design`（根模式）自动生成，位于 `.flow/changes/{change-name}/概要设计.md`。
+
+---
+
+## 背景
+{待根 agent 与用户协力填写}
+
+## 目标
+{要达到什么效果}
+
+## 涉及服务
+
+| 服务 | 职责 | 依赖 |
+|------|------|------|
+{{#each services}}
+| {{name}} | {{responsibility}} | {{dependency}} |
+{{/each}}
+
+## 开发顺序
+
+{{#each services}}
+{{@index_1}}. {{name}}（{{#if dependency}}依赖 {{dependency}}{{else}}无依赖，先开发{{/if}}）
+{{/each}}
+
+## 接口契约草稿
+
+{跨服务 API 定义初稿}
+
+## 分支策略
+
+分支：`{{branch_pattern}}/{{change_name}}`，所有服务使用同一分支名。
+
+## 验收标准
+
+{集成测试的依据，必须章节，描述端到端可验证的行为}
+
+## 非目标
+
+{明确不做的事项}
+
+## 变更记录
+
+{flow:change 时追加}
