@@ -56,7 +56,7 @@ version: "0.1.0"
    | `acceptance_criteria` | 用户输入 | 验收标准（必须章节） |
    | `non_goals` | 用户输入 | 非目标 |
 
-   渲染后的结构见模板文件 `flow/templates/overview-design.md.tmpl`。
+   模板文件：本命令文件所在目录下的 `templates/overview-design.md.tmpl`，用 Read 工具按绝对路径读取。
 
 4. **生成 `task.md`**
 
@@ -72,7 +72,7 @@ version: "0.1.0"
    | `specs` | 用户输入 | 每个服务的 spec 列表（name, boundary, dependency） |
    | `created` | 当前日期 | YYYY-MM-DD |
 
-   渲染后的结构见模板文件 `flow/templates/tasks.md.tmpl`。
+   模板文件：本命令文件所在目录下的 `templates/tasks.md.tmpl`，用 Read 工具按绝对路径读取。
 
 5. **展示并确认，写入文件**
 
@@ -96,7 +96,7 @@ version: "0.1.0"
 
 2. **读取参考文档**
 
-   - `{root_path}/.flow/changes/{change}/概要设计.md` — 整体方案和接口契约草稿
+   - 将 `root_path` 与当前工作目录拼成绝对路径，用 **Read 工具**读取 `{绝对根路径}/.flow/changes/{change}/概要设计.md` — 整体方案和接口契约草稿
    - 知识库相关文档（如启用）
 
 3. **为每个 spec 创建设计文档**
@@ -104,6 +104,12 @@ version: "0.1.0"
    在 spec 工作区（如 `openspec/changes/{spec-name}/`）创建：
    - `proposal.md`：spec 的背景、目标、非目标
    - `design.md`：具体实现方案、涉及的接口/数据结构
+
+   **DDL 提取要求**（如 spec 涉及数据库变更）：
+   - 在 `design.md` 中必须包含 `## DDL` 章节
+   - 列出所有新建/修改的表结构（CREATE TABLE / ALTER TABLE）
+   - 包含字段名、类型、约束、索引
+   - 如有数据迁移逻辑，在 `## 数据迁移` 章节说明
 
    按依赖顺序处理（无依赖的 spec 先做）。
 

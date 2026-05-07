@@ -252,6 +252,7 @@ updated: YYYY-MM-DD
 | `/flow:design` | ✅ 根模式 | ✅ 子模式 | 根：概要设计+task；子：spec设计+自检 |
 | `/flow:assign` | ✅ | — | 生成子 agent 指令包 |
 | `/flow:receive` | — | ✅ | 接收任务，加载工作协议 |
+| `/flow:apply` | — | ✅ | 阶段二编码：按 spec 顺序执行编码→审核→测试循环 |
 | `/flow:report` | — | ✅ | 汇报，更新根 task.md，触发知识库维护 |
 | `/flow:status` | ✅ | — | 查看大需求进度 |
 | `/flow:verify` | ✅ | — | 跨服务接口契约验证 |
@@ -347,9 +348,13 @@ updated: YYYY-MM-DD
 
 ---
 
-#### `flow:assign` — 生成指令包（根）
+#### `flow:assign` — 分配任务（根）
 
-无大改，新增注入内容：
+支持两种模式：
+- **内联执行**：根 agent 直接启动内联编码 agent，自动完成所有 spec 的编码→审核→测试循环
+- **独立指令包**：生成指令包，用户手动在服务目录打开新 Claude Code 会话粘贴
+
+注入内容：
 - spec 列表（从 task.md 提取本服务的 spec 名称+边界+依赖）
 - 概要设计路径（绝对路径）
 - 工作阶段说明（告知子 agent 先走阶段一设计，不要直接编码）
@@ -450,8 +455,10 @@ updated: YYYY-MM-DD
     │                                 （含 spec 粒度定义 + 验收标准）
     ▼
 根 /flow:assign <service-b>           按依赖顺序，无依赖先分配
-    → 指令包（spec 列表 + 概要设计路径）
+    → 选择模式：内联执行 / 独立指令包
     │
+    │  内联模式：根 agent 直接启动内联编码 agent → 自动完成所有 spec
+    │  独立模式：生成指令包
     │  ← 用户手动：在 service-b 目录打开 Claude Code，粘贴指令包
     ▼
 子(service-b) 检查 .flow/config.yaml
@@ -470,15 +477,12 @@ updated: YYYY-MM-DD
     │    评审通过 ────────────────────────────────────┐
     │    评审驳回 → 修改 spec → 重新 /flow:design      │
     ▼                                                 │
-子 阶段二：逐 spec 编码 ◄────────────────────────────┘
+子 /flow:apply ◄───────────────────────────────────────┘
     │
-    ├── apply spec1
-    │     → 内联审核 agent（代码 vs spec design）
-    │     → 单元测试
-    │     → 通过 → 下一个 spec
-    │     → 失败 → 修复 → 重试
+    ├── spec1: 编码 → 内联审核 → 单元测试 → [x]
+    │     → 失败自动修复重试（最多 3 次）
     │
-    ├── apply spec2 ...
+    ├── spec2: 编码 → 内联审核 → 单元测试 → [x]
     │
     ▼
 子 /flow:report
@@ -600,6 +604,7 @@ updated: YYYY-MM-DD
 | `commands/design.md` | 新增 | 双角色设计命令（根：概要设计；子：spec设计+自检） |
 | `commands/hotfix.md` | 新增 | 轻量 bug 修复工作流 |
 | `commands/test.md` | 新增 | 集成测试触发 |
+| `commands/apply.md` | 新增 | 阶段二编码循环（编码→审核→测试，自动重试） |
 | `commands/change.md` | 新增 | 需求变更协议 |
 | `templates/onboarding.md.tmpl` | 修改 | 改为根目录共享版 |
 | `templates/child-config.yaml.tmpl` | 修改 | 增加 inline_agents |
@@ -611,7 +616,7 @@ updated: YYYY-MM-DD
 | `docs/schema.md` | 修改 | 新字段和文件格式补充 |
 | `docs/paradigm-v3-root-perspective.md` | 重写为 v4 | 反映新架构、双角色模式、三阶段工作循环 |
 
-**总计**：4 个新命令，5 个修改命令，3 个新模板，4 个修改模板，2 个文档更新。
+**总计**：5 个新命令，5 个修改命令，3 个新模板，4 个修改模板，2 个文档更新。
 
 ---
 

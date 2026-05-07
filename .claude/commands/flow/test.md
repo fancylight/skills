@@ -45,7 +45,7 @@ version: "0.1.0"
    - 环境配置（服务地址、DB、MQ）
    - 概要设计.md 路径（完整背景）
 
-   测试 agent 使用 `integration-test.md.tmpl` 模板生成测试用例，注入以下变量：
+   测试 agent 使用 `integration-test.md.tmpl` 模板生成测试用例，模板文件：本命令文件所在目录下的 `templates/integration-test.md.tmpl`，用 Read 工具按绝对路径读取，注入以下变量：
 
    | 变量名 | 来源 | 说明 |
    |--------|------|------|
@@ -107,6 +107,7 @@ version: "0.1.0"
 
 **约束**
 
+- **根 agent 不亲自执行测试命令**：所有测试工作委托给 Agent tool 启动的内联测试 agent，根 agent 只负责收集环境配置和启动 Agent tool
 - 只读取概要设计中的验收标准，不自行发散测试范围
 - 测试 agent 在本地环境执行，不发布到任何远程环境
 - DB 直查使用只读连接（SELECT），不执行写操作

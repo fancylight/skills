@@ -27,11 +27,11 @@ version: "0.2.0"
 1. **加载工作协议**
 
    读取 `.flow/工作流程.md`，作为本次会话的执行规范。
-   读取 `{root_path}/.flow/onboarding.md`，理解二级架构规范。
+   将 `root_path` 与当前工作目录拼成绝对路径，用 **Read 工具**读取 `{绝对根路径}/.flow/onboarding.md`，理解二级架构规范。
 
 2. **定位活跃 change**
 
-   扫描 `{root_path}/.flow/changes/`，排除 `archive/`，找到活跃 change。
+   将 `root_path` 与当前工作目录拼成绝对路径，用 **Glob 工具**扫描 `{绝对根路径}/.flow/changes/`，排除 `archive/`，找到活跃 change。
    - 一个：自动选中并告知
    - 多个：**AskUserQuestion** 让用户选择
    - 无：提示"根目录无活跃需求，请联系根 agent 执行 /flow:design 创建需求"
@@ -84,7 +84,7 @@ version: "0.2.0"
 
    ### 下一步
    阶段一：执行 /flow:design 为每个 spec 创建设计文档并自检。
-   阶段二：按 spec 顺序执行编码，每个完成后自动触发审核和测试。
+   阶段二：执行 /flow:apply 按 spec 顺序编码（含审核和测试循环）。
    ```
 
 ---

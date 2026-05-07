@@ -15,10 +15,11 @@
 ## 二、Slash Commands（`.claude/commands/flow/`）
 
 - [x] `init.md` — 初始化（根模式 + 子模式）
-- [x] `design.md` — 设计（根：概要设计 + task.md；子：spec 设计 + 自检）
-- [x] `assign.md` — 生成子 agent 指令包
+- [x] `design.md` — 设计（根：概要设计 + task.md；子：spec 设计 + DDL 提取 + 自检）
+- [x] `assign.md` — 分配任务给子 agent（双模式：内联执行 / 独立指令包）
 - [x] `receive.md` — 子 agent 接收任务
-- [x] `report.md` — 子 agent 汇报
+- [x] `apply.md` — 子 agent 阶段二编码（编码→审核→测试循环，含文档一致性核对）
+- [x] `report.md` — 子 agent 汇报（含流程合规检查）
 - [x] `status.md` — 查看需求进度
 - [x] `verify.md` — 跨服务接口契约验证
 - [x] `test.md` — 集成测试
@@ -40,6 +41,8 @@
 - [x] `flow-test/SKILL.md`
 - [x] `flow-change/SKILL.md`
 - [x] `flow-archive/SKILL.md`
+- [x] `flow-apply/SKILL.md`
+- [x] `flow-apply/SKILL.md`
 - [x] `flow-hotfix/SKILL.md`
 
 ---

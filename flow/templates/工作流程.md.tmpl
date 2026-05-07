@@ -26,11 +26,12 @@
 
 ## 阶段二：编码
 
-1. 按 spec 依赖顺序逐个执行 apply
-2. 每个 spec 完成后自动触发：
-   a. 内联审核 agent（审核代码与 spec 一致性）
-   b. 单元测试（{{test_command}}）
-3. 审核/测试通过 → 下一个 spec；失败 → 修复后重试
+1. 执行 /flow:apply，按 spec 依赖顺序逐个编码
+2. 每个 spec 自动经历：
+   a. 编码实现（基于 design.md）
+   b. 内联审核 agent（审核代码与 design.md 一致性，失败自动修复，最多重试 3 次）
+   c. 单元测试（{{test_command}}，失败自动修复，最多重试 3 次）
+3. 审核/测试通过 → 自动更新 task.md 勾选 → 下一个 spec
 4. 所有 spec 完成 → 执行 /flow:report
 
 ---

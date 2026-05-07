@@ -72,6 +72,7 @@ version: "0.1.0"
 
 **约束**
 
+- **根 agent 不亲自执行验证逻辑**：验证工作委托给 Agent tool 启动的内联 agent，根 agent 只负责收集 api.md 路径和启动 Agent tool
 - 只读操作，不修改任何文件
 - 比对基于文档内容，不执行实际 API 调用
 - 接口文档按优先级查找：活跃 spec change 目录 → 归档 change 目录 → 服务根目录

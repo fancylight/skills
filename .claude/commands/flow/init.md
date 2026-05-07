@@ -53,7 +53,7 @@ version: "0.2.0"
    | `conventions` | 用户输入 | task_id_prefix, branch_pattern, commit_format |
    | `spec_tool` | 用户输入 | 子 agent spec 工具 |
 
-   渲染后的结构见模板文件 `flow/templates/config.yaml.tmpl`。
+   模板文件：本命令文件所在目录下的 `templates/config.yaml.tmpl`。用 Read 工具读取该文件时，先通过当前命令文件的路径推断出 `templates/` 的绝对路径，再读取。
 
    **onboarding.md** 内容（模板渲染）：
    - 二级 agent 架构说明（根职责：设计/编排；子职责：实现）
@@ -88,6 +88,7 @@ version: "0.2.0"
    使用 **AskUserQuestion** 收集：
    - 根目录路径（`root_path`，相对当前目录）
    - 服务名称（`service_name`，默认目录名）
+   - 服务描述（`description`，一句话说明该服务的职责）
    - spec 工具（`spec_tool`）
    - 单元测试命令（`test_command`，如 `mvn test`、`npm test`）
    - 是否启用内联审核 agent（默认 true）
@@ -115,7 +116,7 @@ version: "0.2.0"
    | `test_command` | 用户输入 | 单元测试命令 |
    | `inline_agents` | 用户输入 | 审核/测试/知识库维护配置 |
 
-   渲染后的结构见模板文件 `flow/templates/child-config.yaml.tmpl`。
+   模板文件：本命令文件所在目录下的 `templates/child-config.yaml.tmpl`。用 Read 工具读取该文件时，先通过当前命令文件的路径推断出 `templates/` 的绝对路径，再读取。
 
    **工作流程.md** 内容（模板渲染，注入服务信息）：
    - 基本信息（服务名、根路径、spec 工具、测试命令）
@@ -125,16 +126,19 @@ version: "0.2.0"
 
 3. **向根注册**
 
-   读取 `{root_path}/.flow/config.yaml`，在 services 列表中找到或追加本服务条目：
+   读取根目录的 config.yaml：将用户输入的 `root_path` 与当前工作目录拼成绝对路径，再加 `/.flow/config.yaml`，用 **Read 工具**按绝对路径读取（不要用 Glob 或相对路径）。在 services 列表中找到或追加本服务条目：
    ```yaml
    - name: "{service_name}"
      path: "{相对根的路径}"
+     description: "{description}"
      flow_initialized: true
      flow_initialized_at: "{YYYY-MM-DD}"
    ```
 
-   展示变更内容，用户确认后写入。
-   如根 config.yaml 不存在，警告"根目录未初始化"但不中止。
+   同步更新根目录的 `services.md`：用 **Read 工具**按绝对路径读取 `{绝对根路径}/.flow/services.md`，在服务列表中找到或追加本服务行（name、path、description、状态）。
+
+   展示两个文件的变更内容，用户确认后一并写入。
+   如根 config.yaml 或 services.md 不存在，警告"根目录未初始化"但不中止。
 
 4. **输出摘要**
 

@@ -20,8 +20,9 @@
 |------|------|------|
 | `/flow:init` | 根/子 | 初始化必要文件 |
 | `/flow:design` | 根/子 | 根：概要设计 + task.md；子：spec 设计 + 自检 |
-| `/flow:assign` | 根 | 生成子 agent 指令包 |
+| `/flow:assign` | 根 | 分配任务给子 agent（内联执行 / 独立指令包） |
 | `/flow:receive` | 子 | 接收任务，加载工作协议 |
+| `/flow:apply` | 子 | 阶段二编码：按 spec 顺序执行编码→审核→测试循环 |
 | `/flow:report` | 子 | 汇报，更新根 task.md，触发知识库维护 |
 | `/flow:status` | 根 | 查看需求进度（spec 粒度） |
 | `/flow:verify` | 根 | 跨服务接口契约验证 |
@@ -36,8 +37,8 @@
 
 ```
 .claude/
-├── commands/flow/      ← 11 个命令文件（显式调用）
-├── skills/flow-*/      ← 11 个 SKILL.md（语义触发）
+├── commands/flow/      ← 12 个命令文件（显式调用）
+├── skills/flow-*/      ← 12 个 SKILL.md（语义触发）
 └── INSTALL.md          ← 安装说明
 
 flow/
