@@ -7,6 +7,6 @@ metadata:
   version: "0.2.0"
 ---
 
-根 agent 为指定服务分配子 agent，支持内联执行或生成独立指令包。
+根 agent 为指定服务分配子 agent，支持内联执行或生成独立指令包。内联 agent 可调用 skill，必须验证目录，必须收到 report 才能标记完成。
 
 执行 `/flow:assign <service-name>` 开始。

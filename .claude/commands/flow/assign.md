@@ -19,8 +19,8 @@ version: "0.2.0"
    - 若 `flow_initialized: false`，提示："该服务尚未初始化，子 agent 收到指令包后需先执行 /flow:init"
 3. 确认有活跃 change；多个时 **AskUserQuestion** 选择
 4. 使用 **AskUserQuestion** 选择分配模式：
-   - **内联执行**：根 agent 直接启动内联编码 agent，自动完成所有 spec 的编码→审核→测试循环。适合小需求、单服务、spec 数量少的场景。无持久记忆，会话结束即消失。**注意：内联 agent 无法调用 skill（如 `opsx:apply`），只能通过原始工具（Read/Edit/Write）完成编码。**
-   - **独立指令包**：生成指令包，用户手动在服务目录打开新 Claude Code 会话粘贴。适合大需求、多 spec、需要长期工作的场景。有持久记忆。**子 agent 拥有完整 skill 系统，可调用 `opsx:apply`、`/flow:apply` 等命令。**
+   - **内联执行**：根 agent 直接启动内联编码 agent，自动完成所有 spec 的编码→审核→测试循环。适合小需求、单服务、spec 数量少的场景。无持久记忆，会话结束即消失。**内联 agent 可以调用 skill（如 `/flow:apply`、`/flow:receive` 等），拥有完整的 skill 系统。**
+   - **独立指令包**：生成指令包，用户手动在服务目录打开新 Claude Code 会话粘贴。适合大需求、多 spec、需要长期工作的场景。有持久记忆。**子 agent 拥有完整 skill 系统，可调用 `/flow:apply`、`/flow:receive` 等命令。**
 
 ---
 
@@ -62,6 +62,8 @@ version: "0.2.0"
 
    **严格要求：每个 spec 必须独立执行一轮 Agent tool 调用，绝对不能把多个 spec 打包给同一个 agent。**
 
+   **目录锁定**：每个内联 agent 的 prompt 必须以目录验证开头。agent 启动后第一件事是执行 `pwd` 和 `git remote -v`，确认工作目录和仓库正确。不匹配则拒绝操作并报告错误。
+
    按 spec 依赖顺序，**逐个 spec** 执行以下 3 步。每步使用 **Agent tool** 启动独立内联 agent，根 agent 只负责编排流程，不执行任何服务目录操作。
 
    **对每个 spec，依次执行：**
@@ -71,6 +73,11 @@ version: "0.2.0"
    使用 Agent tool 启动编码 agent，**每次只传一个 spec**，prompt：
    ```
    你是 {service_name} 的编码 agent。工作目录：{服务绝对路径}
+
+   【目录锁定】启动后第一件事执行：
+   1. pwd — 确认当前目录是 {服务绝对路径}
+   2. git remote -v — 确认仓库是 {service_name} 对应的仓库
+   如果不匹配，停止并报告错误，不要在错误目录执行任何操作。
 
    任务：执行 /flow:apply {spec_name} 完成编码→审核→测试循环。
 
@@ -87,6 +94,11 @@ version: "0.2.0"
    使用 Agent tool 启动提交 agent，**只为当前这一个 spec 提交**，prompt：
    ```
    你是提交 agent。工作目录：{服务绝对路径}
+
+   【目录锁定】启动后第一件事执行：
+   1. pwd — 确认当前目录是 {服务绝对路径}
+   2. git remote -v — 确认仓库是 {service_name} 对应的仓库
+   如果不匹配，停止并报告错误。
 
    1. 检查本次 spec 变更的文件：git status
    2. 新增的文件执行 git add {文件路径}（不要 git add .）
@@ -121,6 +133,11 @@ version: "0.2.0"
    - 全部 spec ✅ → 提示用户"编码完成，可执行 /flow:test 进行集成测试"
    - 有失败 spec → 列出失败原因，提示用户决定下一步
    - 有 spec 未设计（暂停）→ 提示用户在子目录独立会话中完成设计评审
+
+   **验收纪律（内联模式强制）**：
+   - 每个 spec 完成后，根 agent 必须验证子 agent 提交了 `/flow:report`，包含：commit hash、改动文件列表、自测结果
+   - **没有收到 report 的 spec，根 agent 不得将其标记为 `[x]`**
+   - 根 agent 不得自行验证代码状态后直接标记完成，必须走 report 流程
 
    ---
 
@@ -211,3 +228,6 @@ version: "0.2.0"
 - 内联模式：spec 数量 > 5 或涉及多服务时，建议用户选择独立模式
 - 内联模式：spec 无 design.md 时，内联 agent 只做设计不编码（需用户评审后才能编码）
 - 内联模式：会话结束即消失，不保证持久记忆
+- **内联模式：内联 agent 可以调用 skill（如 `/flow:apply`、`/flow:receive` 等），根 agent 不应阻止**
+- **内联模式：每个内联 agent 启动后必须先验证目录（pwd + git remote -v），不匹配则拒绝操作**
+- **内联模式：根 agent 必须收到子 agent 的 `/flow:report` 才能标记 spec 完成，不得跳过 report 直接验收**
