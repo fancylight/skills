@@ -4,9 +4,13 @@ description: "Root agent assigns work to a child agent — inline execution or i
 license: MIT
 metadata:
   author: flow
-  version: "0.2.0"
+  version: "0.3.0"
 ---
 
-根 agent 为指定服务分配子 agent，支持内联执行或生成独立指令包。内联 agent 可调用 skill，必须验证目录，必须收到 report 才能标记完成。
+根 agent 为指定服务派发任务给子 agent。根只负责生成提示词和派发，不编码不提交不更新 task.md。子 agent 入口是 `/flow:receive`。
+
+两种模式：
+- **独立指令包**：输出提示词，用户手动粘贴
+- **内联执行**：Agent tool 启动一个子 agent
 
 执行 `/flow:assign <service-name>` 开始。

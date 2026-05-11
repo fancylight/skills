@@ -7,41 +7,48 @@
 
 ## 一、核心设计原则
 
-1. **根 agent 职责收窄**：需求拆分、概要设计、维护大需求 task.md、触发集成测试、归档。不做具体 spec 设计，不主动推送变更通知。
+1. **根 agent 职责收窄**：需求拆分、概要设计、维护大需求 task.md、派发任务、查看进度、触发集成测试、归档。**不编码、不提交代码、不更新 task.md 的 spec 完成状态**。
 
-2. **子 agent 参与设计阶段**：根定义 spec 边界（名称 + 一句话职责 + 依赖），子 agent 负责每个 spec 的 proposal + design，内联自检后提交用户评审，评审通过才进入编码。
+2. **子 agent 自行完成开发循环**：receive 接收任务 → design（如需要）→ apply 编码（内部委托 opsx:apply + 审核子 agent + 自提交）→ report 汇报并更新 task.md。**task.md 的唯一写入者是 flow:report**。**1 task = 1 spec = 1 agent = 1 commit**。
 
-3. **两种工作模式并存**：
+3. **子 agent 入口统一**：无论内联还是独立模式，子 agent 的第一步始终是 `/flow:receive`。receive 判断当前阶段（有 design.md → 直接 apply，无 → 先 design）。
+
+4. **两种工作模式并存**：
    - **根指导模式**：根唤起 → 子 receive → 子设计+自检 → 用户评审 → 子编码循环 → 子 report
    - **用户直接模式**：用户进入子目录 → 使用 flow 命令自动检查 init → 子自主工作
 
-4. **子 agent 内部循环自动化**：编码完成后，内联审核/测试 agent 自动执行，不需要用户中转。
+5. **子 agent 内部循环自动化**：编码完成后，内联审核/测试 agent 自动执行，不需要用户中转。
 
-5. **平台限制接受**：根无法自动启动独立子 agent 会话（平台硬限制）。根→子的启动必须由用户手动操作。根→子通过文件（task.md）通信，不需要实时通信。
+6. **两种 agent 形态**：**独立会话**（用户手动启动的新 Claude Code 进程，有持久记忆）和**内联 agent**（父 agent 通过 Agent tool 启动，无持久记忆）。根 agent 可以启动内联 agent，但无法自动启动独立会话（平台硬限制）。根→子通过文件（task.md）通信。
 
-6. **现阶段 spec 由根定义粒度**：知识库不完善阶段，spec 的存在和边界由根与用户协力确定，子 agent 只做 spec 内部设计。这是当前阶段的务实选择，非最终形态。
+7. **现阶段 spec 由根定义粒度**：知识库不完善阶段，spec 的存在和边界由根与用户协力确定，子 agent 只做 spec 内部设计。这是当前阶段的务实选择，非最终形态。
 
 ---
 
 ## 二、Agent 启动模式
 
+两种 agent 的本质区别是**启动方式**，不是用途：
+
 ```
-┌─────────────────────────────────────────────────────────┐
-│  独立模式（Independent Session）                          │
-│  用户在服务目录单独打开 Claude Code                        │
-│  持久 memory：~/.claude/projects/{项目-服务名}/memory/    │
-│  适合：编码子 agent（长期工作，需要服务上下文持久记忆）     │
-├─────────────────────────────────────────────────────────┤
-│  内联模式（Inline via Agent tool）                        │
-│  由父 agent 通过 Agent tool 启动，随父会话结束而消失        │
-│  记录在父会话 subagents/ 目录                              │
-│  适合：审核 agent、测试 agent、知识库维护 agent（短生命周期）│
-└─────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│  独立会话（Independent Session）                              │
+│  用户手动在服务目录打开新的 Claude Code 进程                    │
+│  · 持久 memory：~/.claude/projects/{项目-服务名}/memory/      │
+│  · 拥有独立的 CLAUDE.md、settings、skills                     │
+│  · 根 agent 无法自动启动——必须由用户手动操作                   │
+├──────────────────────────────────────────────────────────────┤
+│  内联 agent（Inline Agent）                                   │
+│  由父 agent 通过 Agent tool 启动，运行在父会话的进程内          │
+│  · 无持久 memory，随父会话结束而消失                            │
+│  · 继承父 agent 的 skills、settings、MCP 工具                  │
+│  · 根 agent 和子 agent 都可以启动内联 agent                    │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 **关键约束**：
-- 根 agent 无法自动启动独立子 agent → 根→子的启动必须用户手动操作
-- 子 agent 可以自动启动内联 agent → 子 agent 内部循环可以全自动
+- 根 agent **可以**通过 Agent tool 启动内联 agent（用于编码、审核、测试等）
+- 根 agent **无法**自动启动独立会话——必须由用户手动在服务目录打开 Claude Code
+- 子 agent（无论是独立会话还是内联 agent）都可以启动自己的内联 agent（审核、测试）
 
 ---
 
@@ -250,7 +257,7 @@ updated: YYYY-MM-DD
 |------|:--------:|:--------:|------|
 | `/flow:init` | ✅ 模式A | ✅ 模式B | 初始化必要文件（不含设计） |
 | `/flow:design` | ✅ 根模式 | ✅ 子模式 | 根：概要设计+task；子：spec设计+自检 |
-| `/flow:assign` | ✅ | — | 生成子 agent 指令包 |
+| `/flow:assign` | ✅ | — | 派发任务给子 agent（内联/独立两种模式），子入口是 receive |
 | `/flow:receive` | — | ✅ | 接收任务，加载工作协议 |
 | `/flow:apply` | — | ✅ | 阶段二编码：按 spec 顺序执行编码→审核→测试循环 |
 | `/flow:report` | — | ✅ | 汇报，更新根 task.md，触发知识库维护 |
@@ -348,38 +355,85 @@ updated: YYYY-MM-DD
 
 ---
 
-#### `flow:assign` — 分配任务（根）
+#### `flow:assign` — 派发任务（根）
 
-支持两种模式：
-- **内联执行**：根 agent 直接启动内联编码 agent，自动完成所有 spec 的编码→审核→测试循环
-- **独立指令包**：生成指令包，用户手动在服务目录打开新 Claude Code 会话粘贴
+`flow:assign` 是子 agent 开发的**入口**。根 agent 按 spec 粒度派发任务：**1 task = 1 spec = 1 agent = 1 commit**。
 
-注入内容：
-- spec 列表（从 task.md 提取本服务的 spec 名称+边界+依赖）
-- 概要设计路径（绝对路径）
-- 工作阶段说明（告知子 agent 先走阶段一设计，不要直接编码）
+根 agent 只负责生成提示词和派发，**不做任何编码、提交、task.md 更新**。
+
+**两种模式**：
+
+- **独立指令包**：根 agent 为每个 spec 输出独立提示词，用户手动在新终端逐个粘贴
+- **内联执行**：根 agent 按依赖顺序，为每个 spec 使用 Agent tool 启动一个子 agent
+
+**提示词内容**（每个 spec 独立一份）：
+
+| 信息 | 说明 |
+|------|------|
+| 工作目录 | 服务绝对路径 |
+| 服务名 | 来自 config.yaml |
+| root_path | 根目录路径 |
+| 唯一任务 | spec_name（只此一个 spec） |
+| 第一步指令 | 执行 `/flow:receive {spec_name}` |
+
+提示词聚焦单个 spec，不包含其他 spec 的细节。
+
+**内联模式约束**：
+- 根 agent 按依赖顺序逐 spec 启动子 agent（依赖 spec 先完成再启动后续）
+- 无依赖的 spec 可并行启动
+- 每个子 agent 启动后第一件事是目录验证（pwd + git remote -v）
+- 根 agent 不读取 design.md、不编码、不提交、不更新 task.md
+- 每个子 agent 自行完成：receive → design（如需要）→ apply（单 spec）→ report
+
+**独立模式约束**：
+- 每个 spec 独立一份指令包
+- 指令包指引第一步是 `/flow:receive {spec_name}`（由 receive 判断阶段）
 
 ---
 
 #### `flow:receive` — 接收任务（子）
+
+输入：`/flow:receive [spec-name]`。有参数时聚焦单个 spec，无参数时读取所有本服务 spec。
 
 新增步骤（现有步骤之后）：
 
 1. 读取 `.flow/工作流程.md` 作为本次会话执行协议
 2. 读取根 task.md，检查变更通知章节（如有），展示给用户
 3. 判断当前阶段：
-   - spec 无 design.md → 阶段一（设计）
-   - spec 有 design.md 但有未完成编码 → 阶段二（编码）
-4. 输出阶段启动摘要，引导执行 `/flow:design`（阶段一）或继续编码（阶段二）
+   - 指定 spec 无 design.md → 阶段一（设计）
+   - 指定 spec 有 design.md → 阶段二（编码）
+4. 输出阶段启动摘要，引导执行 `/flow:design`（阶段一）或 `/flow:apply {spec-name}`（阶段二）
 
 ---
 
+#### `flow:apply` — 阶段二编码（子）
+
+输入：`/flow:apply {spec-name}`（单 spec 模式，主路径）。
+
+职责：完成单个 spec 的编码循环。编码委托给 spec_tool（如 opsx:apply），子 agent 自行唤起审核子 agent，自行提交。
+
+步骤：
+1. 读取 spec 的 `design.md`
+2. **编码**：使用 `opsx:apply`（或 config 中配置的 `spec_tool`）
+3. **审核**：子 agent 使用 Agent tool 启动内联审核 agent，检查代码与 design.md 的一致性
+4. **测试**：执行 `inline_agents.unit_test.test_command`
+5. **提交**：审核和测试均通过后，子 agent 自行 `git commit`（commit 格式来自 config.yaml）
+6. 完成后输出摘要，提示执行 `/flow:report`
+
+约束：
+- 每个 agent 只处理一个 spec（**1 spec = 1 commit**）
+- 不更新 task.md（task.md 的唯一写入者是 `/flow:report`）
+- 审核和测试重试各最多 3 次，超限必须停止
+
 #### `flow:report` — 汇报（子）
+
+`flow:report` 是 **task.md 的唯一写入者**。子 agent 完成编码后提交结构化汇报，更新根 task.md，强制触发知识库维护判断。
 
 新增：
 - 汇报增加**测试结果章节**（单元测试通过情况）
 - report 完成后**强制知识库判断**（必须回答，只能说"不需要"，不能跳过）
 - 知识库触发条件：新业务规则、坑点发现、接口变更（bug 修复和内部重构不触发）
+- **task.md 更新权收归 report**：apply 和 assign 均不更新 task.md
 
 ---
 
@@ -457,37 +511,43 @@ updated: YYYY-MM-DD
 根 /flow:assign <service-b>           按依赖顺序，无依赖先分配
     → 选择模式：内联执行 / 独立指令包
     │
-    │  内联模式：根 agent 直接启动内联编码 agent → 自动完成所有 spec
-    │  独立模式：生成指令包
-    │  ← 用户手动：在 service-b 目录打开 Claude Code，粘贴指令包
+    │  内联模式：
+    │    根按顺序为每个 spec 启动一个子 agent：
+    │    Agent(spec1) → receive → design → apply → report
+    │    Agent(spec2) → receive → design → apply → report
+    │  独立模式：根为每个 spec 输出独立指令包
+    │  ← 用户按依赖顺序逐个粘贴
     ▼
-子(service-b) 检查 .flow/config.yaml
+子 agent(spec1) 检查 .flow/config.yaml
     → 不存在 → /flow:init（子模式）→ 向根注册
     → 存在 → 继续
     │
     ▼
-子 /flow:receive                      读取 spec 列表，加载工作协议
+子 /flow:receive spec1                  聚焦单 spec，加载工作协议，判断阶段
     │
+    ├── 阶段一（无 design.md）
+    │     ▼
+    │   子 /flow:design（子模式）         为此 spec 做 proposal + design
+    │       → 内联设计评审 agent（自检）
+    │       → 告知用户："设计完成，请评审"
+    │       │
+    │       │  ← 用户评审
+    │       │    评审通过 ──────────────────────────────┐
+    │       │    评审驳回 → 修改 spec → 重新 /flow:design │
+    │       ▼                                           │
+    ├── 阶段二（有 design.md）◄──────────────────────────┘
+    │     ▼
+    │   子 /flow:apply spec1
+    │       → opsx:apply → 内联审核 → 单元测试 → commit
+    │       → 失败自动修复重试（最多 3 次）
+    │     ▼
+    │   子 /flow:report
+    │       → 更新根 task.md（spec1 [x]）  ← 唯一写入点
+    │       → 强制知识库判断
+    │
+    │  ← spec1 完成后，根启动 spec2 agent（同循环）
     ▼
-子 /flow:design（子模式）             为每个 spec 做 proposal + design
-    → 内联设计评审 agent（自检）
-    → 告知用户："设计完成，请评审"
-    │
-    │  ← 用户评审（直接评审，或转给根 agent 做聚合评审）
-    │    评审通过 ────────────────────────────────────┐
-    │    评审驳回 → 修改 spec → 重新 /flow:design      │
-    ▼                                                 │
-子 /flow:apply ◄───────────────────────────────────────┘
-    │
-    ├── spec1: 编码 → 内联审核 → 单元测试 → [x]
-    │     → 失败自动修复重试（最多 3 次）
-    │
-    ├── spec2: 编码 → 内联审核 → 单元测试 → [x]
-    │
-    ▼
-子 /flow:report
-    → 更新根 task.md（service-b 所有 spec [x]）
-    → 强制知识库判断 → 内联知识库 agent（条件触发）
+（所有 spec 完成，service-b ✅）
     │
     │  ← 用户告知根 agent：service-b 已完成
     ▼

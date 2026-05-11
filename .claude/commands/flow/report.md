@@ -6,7 +6,7 @@ tags: [workflow, orchestration, multi-agent, executor]
 version: "0.2.0"
 ---
 
-子 agent 完成编码后提交结构化汇报，更新根 task.md，强制触发知识库维护判断。
+子 agent 完成编码后提交结构化汇报。**`/flow:report` 是 task.md 的唯一写入者**——根 agent（assign）和编码阶段（apply）均不更新 spec 完成状态。
 
 **输入**：`/flow:report` 无参数，自动收集当前工作信息。
 
@@ -44,7 +44,7 @@ version: "0.2.0"
    | 接收任务 | 执行了 `/flow:receive` | `.flow/changes/{change}/` 目录存在 |
    | 设计阶段 | 先设计再编码 | 各 spec 的 `design.md` 存在且早于编码 commit |
    | 设计评审 | 设计经过评审（自检或用户评审） | `design.md` 中有评审记录或用户确认记录 |
-   | 编码工具 | 使用 `/flow:apply` 或 `opsx:apply` 编码 | git commit message 包含任务号格式 |
+   | 编码工具 | 使用 spec_tool（如 opsx:apply）编码，由 /flow:apply 驱动 | git commit message 包含任务号格式 |
    | 审核循环 | 编码后经过审核 agent | agent 自报（是否启动了审核 agent） |
    | 测试循环 | 审核通过后执行单元测试 | 测试命令被执行（agent 自报） |
    | 提交规范 | commit message 符合格式 | 检查 git log 中的 message 格式 |

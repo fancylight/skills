@@ -8,7 +8,9 @@ version: "0.2.0"
 
 子 agent 接收根 agent 分配的任务，加载工作协议，进入阶段一（设计）。
 
-**输入**：`/flow:receive` 无参数，自动从配置和根目录读取任务。
+**输入**：`/flow:receive [spec-name]`
+- 无参数：读取本服务所有 spec，列出任务摘要
+- 有参数：聚焦单个 spec，加载该 spec 上下文
 
 ---
 

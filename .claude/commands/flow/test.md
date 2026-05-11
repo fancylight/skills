@@ -1,35 +1,90 @@
 ---
 name: "Flow: Test"
-description: "Root agent triggers integration tests after all services complete — HTTP calls, MQ, and direct DB verification"
+description: "Root agent triggers integration tests — service-level (delegate to service dir) or cross-service acceptance (HTTP/MQ/DB)"
 category: Workflow
 tags: [workflow, orchestration, multi-agent, testing]
-version: "0.1.0"
+version: "0.2.0"
 ---
 
-根 agent 在大需求所有服务完成后触发集成测试。
+根 agent 触发集成测试。支持两种模式。
 
-**输入**：`/flow:test [change-name]`
+**输入**：`/flow:test [service-name|change-name]`
+- 指定 service-name（如 `glm-attendance`）：运行该服务的集成测试（委托 agent 执行 `test_command`）
+- 指定 change-name 或不指定：端到端跨服务验收测试（基于概要设计验收标准）
+
+**与 apply.md 的分工**：
+- 每个 spec 的单元测试：由 `/flow:apply` 在编码循环中执行（`test_command`）
+- 服务的集成测试（如 c10 集成测试 spec）：由 `/flow:test <service>` 触发
+- 跨服务端到端验收：由 `/flow:test <change>` 触发
 
 ---
+
+## 模式 A：服务集成测试（`/flow:test <service-name>`）
+
+**职责**：委托内联 agent 到服务目录运行 `test_command`，收集结果。根 agent 不亲自执行测试命令。
+
+**前置检查**
+
+1. 确认 `.flow/config.yaml` 存在且 `role: orchestrator`
+2. 确认指定的 service 在 services 列表中
+
+**步骤**
+
+1. **读取服务配置**
+
+   从 config.yaml 获取服务的 `path`。读取服务的 `.flow/config.yaml`，获取 `inline_agents.unit_test.test_command`。
+
+2. **内联启动测试 agent**
+
+   使用 **Agent tool** 启动内联 agent，prompt：
+
+   ```
+   你是测试执行 agent。
+
+   工作目录：{服务绝对路径}
+   测试命令：{test_command}
+
+   执行测试命令，收集结果：
+   1. 运行测试命令
+   2. 统计：通过/失败/跳过的测试数量
+   3. 如有失败，列出失败的测试类和错误信息（截取关键部分，不要完整 stack trace）
+
+   输出：
+   ## 测试结果：✅ 通过 / ❌ 失败
+   - 通过：X
+   - 失败：Y
+   - 跳过：Z
+
+   ### 失败详情（如有）
+   - {TestClass.testMethod}: {错误信息摘要}
+   ```
+
+3. **输出结果**
+
+   将 agent 返回的测试结果展示给用户。
+
+---
+
+## 模式 B：跨服务验收测试（`/flow:test [change-name]`）
+
+**职责**：端到端验证大需求的验收标准（HTTP 调用 / MQ 消息 / DB 直查）。
 
 **前置检查**
 
 1. 确认 `.flow/config.yaml` 存在且 `role: orchestrator`
 2. 确认有活跃 change（多个则 AskUserQuestion 选择）
 
----
-
 **步骤**
 
 1. **检查完成条件**
 
    读取 task.md，确认所有服务的所有 spec 已完成（全部 `[x]`）。
-   如有未完成项，展示清单并警告，使用 **AskUserQuestion** 确认是否继续测试。
+   如有未完成项，展示清单并警告，使用 **AskUserQuestion** 确认是否继续。
 
 2. **读取验收标准**
 
-   读取活跃 change 的 `概要设计.md`，提取 `## 验收标准` 章节内容。
-   如验收标准章节不存在或内容过于笼统，警告用户并建议补充后再测试。
+   读取活跃 change 的 `概要设计.md`，提取 `## 验收标准` 章节。
+   如验收标准章节不存在或过于笼统，警告用户并建议补充后再测试。
 
 3. **确认测试环境**
 
@@ -43,40 +98,13 @@ version: "0.1.0"
    使用 **Agent tool** 启动内联测试 agent，传入：
    - 验收标准内容
    - 环境配置（服务地址、DB、MQ）
-   - 概要设计.md 路径（完整背景）
-
-   测试 agent 使用 `integration-test.md.tmpl` 模板生成测试用例，模板文件：本命令文件所在目录下的 `templates/integration-test.md.tmpl`，用 Read 工具按绝对路径读取，注入以下变量：
-
-   | 变量名 | 来源 | 说明 |
-   |--------|------|------|
-   | `requirement_name` | change | 需求标题 |
-   | `generated_at` | 当前时间 | 生成时间 |
-   | `services` | 步骤 3 | 服务地址列表（name, url） |
-   | `db_connection` | 步骤 3 | 数据库连接信息 |
-   | `mq_connection` | 步骤 3 | MQ 连接信息（如涉及） |
-   | `test_case_*` | 验收标准 | 从验收标准推导的用例 |
+   - 概要设计.md 路径
 
    测试 agent 执行：
 
-   a. **HTTP 接口验证**
-      ```
-      请求：{METHOD} {url} {body}
-      期望状态码：{code}
-      期望响应包含：{字段}
-      ```
-
-   b. **MQ 消息验证**
-      ```
-      发送消息至 topic：{topic}
-      消息内容：{payload}
-      通过 HTTP 或 DB 验证结果
-      ```
-
-   c. **数据库直查验证**
-      ```
-      执行查询：{SQL}
-      期望结果：{条件}
-      ```
+   a. **HTTP 接口验证**：对每个接口发请求，验证状态码和响应
+   b. **MQ 消息验证**：发送消息，通过 HTTP 或 DB 验证结果
+   c. **数据库直查验证**：执行 SELECT 查询，验证数据一致性
 
 5. **输出测试报告**
 
@@ -87,28 +115,24 @@ version: "0.1.0"
    测试时间：{datetime}
 
    ### 测试结果
-
    ✅ 用例1：{描述} — 通过
    ❌ 用例2：{描述} — 失败
-      实际响应：{实际值}
-      期望：{期望值}
-      涉及服务：{service}
+      实际：{actual} | 期望：{expected}
 
    ### 汇总
-   通过：X / 失败：Y / 共 Z 个用例
+   通过：X / 失败：Y / 共 Z
    ```
 
-6. **根据结果建议下一步**
+6. **建议下一步**
 
-   - 全部通过 → "建议执行 `/flow:verify` 验证接口契约，再执行 `/flow:archive` 归档"
-   - 有失败 → "以下服务需要修复：{列表}。建议重新执行 `/flow:assign <service>`"
+   - 全部通过 → "建议执行 `/flow:verify` + `/flow:archive`"
+   - 有失败 → "以下服务需要修复：{列表}。建议重新 `/flow:assign <service>`"
 
 ---
 
 **约束**
 
-- **根 agent 不亲自执行测试命令**：所有测试工作委托给 Agent tool 启动的内联测试 agent，根 agent 只负责收集环境配置和启动 Agent tool
-- 只读取概要设计中的验收标准，不自行发散测试范围
-- 测试 agent 在本地环境执行，不发布到任何远程环境
-- DB 直查使用只读连接（SELECT），不执行写操作
-- 测试失败不自动修改任何文件，由用户决定后续动作
+- 根 agent **不亲自执行测试命令**，所有测试工作委托给内联 agent
+- 模式 A：只运行 `test_command`，不做额外的 HTTP/MQ 测试
+- 模式 B：只在所有 spec 完成后执行；DB 直查使用只读连接
+- 测试失败不自动修改任何文件

@@ -3,10 +3,12 @@ name: "Flow: Apply"
 description: "Child agent executes the coding phase — iterates over specs with inline review and unit test loops"
 category: Workflow
 tags: [workflow, orchestration, multi-agent, executor, coding]
-version: "0.1.0"
+version: "0.2.0"
 ---
 
-子 agent 阶段二：按 spec 依赖顺序执行编码，每个 spec 经历 编码→审核→测试 循环。
+子 agent 阶段二：按 spec 依赖顺序执行编码循环。编码委托给 spec_tool（如 opsx:apply），子 agent 自行唤起审核子 agent、运行测试、提交代码。
+
+**不更新 task.md**——那是 `/flow:report` 的职责。
 
 **输入**：`/flow:apply [spec-name]`
 - 无参数：遍历所有未完成且设计已通过的 spec
@@ -17,9 +19,8 @@ version: "0.1.0"
 **前置检查**
 
 1. 确认 `.flow/config.yaml` 存在且 `role: executor`
-2. 读取 `root_path`、`service_name`、`inline_agents` 配置
+2. 读取 `root_path`、`service_name`、`spec_tool`、`inline_agents` 配置
 3. 确认已执行 `/flow:receive`（存在活跃 change）
-4. 如配置不存在，提示先执行 `/flow:init`
 
 ---
 
@@ -30,7 +31,7 @@ version: "0.1.0"
    读取根 task.md 中本服务章节，提取未完成 spec（`- [ ]`）。
 
    **无参数模式**：
-   - 过滤条件：spec 有对应 `design.md` 文件（阶段一已完成）
+   - 过滤条件：spec 有对应 `design.md` 文件
    - 按依赖排序（无依赖的先执行）
    - 无 design.md 的 spec 跳过，警告用户："spec {name} 尚未完成设计，请先执行 /flow:design"
 
@@ -42,7 +43,7 @@ version: "0.1.0"
 
 2. **使用 TaskCreate 创建 TodoList**
 
-   为每个目标 spec 创建 todo 项，标记当前执行的为 in_progress。
+   为每个目标 spec 创建 todo 项。
 
 3. **逐 spec 执行编码循环**
 
@@ -50,14 +51,11 @@ version: "0.1.0"
 
    **a. 读取设计文档**
 
-   读取 `{spec工作区}/design.md`，理解：
-   - 实现方案（接口、数据结构、逻辑流程）
-   - 涉及的文件和模块
-   - 边界约束（不做什么）
+   读取 spec 的 `design.md`，理解实现方案、涉及文件、边界约束。
 
    **b. 编码实现**
 
-   根据 design.md 编写代码。遵循 design.md 中定义的方案，不偏离。
+   使用 `opsx:apply`（或 config 中配置的 `spec_tool`）执行编码。不直接手写代码——委托给 spec_tool 完成。
 
    **c. 内联审核 agent**
 
@@ -98,7 +96,6 @@ version: "0.1.0"
 
    ### 功能覆盖
    - [✅/❌] {接口名}：{状态说明}
-   - [✅/❌] {接口名}：{状态说明}
 
    ### 数据结构
    - [✅/❌] {结构名}：{状态说明}
@@ -108,7 +105,6 @@ version: "0.1.0"
 
    ### 问题详情（仅驳回时）
    1. {文件}:{行号} — {问题描述} — {建议修复方式}
-   2. ...
 
    **判定规则**：
    - 所有检查项 ✅ → 整体通过
@@ -120,7 +116,7 @@ version: "0.1.0"
 
    当审核 agent 发现代码实现与 design.md 不一致时，需判断原因：
    - **代码错误**：代码偏离了设计意图 → 修复代码
-   - **设计过时**：实现过程中发现 design.md 需要调整（如接口签名优化、数据结构变更）→ 更新 design.md
+   - **设计过时**：实现过程中发现 design.md 需要调整 → 更新 design.md
 
    判断标准：
    - 如果不一致是因为实现遇到了 design.md 未预见的技术约束 → 更新 design.md
@@ -147,23 +143,19 @@ version: "0.1.0"
 
    1. **暂存文件**：
       - 已跟踪的修改文件：`git add {文件路径}`
-      - 本次任务新增的文件：`git add {新文件路径}`（新文件必须显式 add，不会自动暂存）
-      - 只 add 本次 spec 修改/新增的文件，不要 `git add .` 或 `git add -A`
+      - 本次任务新增的文件：`git add {新文件路径}`
+      - 只 add 本次 spec 修改/新增的文件，不要 `git add .`
    2. **提交**：使用 `commit_format`（来自 `.flow/config.yaml`）
    3. **commit message 格式**：`{prefix}-{id} c{序号} {type}: {description}`
-      - `c{序号}` 表示第几个 spec（c1, c2, c3...），从 task.md 中该服务的 spec 顺序确定
+      - `c{序号}` 表示第几个 spec（c1, c2, c3...）
       - `{type}`：feat / fix / refactor / test / docs
-   4. **示例**：`GLW-89435 c1 feat: implement permission query interface`
-
-   **f. 更新 task.md**
-
-   - 读取根 task.md，找到本服务章节
-   - 将当前 spec 勾选为 `[x]`
-   - 更新元数据头 `updated` 日期
-
-   **g. 下一个 spec**
-
-   标记当前 todo 为 completed，下一个 spec 标记为 in_progress，重复 a-f。
+   4. **记录 commit 追溯**：在 spec 工作目录写入（或追加）`commits.md`：
+      ```markdown
+      | Commit | 时间 | 说明 |
+      |--------|------|------|
+      | {commit_hash} | {YYYY-MM-DD HH:MM} | {commit_message} |
+      ```
+      如果 opsx:apply 在一次 spec 中产生了多次提交，依次追加。此文件供 `/flow:report` 读取，是汇报中 commit 信息的权威来源。
 
 4. **全部完成**
 
@@ -184,15 +176,16 @@ version: "0.1.0"
    有失败 spec → 修复后重新执行 /flow:apply {失败spec名}
    ```
 
-   提示："编码阶段完成。请执行 `/flow:report` 提交汇报。"
+   提示："编码阶段完成。请执行 `/flow:report` 提交汇报（report 会更新 task.md）。"
 
 ---
 
 **约束**
 
 - 只处理有 `design.md` 的 spec，无设计文档的必须先走 `/flow:design`
+- **编码委托给 spec_tool**（如 opsx:apply），不直接手写代码
 - 每个 spec 的审核和测试重试各最多 3 次，超限必须停下来
 - 审核只检查代码与 design.md 的一致性，不评价方案优劣
+- **不更新 task.md**（task.md 的唯一写入者是 `/flow:report`）
 - 不修改其他服务的 task.md 条目
-- 不跳过审核或测试步骤（即使用户要求"直接过"也必须执行）
-- 依赖未完成的 spec 可以警告但不阻止（用户可能有并行开发的意图）
+- 不跳过审核或测试步骤
