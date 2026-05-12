@@ -148,8 +148,6 @@ version: "0.2.0"
 
 **约束**
 
-- 只创建文件，不做需求分析、设计或任务拆分
 - 根模式：不提前写入服务子目录
-- 子模式：从根 config.yaml 继承 knowledge_base 和 conventions 配置，减少重复输入
+- 子模式：从根 config.yaml 继承 knowledge_base 和 conventions
 - 写入根 config.yaml 前必须展示变更并获得用户确认
-- 如 `.flow/config.yaml` 已存在，提示已初始化，询问是否重新生成（覆盖）

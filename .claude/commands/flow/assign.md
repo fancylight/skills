@@ -53,26 +53,9 @@ version: "0.3.0"
 
 6. **生成提示词**（每个 spec 独立一份）
 
-   ```
-   你是 {service_name} 的内联 agent。
-
-   ## 环境信息
-   - 工作目录：{服务绝对路径}
-   - 根目录：{root_path 绝对路径}
-   - 活跃需求：{change_name}
-   - 你的唯一任务：{spec_name}
-
-   ## 【重要：你拥有完整的 skill 系统】
-   你必须使用 Skill tool 调用 flow 命令（不是手动模拟命令步骤）：
-   - Skill tool, skill="flow:receive", args="{spec_name}"  → 接收任务
-   - Skill tool, skill="flow:apply", args="{spec_name}"    → 编码→审核→测试循环
-   - Skill tool, skill="flow:report"                      → 提交完成报告（必须调用）
-
-   用法示例：Skill("flow:receive", "c3-float-data-layer")
-
-   ## 工作要求
-   只完成这一个 spec。完成后必须使用 Skill tool 调用 flow:report 汇报。
-   ```
+   读取 `flow/templates/child-agent-prompt.md` 模板，替换变量后传给子 agent。模板变量：
+   - `{service_name}`、`{服务绝对路径}`、`{root_path 绝对路径}`
+   - `{change_name}`、`{spec_name}`
 
 7. **执行分配**
 
@@ -121,12 +104,6 @@ version: "0.3.0"
 
 **约束**
 
-- **1 task = 1 spec = 1 agent = 1 commit**：每个 spec 独立分配一个 agent
-- 两种模式共享同一份提示词结构
-- 根 agent **不**读取 design.md 内容、**不**编码、**不**提交代码、**不**更新 spec 完成状态
-- 内联模式：根 agent 按依赖顺序逐 spec 启动 agent，每个 agent 独立完成 receive→apply→report
-- 内联模式：每个 agent 启动后第一件事是目录验证（pwd + git remote -v），不匹配则拒绝操作
-- 内联模式：依赖的 spec 必须先完成再启动后续 spec；无依赖的 spec 可并行
-- 独立模式：每个 spec 独立一份指令包，用户按依赖顺序逐个粘贴
-- 独立模式：指令包指引第一步是 `/flow:receive {spec_name}`（由 receive 判断阶段）
-- 不阻止分配有依赖未完成的服务，但会警告用户
+- **1 task = 1 spec = 1 agent = 1 commit**
+- 根 agent **不**读取 design.md 内容、**不**编码、**不**提交、**不**更新 spec 完成状态
+- 内联模式：每个 agent 启动后第一件事是自检（输出协议 + 验证 flow skills），不通过立即终止

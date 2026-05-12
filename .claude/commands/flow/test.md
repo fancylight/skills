@@ -36,28 +36,7 @@ version: "0.2.0"
 
 2. **内联启动测试 agent**
 
-   使用 **Agent tool** 启动内联 agent，prompt：
-
-   ```
-   你是测试执行 agent。
-
-   工作目录：{服务绝对路径}
-   测试命令：{test_command}
-
-   执行测试命令，收集结果：
-   1. 运行测试命令
-   2. 统计：通过/失败/跳过的测试数量
-   3. 如有失败，列出失败的测试类和错误信息（截取关键部分，不要完整 stack trace）
-
-   输出：
-   ## 测试结果：✅ 通过 / ❌ 失败
-   - 通过：X
-   - 失败：Y
-   - 跳过：Z
-
-   ### 失败详情（如有）
-   - {TestClass.testMethod}: {错误信息摘要}
-   ```
+   使用 **Agent tool** 启动内联 agent。读取 `flow/templates/test-agent-prompt.md` 模板，替换 `{服务绝对路径}` 和 `{test_command}` 后传入。
 
 3. **输出结果**
 
@@ -132,7 +111,5 @@ version: "0.2.0"
 
 **约束**
 
-- 根 agent **不亲自执行测试命令**，所有测试工作委托给内联 agent
-- 模式 A：只运行 `test_command`，不做额外的 HTTP/MQ 测试
+- 根 agent 不亲自执行测试命令，所有测试工作委托给内联 agent
 - 模式 B：只在所有 spec 完成后执行；DB 直查使用只读连接
-- 测试失败不自动修改任何文件
