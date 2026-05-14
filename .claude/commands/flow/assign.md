@@ -40,9 +40,11 @@ version: "0.3.0"
    - `true`：子 agent 在 report 时自动维护，根 agent 无需关注
    - `false`：子 agent report 只输出 KB 维护提示，**根 agent 需要在子 agent 完成后执行 `/flow:kb`**
 
-3. **确定任务号**（如配置了 `task_id_prefix`）
+3. **确定任务号和时间戳**（如配置了 `task_id_prefix`）
 
    从 task.md 已有的最大编号 +1，计算建议编号。使用 **AskUserQuestion** 让用户确认或修改。
+
+   生成进度文件时间戳：`{YYYYMMDD-HHmmss}`（当前时刻），用于进度文件名。
 
 4. **选择分配模式**
 
@@ -60,10 +62,26 @@ version: "0.3.0"
    读取本命令文件所在目录下的 `templates/child-agent-prompt.md`，替换变量后传给子 agent。
    **严格按模板内容，不添加、不删减。** 模板变量：
    - `{service_name}`、`{服务绝对路径}`、`{root_path 绝对路径}`
-   - `{change_name}`、`{spec_name}`、`{task_type}`
+   - `{change_name}`、`{spec_name}`、`{timestamp}`、`{task_type}`
    - `{kb_auto_trigger}` — 步骤1读取的 `auto_trigger` 值
 
-7. **执行分配**
+7. **创建进度文件**
+
+   为每个选中任务创建进度文件，供子 agent 写入各阶段状态。
+
+   - 创建目录 `{服务绝对路径}/.flow/{change_name}/spec/`（如不存在）
+   - 创建文件 `progress-{timestamp}.md`，写入初始内容：
+
+   ```
+   # {spec_name} — 进度与报告
+   需求：{change_name}
+   服务：{service_name}
+   时间戳：{timestamp}
+
+   - [ASSIGN] {date} — 已分配，等待接收
+   ```
+
+8. **执行分配**
 
    **模式 A：内联执行**
 
@@ -76,7 +94,7 @@ version: "0.3.0"
 
    每个内联 agent 自行完成：receive → apply → report。
    根 agent 只负责按顺序启动和接收结果，**不编码、不提交、不更新 task.md**。
-   派发后告知用户进度文件位置：`{服务绝对路径}/.flow/progress-{spec_name}.md`。
+   派发后告知用户进度文件位置：`{服务绝对路径}/.flow/{change_name}/spec/progress-{timestamp}.md`。
 
    **模式 B：独立指令包**
 

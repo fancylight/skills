@@ -10,7 +10,7 @@
 
 ## 进度文件
 
-**必须**将每个阶段的进度写入 `{服务绝对路径}/.flow/progress-{spec_name}.md`，每行一条，追加写入：
+**必须**将每个阶段的进度写入 `{服务绝对路径}/.flow/{change_name}/spec/progress-{timestamp}.md`，每行一条，追加写入：
 - `[BOOTSTRAP] agent 已启动`
 - `[BOOTSTRAP] flow skills 可用` 或 `[BOOTSTRAP] flow skills 不可用，终止`
 - `[RECEIVE] 开始`

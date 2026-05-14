@@ -28,11 +28,23 @@ version: "0.3.0"
 
    检查 spec 目录下 `design.md` 存在。不存在则拒绝："spec {name} 尚未完成设计，请先执行 /flow:design"。
 
-2. **编码实现**
+2. **定位进度文件**
+
+   扫描 `{服务目录}/.flow/{active_change}/spec/progress-*.md`，找到匹配当前 spec 的文件：
+   - 读取文件头部的 `# {spec_name}` 行匹配当前 spec 名称
+   - 排除状态行含 `✅ 已完成` 的文件（已完成的是历史记录）
+   - 如有多个进行中文件，选最近修改的
+   - 无则警告但继续（进度文件缺失，后续无法写入进度）
+
+   追加行：`- [APPLY] 开始编码 — {timestamp}`
+
+3. **编码实现**
 
    使用 `spec_tool`（如 `opsx:apply`）执行编码。spec_tool 自行读取 spec 文件（proposal.md、design.md、tasks.md）并生成代码。**不直接手写代码，也不手动转述 design.md 内容——委托给 spec_tool 完成。**
 
-3. **内联审核 agent**
+   追加：`- [APPLY] 编码完成，进入审核`
+
+4. **内联审核 agent**
 
    使用 **Agent tool** 启动内联审核 agent。读取 `本命令文件所在目录下的 templates/review-agent-prompt.md` 模板，替换 `{design.md 绝对路径}` 和 `{本次变更的文件路径列表}` 后传入。
 
@@ -43,11 +55,15 @@ version: "0.3.0"
 
    **重试机制**：驳回 → 修复 → 重新审核，最多 3 次。超限停止并输出失败报告。
 
-4. **单元测试**
+   追加：`- [APPLY] 审核通过（第{n}次）` 或 `- [APPLY] 审核失败 — {原因}`
+
+5. **单元测试**
 
    执行 `inline_agents.unit_test.test_command`。失败 → 修复 → 重新测试，最多 3 次。超限停止并输出失败报告。
 
-5. **提交代码**
+   追加：`- [APPLY] 测试通过（{n}/{n}）` 或 `- [APPLY] 测试失败 — {原因}`
+
+6. **提交代码**
 
    审核和测试均通过后提交：
    - 暂存本次 spec 修改/新增的代码文件
@@ -56,7 +72,9 @@ version: "0.3.0"
    - commit message 格式：`{prefix}-{id} c{序号} {type}: {description}`
    - commit 记录由 `/flow:report` 统一写入 task.md（`完成：{date} commit {hash}`），不在 spec 目录维护 commits.md
 
-6. **输出结果**
+   追加：`- [APPLY] ✅ 通过 — commit: {hash} — {date}` 或 `- [APPLY] ❌ 失败 — {原因}`
+
+7. **输出结果**
 
    ```
    ## 编码完成 — {spec-name}
