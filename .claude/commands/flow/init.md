@@ -53,7 +53,7 @@ version: "0.2.0"
    | `conventions` | 用户输入 | task_id_prefix, branch_pattern, commit_format |
    | `spec_tool` | 用户输入 | 子 agent spec 工具 |
 
-   模板文件：本命令文件所在目录下的 `templates/config.yaml.tmpl`。用 Read 工具读取该文件时，先通过当前命令文件的路径推断出 `templates/` 的绝对路径，再读取。
+   模板文件：`~/.claude/commands/flow/templates/config.yaml.tmpl`。
 
    **onboarding.md** 内容（模板渲染）：
    - 二级 agent 架构说明（根职责：设计/编排；子职责：实现）
@@ -116,7 +116,7 @@ version: "0.2.0"
    | `test_command` | 用户输入 | 单元测试命令 |
    | `inline_agents` | 用户输入 | 审核/测试/知识库维护配置 |
 
-   模板文件：本命令文件所在目录下的 `templates/child-config.yaml.tmpl`。用 Read 工具读取该文件时，先通过当前命令文件的路径推断出 `templates/` 的绝对路径，再读取。
+   模板文件：`~/.claude/commands/flow/templates/child-config.yaml.tmpl`。
 
    **工作流程.md** 内容（模板渲染，注入服务信息）：
    - 基本信息（服务名、根路径、spec 工具、测试命令）

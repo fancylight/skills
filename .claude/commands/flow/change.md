@@ -53,7 +53,7 @@ version: "0.1.0"
 
 4. **更新 `task.md`**
 
-   读取 `本命令文件所在目录下的 templates/task-md-maintenance.md`，按第 3.3 节（变更重开）和第 3.4 节（新增 spec）操作。
+   读取 `~/.claude/commands/flow/templates/task-md-maintenance.md`，按第 3.3 节（变更重开）和第 3.4 节（新增 spec）操作。
 
    **核心规则：优先修正原 spec，而非新建 spec。**
 
@@ -88,7 +88,7 @@ version: "0.1.0"
 
 6. **写入变更通知**
 
-   按 `本命令文件所在目录下的 templates/task-md-maintenance.md` 第 2.6 节格式，在 task.md 末尾 `## 变更通知（待子 agent 感知）` 章节追加 **1 行索引**：
+   按 `~/.claude/commands/flow/templates/task-md-maintenance.md` 第 2.6 节格式，在 task.md 末尾 `## 变更通知（待子 agent 感知）` 章节追加 **1 行索引**：
 
    ```
    - **{service}**：{spec-id} {变更类型} — {1行简述}
@@ -105,7 +105,7 @@ version: "0.1.0"
 
 **约束**
 
-- task.md 维护规则详见 `本命令文件所在目录下的 templates/task-md-maintenance.md`
+- task.md 维护规则详见 `~/.claude/commands/flow/templates/task-md-maintenance.md`
 - **已完成（`[x]`）的 spec 被变更影响时，必须重开原 spec，而非新建。只有全新范围才新建。**
 - 重开 spec 时**必须清除**旧的完成记录（日期、commit hash），**不能**保留删除线旧记录
 - 变更通知只写 1 行索引，详细内容记录在 `概要设计.md` 和子服务 `design.md`

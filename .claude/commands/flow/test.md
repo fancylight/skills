@@ -36,7 +36,7 @@ version: "0.2.0"
 
 2. **内联启动测试 agent**
 
-   使用 **Agent tool** 启动内联 agent。读取 `本命令文件所在目录下的 templates/test-agent-prompt.md` 模板，替换 `{服务绝对路径}` 和 `{test_command}` 后传入。
+   使用 **Agent tool** 启动内联 agent。读取 `~/.claude/commands/flow/templates/test-agent-prompt.md` 模板，替换 `{服务绝对路径}` 和 `{test_command}` 后传入。
 
 3. **输出结果**
 

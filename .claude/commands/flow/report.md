@@ -148,7 +148,7 @@ version: "0.2.0"
 
 **约束**
 
-- task.md 维护规则详见 `本命令文件所在目录下的 templates/task-md-maintenance.md`
+- task.md 维护规则详见 `~/.claude/commands/flow/templates/task-md-maintenance.md`
 - 知识库判断步骤不可跳过，用户必须明确回答
 - 只更新本服务相关的 task.md 条目，不修改其他服务
 - 汇报格式必须结构化，便于根 agent 解析

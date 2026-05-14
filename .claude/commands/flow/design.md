@@ -62,11 +62,11 @@ version: "0.1.0"
    | `acceptance_criteria` | 用户输入 | 验收标准（必须章节） |
    | `non_goals` | 用户输入 | 非目标 |
 
-   模板文件：本命令文件所在目录下的 `templates/overview-design.md.tmpl`，用 Read 工具按绝对路径读取。
+   模板文件：`~/.claude/commands/flow/templates/overview-design.md.tmpl`。
 
 4. **生成 `task.md`**
 
-   读取 `本命令文件所在目录下的 templates/task-md-maintenance.md`，按第 2 节格式规范生成 task.md。
+   读取 `~/.claude/commands/flow/templates/task-md-maintenance.md`，按第 2 节格式规范生成 task.md。
 
    必须包含：
    - YAML 元数据头（requirement, type, status, tier, branch, services, created, updated）

@@ -59,7 +59,7 @@ version: "0.3.0"
 
 6. **生成提示词**（每个任务独立一份）
 
-   读取本命令文件所在目录下的 `templates/child-agent-prompt.md`，替换变量后传给子 agent。
+   读取 `~/.claude/commands/flow/templates/child-agent-prompt.md`，替换变量后传给子 agent。
    **严格按模板内容，不添加、不删减。** 模板变量：
    - `{service_name}`、`{服务绝对路径}`、`{root_path 绝对路径}`
    - `{change_name}`、`{spec_name}`、`{timestamp}`、`{task_type}`
@@ -102,7 +102,7 @@ version: "0.3.0"
 
 8. **更新 task.md 元数据**
 
-   读取 `本命令文件所在目录下的 templates/task-md-maintenance.md`，按第 3.5 节（分配任务）操作。
+   读取 `~/.claude/commands/flow/templates/task-md-maintenance.md`，按第 3.5 节（分配任务）操作。
 
    **替换**对应服务章节的头部状态行为：
    ```
@@ -115,7 +115,7 @@ version: "0.3.0"
 
 **约束**
 
-- task.md 维护规则详见 `本命令文件所在目录下的 templates/task-md-maintenance.md`
+- task.md 维护规则详见 `~/.claude/commands/flow/templates/task-md-maintenance.md`
 - **1 task = 1 spec = 1 agent = 1 commit**
 - 根 agent **不**读取 design.md 内容、**不**编码、**不**提交、**不**更新 spec 完成状态
 - 服务头部状态行**替换**，**不追加**历史分配记录

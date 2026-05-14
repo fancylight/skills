@@ -30,7 +30,7 @@ version: "0.2.0"
 
 2. **在根 task.md 写入 hotfix 条目**
 
-   读取 `本命令文件所在目录下的 templates/task-md-maintenance.md`，按第 3.6 节格式，在对应服务章节的 `### Hotfix` 子章节下追加条目：
+   读取 `~/.claude/commands/flow/templates/task-md-maintenance.md`，按第 3.6 节格式，在对应服务章节的 `### Hotfix` 子章节下追加条目：
 
    ```
    - [ ] hotfix-{YYYYMMDD}-{slug}: {问题简述}
@@ -60,7 +60,7 @@ version: "0.2.0"
 
 **约束**
 
-- task.md 维护规则详见 `本命令文件所在目录下的 templates/task-md-maintenance.md`
+- task.md 维护规则详见 `~/.claude/commands/flow/templates/task-md-maintenance.md`
 - **子 agent 的 spec 文档由 spec skills（`child_agent.spec_tool`）创建和维护**，flow 命令不直接手写 spec 文件
 - **根 agent 只创建 hotfix 条目和触发 spec skills，不编码**
 - hotfix 编码走 assign → receive → apply 通道（与 spec 相同）
