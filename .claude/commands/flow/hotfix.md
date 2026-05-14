@@ -42,9 +42,9 @@ version: "0.2.0"
 
 3. **在子服务创建 hotfix spec 目录**
 
-   从 `.flow/config.yaml` 读取 `child_agent.spec_tool`。
+   从 `.flow/config.yaml` 读取 `child_agent.spec_tool` 和服务 `path`。
 
-   使用对应的 spec skills（如 `opsx:propose`）在子服务创建标准 spec 目录 `hotfix-{YYYYMMDD}-{slug}/`，内含 proposal.md、design.md 等标准文件。
+   获取目标服务的绝对路径，使用对应的 spec skills（如 `opsx:propose`）在 **`{服务绝对路径}/openspec/changes/`**（opsx 工具链约定路径）下创建标准 spec 目录 `hotfix-{YYYYMMDD}-{slug}/`，内含 proposal.md、design.md 等标准文件。
 
    **不手动创建 spec 文件**——spec 文档的创建和维护由 spec skills 负责。
 

@@ -77,9 +77,13 @@ version: "0.1.0"
 
 5. **为每个 spec 创建设计文档**
 
-   从 `.flow/config.yaml` 读取 `child_agent.spec_tool`。
+   从 `.flow/config.yaml` 读取 `child_agent.spec_tool` 和服务 `path`。
 
-   按 task.md 的 spec 列表，对每个 spec 使用 spec skills（如 `opsx:propose`）在子服务创建标准 spec 目录 `c{序号}-{kebab-case}/`，内含 proposal.md、design.md 等标准文件。
+   按 task.md 的 spec 列表，对每个 spec 按依赖顺序处理（无依赖先做）：
+
+   a. 确定 spec 所属服务 → 从 config.yaml 获取该服务的绝对路径
+   b. **spec 父目录**：`{服务绝对路径}/openspec/changes/`（opsx 工具链约定路径）
+   c. 使用 spec skills（如 `opsx:propose`）在上述父路径下创建标准 spec 目录 `c{序号}-{kebab-case}/`，内含 proposal.md、design.md 等标准文件
 
    **design.md 必须章节**：
    - `## 实现方案` — 接口列表、数据结构、逻辑流程
@@ -89,7 +93,7 @@ version: "0.1.0"
    - `## 非目标` — 明确不做的事项
 
    **不手动创建 spec 文件**——spec 文档的创建和维护由 spec skills 负责。
-   按依赖顺序处理（无依赖的 spec 先做），与用户交互确认关键设计决策。
+   与用户交互确认关键设计决策。
 
 6. **展示并确认，写入文件**
 
