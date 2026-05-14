@@ -67,20 +67,23 @@ version: "0.1.0"
 
 5. **同步修改子服务 spec 文件**
 
-   对于步骤 4 中被重新打开的 spec，根 agent 必须亲自修改子服务的 spec 文件：
-   - 读取 `{服务路径}/openspec/changes/{spec-name}/design.md`
-   - 在文件末尾追加变更记录段：
+   对于步骤 4 中被重新打开的 spec，使用 spec skills 更新子服务的 spec 文件。
 
-   ```markdown
+   从 `.flow/config.yaml` 读取 `child_agent.spec_tool`。
+
+   使用对应的 spec skills（如 `opsx:propose`）更新 spec 目录下的 design.md，追加变更记录段：
+
+   ```
    ## 变更记录 — {YYYY-MM-DD}
 
-   **变更类型**：{设计修正 / 需求调整 / 接口契约变更}
-   **变更内容**：{具体修改了什么}
-   **原因**：{为什么需要修改}
-   **影响**：{哪些文件/接口需要调整}
-   **注意**：此 spec 已被修正，下次 /flow:apply 时需按新设计执行
+   变更类型：{设计修正 / 需求调整 / 接口契约变更}
+   变更内容：{具体修改了什么}
+   原因：{为什么需要修改}
+   影响：{哪些文件/接口需要调整}
+   注意：此 spec 已被修正，下次 /flow:apply 时需按新设计执行
    ```
 
+   **不手动修改 spec 文件**——spec 文档的创建和维护由 spec skills 负责。
    **这是必须步骤，不可跳过。不修改子服务 design.md 会导致子 agent 拿到过时设计。**
 
 6. **写入变更通知**
@@ -106,4 +109,5 @@ version: "0.1.0"
 - **已完成（`[x]`）的 spec 被变更影响时，必须重开原 spec，而非新建。只有全新范围才新建。**
 - 重开 spec 时**必须清除**旧的完成记录（日期、commit hash），**不能**保留删除线旧记录
 - 变更通知只写 1 行索引，详细内容记录在 `概要设计.md` 和子服务 `design.md`
-- 根 agent 必须同步修改子服务的 design.md，不能只更新根 task.md
+- **子 agent 的 spec 文档由 spec skills（`child_agent.spec_tool`）创建和维护**，根 agent 不手动修改 spec 文件
+- 根 agent 必须同步更新子服务的 design.md，不能只更新根 task.md
