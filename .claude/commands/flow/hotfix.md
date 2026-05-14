@@ -1,116 +1,67 @@
 ---
 name: "Flow: Hotfix"
-description: "Child agent lightweight bug fix workflow — skips design phase, goes straight to coding"
+description: "Root agent creates hotfix entry in task.md and child service spec directory, then guides to assign for dispatching"
 category: Workflow
-tags: [workflow, orchestration, multi-agent, executor, hotfix]
-version: "0.1.0"
+tags: [workflow, orchestration, multi-agent, hotfix]
+version: "0.2.0"
 ---
 
-子 agent 轻量级 bug 修复工作流。跳过设计阶段，直接进入编码。
+根 agent 为 bug 修复创建 hotfix 条目和 spec 目录，然后走 assign→receive→apply 通道派发编码。
 
-**输入**：`/flow:hotfix "bug 描述"`
+**输入**：`/flow:hotfix <service-name> "bug 描述"`
 
 ---
 
 **前置检查**
 
-1. 确认 `.flow/config.yaml` 存在且 `role: executor`
-2. 如配置不存在，提示先执行 `/flow:init`
+1. 确认 `.flow/config.yaml` 存在且 `role: orchestrator`
+2. 确认指定的 service 在 services 列表中
+3. 确认有活跃 change；多个时 **AskUserQuestion** 选择
 
 ---
 
 **步骤**
 
-1. **创建 hotfix change**
+1. **收集信息**
 
-   在 spec 工作区创建简化 change 目录：
+   使用 **AskUserQuestion** 收集：
+   - bug 简述（如命令参数已提供则跳过）
+   - 影响的服务（如命令参数已提供则跳过）
+
+2. **在根 task.md 写入 hotfix 条目**
+
+   读取 `本命令文件所在目录下的 templates/task-md-maintenance.md`，按第 3.6 节格式，在对应服务章节的 `### Hotfix` 子章节下追加条目：
+
    ```
-   {spec工作区}/changes/hotfix-{YYYYMMDD}-{slug}/
-   ├── fix.md      ← bug 描述、复现步骤、根因分析、修复方案
-   └── tasks.md    ← 极简任务列表
-   ```
-
-   使用 `fix.md.tmpl` 模板渲染，模板位于本命令同级的 `templates/fix.md.tmpl`，注入以下变量：
-
-   | 变量名 | 来源 | 说明 |
-   |--------|------|------|
-   | `service_name` | config.yaml | 当前服务名 |
-   | `created_date` | 当前日期 | 创建日期（YYYY-MM-DD） |
-   | `updated_date` | 当前日期 | 更新日期（YYYY-MM-DD） |
-   | `bug_description` | 用户输入 | bug 描述 |
-
-   渲染后的 fix.md 结构：
-   ```markdown
-   ---
-   type: hotfix
-   status: in_progress
-   service: {{service_name}}
-   created: {{created_date}}
-   updated: {{updated_date}}
-   ---
-
-   ## Bug 描述
-   {{bug_description}}
-
-   ## 复现步骤
-   {待填写}
-
-   ## 根因分析
-   {待填写}
-
-   ## 修复方案
-   {待填写}
+   - [ ] hotfix-{YYYYMMDD}-{slug}: {问题简述}
+         问题：{1行描述}
+         修复：{待编码}
    ```
 
-   **tasks.md**：
-   ```markdown
-   ---
-   requirement: hotfix: {bug 描述}
-   type: hotfix
-   status: in_progress
-   created: {YYYY-MM-DD}
-   ---
+   如该服务尚无 `### Hotfix` 子章节，先创建。
 
-   ## {service_name}
-   - [ ] 定位根因
-   - [ ] 实现修复
-   - [ ] 验证修复
+3. **在子服务创建 hotfix spec 目录**
+
+   从 `.flow/config.yaml` 读取 `child_agent.spec_tool`。
+
+   使用对应的 spec skills（如 `opsx:propose`）在子服务创建标准 spec 目录 `hotfix-{YYYYMMDD}-{slug}/`，内含 proposal.md、design.md 等标准文件。
+
+   **不手动创建 spec 文件**——spec 文档的创建和维护由 spec skills 负责。
+
+4. **引导派发**
+
+   输出：
    ```
-
-2. **使用 TaskCreate 创建 TodoList**
-
-   - [ ] 定位根因，补充 fix.md
-   - [ ] 实现修复代码
-   - [ ] 内联审核 agent
-   - [ ] 单元测试
-   - [ ] 提交代码
-   - [ ] flow:report
-
-3. **进入简化编码循环**（跳过阶段一设计）
-
-   a. 定位根因，补充 `fix.md` 的复现步骤和根因分析
-   b. 实现修复代码
-   c. 内联启动审核 agent，读取 `flow/templates/hotfix-review-agent-prompt.md` 模板，替换 `{fix.md 绝对路径}` 和 `{本次变更的文件路径列表}` 后传入。
-
-      - 通过 → 继续
-      - 驳回 → 将驳回原因作为上下文修复 → 重新审核（最多 3 次）
-   d. 执行单元测试（`inline_agents.unit_test.test_command`）
-      - 通过 → 继续
-      - 失败 → 修复 → 重新测试
-   e. 提交代码：
-      - 本次任务新增的文件先 `git add {文件路径}`
-      - 只提交本次修复修改/新增的文件，不用 `git add .`
-      - commit message 格式：`{prefix}-{id} fix: {bug描述}`
-
-4. **执行 `/flow:report`**
-
-   知识库维护：hotfix 只记录"坑点/根因"类型，不记录其他。
-   report 完成后自动将 fix.md 状态更新为 `completed`。
+   Hotfix 条目已写入 task.md，spec 目录已创建。
+   下一步：执行 /flow:assign <service-name> 派发 hotfix 给子 agent。
+   ```
 
 ---
 
 **约束**
 
-- 跳过阶段一（spec 设计 + 用户评审），直接编码
-- 不需要 `/flow:verify`，hotfix 归档时跳过契约验证
-- 知识库只记录坑点类型（根因、复现条件、修复思路）
+- task.md 维护规则详见 `本命令文件所在目录下的 templates/task-md-maintenance.md`
+- **子 agent 的 spec 文档由 spec skills（`child_agent.spec_tool`）创建和维护**，flow 命令不直接手写 spec 文件
+- **根 agent 只创建 hotfix 条目和触发 spec skills，不编码**
+- hotfix 编码走 assign → receive → apply 通道（与 spec 相同）
+- hotfix 条目放在 `### Hotfix` 子章节，不影响 spec 条目和开发顺序

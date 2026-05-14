@@ -29,7 +29,7 @@ version: "0.2.0"
    使用 **AskUserQuestion** 收集：
    - 项目名称（默认目录名）
    - 服务列表（确认/编辑检测结果）
-   - 知识库：路径（无则跳过）
+   - 知识库：路径 + 概要说明路径 + 维护指南文档路径（无则跳过）
    - 约定：任务号前缀（可选）、分支模式、提交格式
    - 子 agent spec 工具（如 opsx、无）
 
@@ -49,7 +49,7 @@ version: "0.2.0"
    |--------|------|------|
    | `project_name` | 用户输入 | 项目名称 |
    | `services` | 检测结果 | 服务列表（name, path, type, description） |
-   | `knowledge_base` | 用户输入 | 是否启用、路径 |
+   | `knowledge_base` | 用户输入 | 是否启用、路径、概要说明路径、维护指南路径 |
    | `conventions` | 用户输入 | task_id_prefix, branch_pattern, commit_format |
    | `spec_tool` | 用户输入 | 子 agent spec 工具 |
 

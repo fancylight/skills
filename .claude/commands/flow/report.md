@@ -88,9 +88,12 @@ version: "0.2.0"
 
 4. **更新根 task.md**
 
+
    将 `root_path` 与当前工作目录拼成绝对路径，用 **Read 工具**读取 `{绝对根路径}/.flow/changes/{active-change}/task.md`：
-   - 找到本服务章节，将已完成 spec 勾选为 `[x]`
-   - 如有新完成项不在列表中，追加到章节末尾
+   - **spec 条目**：将已完成 spec 勾选为 `[x]`，条目末尾添加 `完成：{date} commit {hash}`；**清除**旧的 `⚠️ 设计修正` 标记
+   - **hotfix 条目**：如果是 hotfix（`### Hotfix` 下），`[ ]` → `[x]`，追加 `完成：{date} commit {hash}` + `修复：{1行描述}`
+   - **重写**服务头部状态行（替换，不追加）
+   - 同步勾选相关检查清单条目
    - 更新元数据头 `updated` 日期
    - 如存在 `## 变更通知` 章节且本服务相关条目已处理，删除对应行
 
@@ -100,22 +103,25 @@ version: "0.2.0"
 
    根据 `inline_agents.knowledge_maintenance.auto_trigger`：
 
-   **auto_trigger: false（默认）**：
-   使用 **AskUserQuestion** 询问：
-   > "本次工作是否需要维护知识库？（新业务规则 / 坑点发现 / 接口变更 / 不需要）"
-
    **auto_trigger: true**：
-   判断本次工作是否涉及：新业务规则、坑点发现、接口变更 → 是则自动触发。
+   判断本次工作是否涉及：新业务规则、坑点发现、接口变更。
+   涉及 → 执行 `/flow:kb {change-name}` 完成 KB 写入和提交。
+   不涉及（bug 修复、内部重构、代码格式调整）→ 跳过。
 
-   **触发知识库维护**（需要时）：
-   使用 **Agent tool** 启动内联知识库维护 agent，传入：
-   - 本次 change 内容摘要
-   - 知识库路径（来自 config.yaml）
-   - 变更类型（新规则/坑点/接口）
+   **auto_trigger: false（默认）**：
+   输出以下 KB 维护提示，供根 agent 后续执行：
 
-   内联 agent 执行：列出拟写入内容 → 展示给用户确认 → 写入知识库。
+   ```
+   ## KB 维护提示
+   Change：{change-name}
+   完成 spec：{spec 列表}
+   变更类型：[新业务规则 / 坑点发现 / 接口变更 / 不需要]
+   建议维护内容：{简要说明哪些内容可能需要记录}
+   
+   根 agent 请执行 /flow:kb {change-name} 完成知识库维护。
+   ```
 
-   **不触发的情况**：bug 修复、内部重构、代码格式调整。
+   不自动写入——`auto_trigger: false` 时 KB 维护由根 agent 负责（assign 时已提前告知）。
 
 6. **输出汇报**
 
@@ -130,6 +136,8 @@ version: "0.2.0"
 
 **约束**
 
+- task.md 维护规则详见 `本命令文件所在目录下的 templates/task-md-maintenance.md`
 - 知识库判断步骤不可跳过，用户必须明确回答
 - 只更新本服务相关的 task.md 条目，不修改其他服务
 - 汇报格式必须结构化，便于根 agent 解析
+- 更新 task.md 时**重写**条目和服务头部，**不追加**

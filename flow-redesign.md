@@ -21,7 +21,7 @@
 
 6. **两种 agent 形态**：**独立会话**（用户手动启动的新 Claude Code 进程，有持久记忆）和**内联 agent**（父 agent 通过 Agent tool 启动，无持久记忆）。根 agent 可以启动内联 agent，但无法自动启动独立会话（平台硬限制）。根→子通过文件（task.md）通信。
 
-7. **现阶段 spec 由根定义粒度**：知识库不完善阶段，spec 的存在和边界由根与用户协力确定，子 agent 只做 spec 内部设计。这是当前阶段的务实选择，非最终形态。
+7. **现阶段 spec 设计由根完成**：知识库不完善阶段，根 agent 与用户协力确定 spec 粒度、边界，并用 spec skills 在子服务创建 proposal + design。子 agent 收到任务时 design.md 已就绪，直接进入 apply。子 agent 自主设计是远期目标，需知识库成熟后启用。
 
 ---
 
@@ -266,7 +266,7 @@ updated: YYYY-MM-DD
 | `/flow:test` | ✅ | — | 触发集成测试（HTTP/MQ/DB） |
 | `/flow:change` | ✅ | — | 大需求变更（更新概要设计+task.md） |
 | `/flow:archive` | ✅ | — | 归档大需求，填写结束日期 |
-| `/flow:hotfix` | — | ✅ | 轻量级 bug 修复，跳过设计阶段 |
+| `/flow:hotfix` | ✅ | — | 在 task.md 写入 hotfix 条目 + 用 spec skills 创建子服务 spec 目录，然后走 assign 派发 |
 
 ---
 
@@ -310,7 +310,7 @@ updated: YYYY-MM-DD
 
 **根模式（role: orchestrator）**
 
-职责：与用户协力完成概要设计和 task.md（含 spec 粒度定义和验收标准）。
+职责：与用户协力完成概要设计和 task.md（含 spec 粒度定义和验收标准），并为每个 spec 在子服务创建 proposal + design。
 
 前置：必须有活跃 change 目录（`flow:init` 已创建）。
 
@@ -325,10 +325,13 @@ updated: YYYY-MM-DD
    - 开发顺序（按依赖）
    - **验收标准**（集成测试的依据，必须章节）
    - 非目标
-5. 生成 `task.md`：按服务分组，每个 spec 含名称 + 一句话边界 + 依赖
-6. 展示产物供用户审阅，确认后写入
+5. 生成 `task.md`：按服务分组，每个 spec 含 spec-id + 边界 + 依赖
+6. 使用 spec skills（`child_agent.spec_tool`）为每个 spec 在子服务创建 proposal + design
+7. 展示产物供用户审阅，确认后写入
 
-**子模式（role: executor）**
+**子模式（role: executor）【远期目标】**
+
+前置条件：知识库成熟后启用。当前主线由根模式完成 spec 设计。
 
 职责：为本服务每个 spec 做 proposal + design，完成后内联自检，输出评审报告。
 
@@ -408,21 +411,23 @@ updated: YYYY-MM-DD
 
 #### `flow:apply` — 阶段二编码（子）
 
-输入：`/flow:apply {spec-name}`（单 spec 模式，主路径）。
+输入：`/flow:apply {spec-name}`（必传，由 `/flow:receive` 确定后传入）。
 
-职责：完成单个 spec 的编码循环。编码委托给 spec_tool（如 opsx:apply），子 agent 自行唤起审核子 agent，自行提交。
+职责：完成单个 spec 的编码循环。编码委托给 spec_tool（如 opsx:apply），spec_tool 自行读取 spec 文件。子 agent 自行唤起审核 agent、运行测试、提交代码。
 
 步骤：
-1. 读取 spec 的 `design.md`
-2. **编码**：使用 `opsx:apply`（或 config 中配置的 `spec_tool`）
-3. **审核**：子 agent 使用 Agent tool 启动内联审核 agent，检查代码与 design.md 的一致性
+1. 验证 spec 的 `design.md` 存在
+2. **编码**：使用 spec_tool，不手动转述 design.md
+3. **审核**：内联审核 agent，检查代码与 design.md 的一致性
 4. **测试**：执行 `inline_agents.unit_test.test_command`
-5. **提交**：审核和测试均通过后，子 agent 自行 `git commit`（commit 格式来自 config.yaml）
-6. 完成后输出摘要，提示执行 `/flow:report`
+5. **提交**：暂存代码文件 + 本 spec 目录的 spec 文件，git commit（commit 记录由 report 写入 task.md）
+6. 输出结果，提示执行 `/flow:report`
 
 约束：
 - 每个 agent 只处理一个 spec（**1 spec = 1 commit**）
-- 不更新 task.md（task.md 的唯一写入者是 `/flow:report`）
+- **不读取 task.md 找 spec**——spec 已由 `/flow:receive` 确定
+- **不手动读取 design.md 并转述**——spec_tool 自行读取
+- 不更新 task.md（唯一写入者是 `/flow:report`）
 - 审核和测试重试各最多 3 次，超限必须停止
 
 #### `flow:report` — 汇报（子）
@@ -437,21 +442,20 @@ updated: YYYY-MM-DD
 
 ---
 
-#### `flow:hotfix` — 轻量 bug 修复（子）
+#### `flow:hotfix` — 创建 hotfix 条目（根）
 
-触发：`/flow:hotfix "bug 描述"`
+触发：`/flow:hotfix <service-name> "bug 描述"`
 
 步骤：
-1. 检查 `.flow/config.yaml` 存在
-2. 生成简化 change：
-   ```
-   {spec工作区}/changes/hotfix-{YYYYMMDD}-{slug}/
-   ├── fix.md      # bug 描述、复现步骤、根因分析、修复方案
-   └── tasks.md    # 极简任务
-   ```
-3. 跳过阶段一（设计），直接进入编码循环
-4. 编码 → 内联审核 → 单元测试 → flow:report（自动归档）
-5. 知识库：只记录"坑点/根因"类型，不记录其他
+1. 在根 task.md 对应服务的 `### Hotfix` 子章节下追加条目
+2. 使用 `child_agent.spec_tool` 配置的 spec skills 在子服务创建标准 spec 目录 `hotfix-{YYYYMMDD}-{slug}/`（内含 proposal.md、design.md 等标准文件）
+3. 提示用户执行 `/flow:assign <service>` 派发 hotfix
+
+约束：
+- **根 agent 只创建条目和触发 spec skills，不编码**
+- hotfix 编码走 assign → receive → apply 通道（与 spec 相同）
+- 子 agent 的 spec 文档由 spec skills 维护，flow 命令不直接手写 spec 文件
+- hotfix 条目放在 `### Hotfix` 子章节，不影响 spec 条目和开发顺序
 
 ---
 
@@ -506,15 +510,15 @@ updated: YYYY-MM-DD
     │
     ▼
 根 /flow:design                       与用户协力：概要设计.md + task.md
-    │                                 （含 spec 粒度定义 + 验收标准）
+    │                                 + 用 spec skills 为每个 spec 创建 proposal + design
     ▼
 根 /flow:assign <service-b>           按依赖顺序，无依赖先分配
     → 选择模式：内联执行 / 独立指令包
     │
     │  内联模式：
     │    根按顺序为每个 spec 启动一个子 agent：
-    │    Agent(spec1) → receive → design → apply → report
-    │    Agent(spec2) → receive → design → apply → report
+    │    Agent(spec1) → receive → apply → report
+    │    Agent(spec2) → receive → apply → report
     │  独立模式：根为每个 spec 输出独立指令包
     │  ← 用户按依赖顺序逐个粘贴
     ▼
@@ -523,27 +527,17 @@ updated: YYYY-MM-DD
     → 存在 → 继续
     │
     ▼
-子 /flow:receive spec1                  聚焦单 spec，加载工作协议，判断阶段
+子 /flow:receive spec1                  聚焦单 spec，design.md 已存在 → 直接进入阶段二
     │
-    ├── 阶段一（无 design.md）
-    │     ▼
-    │   子 /flow:design（子模式）         为此 spec 做 proposal + design
-    │       → 内联设计评审 agent（自检）
-    │       → 告知用户："设计完成，请评审"
-    │       │
-    │       │  ← 用户评审
-    │       │    评审通过 ──────────────────────────────┐
-    │       │    评审驳回 → 修改 spec → 重新 /flow:design │
-    │       ▼                                           │
-    ├── 阶段二（有 design.md）◄──────────────────────────┘
-    │     ▼
-    │   子 /flow:apply spec1
-    │       → opsx:apply → 内联审核 → 单元测试 → commit
-    │       → 失败自动修复重试（最多 3 次）
-    │     ▼
-    │   子 /flow:report
-    │       → 更新根 task.md（spec1 [x]）  ← 唯一写入点
-    │       → 强制知识库判断
+    ▼
+子 /flow:apply spec1
+    → opsx:apply → 内联审核 → 单元测试 → commit
+    → 失败自动修复重试（最多 3 次）
+    │
+    ▼
+子 /flow:report
+    → 更新根 task.md（spec1 [x]）  ← 唯一写入点
+    → 强制知识库判断
     │
     │  ← spec1 完成后，根启动 spec2 agent（同循环）
     ▼
@@ -593,18 +587,28 @@ updated: YYYY-MM-DD
 ### 场景三：Hotfix 模式
 
 ```
-用户在服务目录打开 Claude Code
+用户发现 bug，在根目录
     │
     ▼
-/flow:hotfix "bug 描述"
-    → 生成 hotfix change（fix.md + 极简 tasks.md）
-    → 跳过设计阶段
+根 /flow:hotfix <service> "bug 描述"
+    → 在 task.md 写入 ### Hotfix 条目
+    → 用 spec skills 在子服务创建 hotfix spec 目录
     │
     ▼
-编码 → 内联审核 → 单元测试
+根 /flow:assign <service>
+    → 派发 hotfix 任务（task_type=hotfix，跳过用户设计评审）
     │
     ▼
-/flow:report（自动归档）
+子 /flow:receive hotfix-xxx
+    → spec 已有 design.md → 直接进入阶段二
+    │
+    ▼
+子 /flow:apply hotfix-xxx
+    → 编码 → 内联审核 → 单元测试 → commit
+    │
+    ▼
+子 /flow:report
+    → 更新 task.md ### Hotfix 条目为 [x]
     → 知识库：只记录坑点/根因
 ```
 
@@ -662,7 +666,7 @@ updated: YYYY-MM-DD
 | `commands/status.md` | 小改 | spec 粒度进度、hotfix 类型识别 |
 | `commands/archive.md` | 小改 | 归档目录名补充结束日期 |
 | `commands/design.md` | 新增 | 双角色设计命令（根：概要设计；子：spec设计+自检） |
-| `commands/hotfix.md` | 新增 | 轻量 bug 修复工作流 |
+| `commands/hotfix.md` | 修改 | 从子 agent 命令改为根 agent 命令：写入 task.md hotfix 条目 + 触发 spec skills 创建目录 |
 | `commands/test.md` | 新增 | 集成测试触发 |
 | `commands/apply.md` | 新增 | 阶段二编码循环（编码→审核→测试，自动重试） |
 | `commands/change.md` | 新增 | 需求变更协议 |
@@ -671,7 +675,7 @@ updated: YYYY-MM-DD
 | `templates/assign.md.tmpl` | 修改 | 增加 spec 列表和阶段说明 |
 | `templates/config.yaml.tmpl` | 修改 | 增加 flow_initialized |
 | `templates/工作流程.md.tmpl` | 新增 | 服务级工作循环规范 |
-| `templates/fix.md.tmpl` | 新增 | hotfix change 模板 |
+| `templates/fix.md.tmpl` | ~~新增~~ 废弃 | hotfix 改用 spec skills 创建标准 spec 目录，不再使用 fix.md |
 | `templates/integration-test.md.tmpl` | 新增 | 集成测试用例模板 |
 | `docs/schema.md` | 修改 | 新字段和文件格式补充 |
 | `docs/paradigm-v3-root-perspective.md` | 重写为 v4 | 反映新架构、双角色模式、三阶段工作循环 |

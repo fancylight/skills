@@ -19,7 +19,7 @@
 | 命令 | 角色 | 说明 |
 |------|------|------|
 | `/flow:init` | 根/子 | 初始化必要文件 |
-| `/flow:design` | 根/子 | 根：概要设计 + task.md；子：spec 设计 + 自检 |
+| `/flow:design` | 根/子 | 根：概要设计 + task.md + spec proposal/design；子：spec 设计 + 自检（远期） |
 | `/flow:assign` | 根 | 分配任务给子 agent（内联执行 / 独立指令包） |
 | `/flow:receive` | 子 | 接收任务，加载工作协议 |
 | `/flow:apply` | 子 | 阶段二编码：按 spec 顺序执行编码→审核→测试循环 |
@@ -29,7 +29,8 @@
 | `/flow:test` | 根 | 集成测试（HTTP/MQ/DB） |
 | `/flow:change` | 根 | 需求变更协议 |
 | `/flow:archive` | 根 | 归档已完成需求 |
-| `/flow:hotfix` | 子 | 轻量级 bug 修复，跳过设计 |
+| `/flow:kb` | 根/子 | 知识库维护——读规则、分析变更、写 KB、提交 |
+| `/flow:hotfix` | 根 | 创建 hotfix 条目 + 用 spec skills 生成 spec 目录，然后走 assign 派发 |
 
 ---
 

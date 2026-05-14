@@ -27,7 +27,9 @@ services:                   # 必填。非空数组
 
 knowledge_base:
   enabled: boolean          # 必填。默认 false
-  path: string              # enabled=true 时必填。知识库根路径
+  path: string              # enabled=true 时必填。知识库根路径（绝对路径）
+  overview: string          # 可选。知识库概要说明文档路径（绝对路径），描述 KB 结构、内容概要
+  maintenance_guide: string # 可选。知识库维护指南文档路径（绝对路径）
   child_write: boolean      # 必填。默认 true
   review_on_archive: boolean # 必填。默认 true
 
@@ -56,6 +58,8 @@ project:
 knowledge_base:
   enabled: boolean          # 必填。
   path: string              # enabled=true 时必填
+  overview: string          # 可选。从根 config 继承
+  maintenance_guide: string # 可选。从根 config 继承
   child_write: boolean      # 必填。
 
 conventions:

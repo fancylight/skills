@@ -1,12 +1,13 @@
 ---
 name: flow-design
-description: "Design phase for flow workflow. Root agent: create overview design and task.md with spec-level breakdown. Child agent: create per-spec proposal and design, then run inline self-review. Use when: 'create the design for this requirement', 'design the specs for my service', 'run design self-check'"
+description: "Design phase — root agent creates overview design, task.md, and per-spec proposal+design; child mode (advanced) for autonomous spec design when knowledge base is mature"
 license: MIT
 metadata:
   author: flow
-  version: "0.1.0"
+  version: "0.2.0"
 ---
 
-设计阶段命令，双角色行为：根 agent 与用户交互生成概要设计和 task.md（不能自动生成）；子 agent 为每个 spec 做 proposal+design 并内联自检。
+根 agent：与用户协力完成概要设计、task.md，并为每个 spec 在子服务创建 proposal + design（现阶段主线）。
+子 agent：为每个 spec 做 proposal + design + 内联自检（远期目标，需知识库成熟后启用）。
 
 执行 `/flow:design` 开始。

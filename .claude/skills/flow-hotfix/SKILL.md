@@ -1,12 +1,12 @@
 ---
 name: flow-hotfix
-description: "Child agent lightweight bug fix workflow that skips design phase and goes straight to coding with inline review and unit tests. Use when: 'fix this bug', 'hotfix for the login issue', 'quick fix needed', 'patch this problem'"
+description: "Root agent creates hotfix entry in task.md and child service spec directory, then guides to assign for dispatching. Use when: 'fix this bug', 'hotfix for the login issue', 'quick fix needed', 'patch this problem'"
 license: MIT
 metadata:
   author: flow
-  version: "0.1.0"
+  version: "0.2.0"
 ---
 
-子 agent 轻量级 bug 修复，跳过设计阶段，直接编码 → 内联审核 → 单元测试 → report。
+根 agent 为 bug 修复创建 hotfix 条目和 spec 目录，然后走 assign→receive→apply 通道派发编码。编码逻辑由 apply 统一处理。
 
-执行 `/flow:hotfix "bug 描述"` 开始。
+执行 `/flow:hotfix <service-name> "bug 描述"` 开始。

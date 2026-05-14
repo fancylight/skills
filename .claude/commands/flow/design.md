@@ -1,6 +1,6 @@
 ---
 name: "Flow: Design"
-description: "Design phase — root agent creates overview design and task.md; child agent creates per-spec proposal+design with inline self-review"
+description: "Design phase — root agent creates overview design, task.md, and per-spec proposal+design; child mode (advanced) for autonomous spec design when knowledge base is mature"
 category: Workflow
 tags: [workflow, orchestration, multi-agent, design]
 version: "0.1.0"
@@ -8,8 +8,8 @@ version: "0.1.0"
 
 设计阶段命令，根据 `role` 自动切换行为：
 
-- **根 agent（orchestrator）**：与用户协力完成概要设计和 task.md
-- **子 agent（executor）**：为每个 spec 做 proposal + design，完成后内联自检
+- **根 agent（orchestrator）**：与用户协力完成概要设计、task.md，并为每个 spec 在子服务创建 proposal + design（现阶段主线）
+- **子 agent（executor）**：为每个 spec 做 proposal + design，完成后内联自检（远期目标，需知识库成熟后启用）
 
 ---
 
@@ -22,7 +22,7 @@ version: "0.1.0"
 
 ## 根模式（role: orchestrator）
 
-**职责**：生成 `概要设计.md` + `task.md`（含 spec 粒度定义和验收标准）。
+**职责**：生成 `概要设计.md` + `task.md`，并为每个 spec 创建 proposal.md + design.md。
 
 **步骤**
 
@@ -66,28 +66,41 @@ version: "0.1.0"
 
 4. **生成 `task.md`**
 
-   使用 `tasks.md.tmpl` 模板渲染，注入以下变量：
+   读取 `本命令文件所在目录下的 templates/task-md-maintenance.md`，按第 2 节格式规范生成 task.md。
 
-   | 变量名 | 来源 | 说明 |
-   |--------|------|------|
-   | `requirement_title` | 用户输入 | 需求标题 |
-   | `type` | 分析结果 | feature / hotfix / refactor |
-   | `tier` | 分析结果 | 1 / 2 / 3 |
-   | `branch` | config.yaml | 完整分支名（branch-pattern + change-name） |
-   | `services` | config.yaml | 涉及服务名列表 |
-   | `specs` | 用户输入 | 每个服务的 spec 列表（name, boundary, dependency） |
-   | `created` | 当前日期 | YYYY-MM-DD |
+   必须包含：
+   - YAML 元数据头（requirement, type, status, tier, branch, services, created, updated）
+   - `## 开发顺序` — 依赖拓扑排序，依赖引用必须用 spec ID（c{n}）
+   - 每个服务一个 `## {service-name}` 章节，含头部状态行和 spec 条目
+   - `## 完成检查清单`
+   - spec 条目格式：`- [ ] {spec-id}: {标题}` + 边界 + 依赖
 
-   模板文件：本命令文件所在目录下的 `templates/tasks.md.tmpl`，用 Read 工具按绝对路径读取。
+5. **为每个 spec 创建设计文档**
 
-5. **展示并确认，写入文件**
+   从 `.flow/config.yaml` 读取 `child_agent.spec_tool`。
 
-   展示生成的两个文件供用户审阅，确认后写入。
-   提示："设计完成。使用 `/flow:assign <service>` 分配任务给子 agent。"
+   按 task.md 的 spec 列表，对每个 spec 使用 spec skills（如 `opsx:propose`）在子服务创建标准 spec 目录 `c{序号}-{kebab-case}/`，内含 proposal.md、design.md 等标准文件。
+
+   **design.md 必须章节**：
+   - `## 实现方案` — 接口列表、数据结构、逻辑流程
+   - `## DDL` — 如涉及数据库变更
+   - `## 数据迁移` — 如有数据迁移逻辑
+   - `## 单元测试计划` — 必须章节，列出每个接口/功能的测试场景
+   - `## 非目标` — 明确不做的事项
+
+   **不手动创建 spec 文件**——spec 文档的创建和维护由 spec skills 负责。
+   按依赖顺序处理（无依赖的 spec 先做），与用户交互确认关键设计决策。
+
+6. **展示并确认，写入文件**
+
+   展示所有产物（概要设计.md、task.md、各 spec 的 proposal.md + design.md）供用户审阅，确认后写入。
+   提示："设计完成。使用 `/flow:assign <service>` 分配任务给子 agent 进行编码。"
 
 ---
 
-## 子模式（role: executor）
+## 子模式（role: executor）【远期目标】
+
+**前置条件**：知识库成熟后启用。当前主线由根模式完成 spec 设计。
 
 **职责**：为本服务每个 spec 做 proposal + design，内联自检，输出评审报告。
 
@@ -172,5 +185,6 @@ version: "0.1.0"
 **约束**
 
 - 根模式：`验收标准` 是必须章节，不可省略
-z- 子模式：spec 目录命名 `c{序号}-{kebab-case描述}`，design.md 必须含 `## 单元测试计划`
-- 子模式：评审有 ⚠️ 但无 ❌ 时照常输出"自检通过"，差异在报告中注明
+- 根模式：**子 agent 的 spec 文档由 spec skills（`child_agent.spec_tool`）创建和维护**，不直接手写 spec 文件
+- 子模式【远期】：spec 目录命名 `c{序号}-{kebab-case描述}`，design.md 必须含 `## 单元测试计划`
+- 子模式【远期】：评审有 ⚠️ 但无 ❌ 时照常输出"自检通过"，差异在报告中注明
