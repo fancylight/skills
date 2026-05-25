@@ -1,0 +1,19 @@
+## 发布记录
+
+> 由 `/flow:design` 创建骨架，`/flow:report` 补充 DDL/配置，`/flow:archive` 终稿。
+
+| 仓库 | 服务 | 分支 | main 已合并 | 配置文件 | DDL |
+|------|------|------|-------------|----------|-----|
+{{#each services}}
+| {{repo}} | {{name}} | {{branch}} | ⬜ | — | — |
+{{/each}}
+
+### DDL
+
+<!-- 子 agent 通过 /flow:report 在此补充 SQL，标注所属仓库 -->
+<!-- 格式：```sql 仓库名\n...\n``` -->
+
+### 配置文件
+
+<!-- 子 agent 通过 /flow:report 在此补充 YAML/配置，标注所属仓库和 commit -->
+<!-- 格式：### {仓库名} ({文件名}, commit {hash})\n```yaml\n...\n``` -->

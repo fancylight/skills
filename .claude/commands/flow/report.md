@@ -111,6 +111,17 @@ version: "0.2.0"
 
    如无法写入（权限问题），跳过并在汇报中注明。
 
+4.5 **更新发版记录.md**
+
+   定位 `{root_path}/.flow/changes/{active-change}/发版记录.md`（路径同 task.md）。
+
+   按本服务 `service_name` 在表格中找到对应行：
+
+   - **DDL 列**：本 spec 涉及数据库变更（DDL 语句）时，在表格 DDL 列填入 `见下方 DDL`，并在文件末尾 `### DDL` 章节追加 SQL block（标注仓库名）：```` ```sql {repo}\n...\n``` ````
+   - **配置列**：本 spec 涉及配置变更（YAML/properties 等）时，在表格配置列填入 `见下方配置`，并在文件末尾 `### 配置文件` 章节追加：`### {repo}（{文件名}, commit {hash}）` + 配置代码块
+
+   不涉及 DDL 或配置变更时保持表格原有 `—` 不变。
+
 5. **强制知识库维护判断**（不可跳过）
 
    根据 `inline_agents.knowledge_maintenance.auto_trigger`：

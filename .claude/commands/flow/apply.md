@@ -66,10 +66,8 @@ version: "0.3.0"
 6. **提交代码**
 
    审核和测试均通过后提交：
-   - 暂存本次 spec 修改/新增的代码文件
-   - **同时暂存本 spec 目录下的 spec 文件**（proposal.md、design.md、tasks.md 等），它们属于本次 spec 的工作产物
-   - 不用 `git add .`
-   - commit message 格式：`{prefix}-{id} c{序号} {type}: {description}`
+   - `git add` 本次 spec 修改/新增的代码文件 + 本 spec 目录下的 spec 文件（proposal.md、design.md、tasks.md 等），不用 `git add .`
+   - commit message 使用中文：`{prefix}-{id} {类型}: {中文描述}`
    - commit 记录由 `/flow:report` 统一写入 task.md（`完成：{date} commit {hash}`），不在 spec 目录维护 commits.md
 
    追加：`- [APPLY] ✅ 通过 — commit: {hash} — {date}` 或 `- [APPLY] ❌ 失败 — {原因}`

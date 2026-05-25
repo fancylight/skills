@@ -55,7 +55,7 @@ version: "0.1.0"
 4. **提交 KB（如为 git 仓库）**
 
    检查知识库目录是否为 git 仓库（`git status`）：
-   - 是 → `git add` 本次修改/新增的文件，`git commit -m "kb: {change-name} — {变更简述}"`
+   - 是 → `git add` 本次修改/新增的文件（不用 `git add .`），`git commit -m "知识库: {change-name} — {变更简述}"`
    - 否 → 跳过
 
 5. **输出摘要**

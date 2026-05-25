@@ -38,8 +38,11 @@ requirement: string          # 需求标题
 type: feature|hotfix|refactor
 status: planning|in_progress|completed|archived
 tier: 1|2|3
-branch: string               # 完整分支名
-services: [string, ...]      # 涉及服务名列表
+branch: string               # 根分支名
+services:
+  - name: string             # 服务名（与 config.yaml 一致）
+    repo: string             # 仓库名（目录名）
+    branch: string           # 该服务开发分支
 created: YYYY-MM-DD
 updated: YYYY-MM-DD          # 任何修改都必须更新此字段
 ---

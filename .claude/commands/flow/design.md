@@ -70,10 +70,17 @@ version: "0.1.0"
 
    必须包含：
    - YAML 元数据头（requirement, type, status, tier, branch, services, created, updated）
+     - `services` 为结构化数组：`[{name, repo, branch}]`，`repo` 为仓库名/目录名，`branch` 为该服务开发分支
    - `## 开发顺序` — 依赖拓扑排序，依赖引用必须用 spec ID（c{n}）
    - 每个服务一个 `## {service-name}` 章节，含头部状态行和 spec 条目
    - `## 完成检查清单`
    - spec 条目格式：`- [ ] {spec-id}: {标题}` + 边界 + 依赖
+
+4.5 **创建 `发版记录.md`**
+
+   读取 `~/.claude/commands/flow/templates/release-record.md.tmpl`，用 task.md services 数组填充表格的 仓库/服务/分支 列。
+
+   写入 `.flow/changes/{change-name}/发版记录.md`。DDL 和配置列留空，由子 agent `/flow:report` 补充。
 
 5. **为每个 spec 创建设计文档**
 
@@ -97,7 +104,7 @@ version: "0.1.0"
 
 6. **展示并确认，写入文件**
 
-   展示所有产物（概要设计.md、task.md、各 spec 的 proposal.md + design.md）供用户审阅，确认后写入。
+   展示所有产物（概要设计.md、task.md、发版记录.md、各 spec 的 proposal.md + design.md）供用户审阅，确认后写入。
    提示："设计完成。使用 `/flow:assign <service>` 分配任务给子 agent 进行编码。"
 
 ---
