@@ -1,0 +1,4 @@
+interface:
+  display_name: "Flow 公共资源"
+  short_description: "Flow 适配层的内部规则和模板"
+  default_prompt: "加载当前流程所需的 Flow Codex 公共适配规则。"

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Flow 归档"
+  short_description: "归档一个已验证的 Flow 需求"
+  default_prompt: "在集成测试通过后归档这个已验证的 Flow 需求。"

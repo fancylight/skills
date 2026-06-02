@@ -1,0 +1,4 @@
+interface:
+  display_name: "Flow 接收任务"
+  short_description: "将一个 Flow spec 加载到执行上下文"
+  default_prompt: "接收已分配的 Flow spec，并验证它的执行上下文。"

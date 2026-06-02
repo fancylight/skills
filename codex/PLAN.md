@@ -1,0 +1,55 @@
+# Flow Codex 适配层
+
+## 目标
+
+保持 Claude Code 实现不变，新增原生 Codex 适配层。复用 `.flow` 协议、OpenSpec 目录、任务元数据和
+公共模板。
+
+## 平台边界
+
+Codex 执行 agent 不负责调度审核 agent。保留原始生命周期，将审核调用扁平化：
+
+```text
+根 agent：flow-codex-assign
+  -> 执行 agent：flow-codex-receive -> flow-codex-apply
+  -> 执行 agent 返回 REVIEW_REQUEST 并暂停
+  -> 根 agent 启动同级 flow-codex-review
+  -> 根 agent 使用 PASS 或 REJECT 恢复执行 agent
+  -> 执行 agent 测试、提交并返回 REPORT_REQUEST
+  -> 根 agent 发放一个串行报告租约
+  -> 执行 agent：flow-codex-report
+```
+
+## 规则
+
+- 保持 `1 spec = 1 executor = 1 commit`。
+- 仅允许不同仓库之间并行写入。
+- 汇报会更新根 `.flow` 追踪文件，必须串行执行。
+- 分支不匹配或 worktree 存在历史改动时停止，不要静默切换分支。
+- 每个 OpenSpec change 均可 apply 后，才能声明设计完成。
+
+## 公开 Skills
+
+- `flow-codex-init`
+- `flow-codex-design`
+- `flow-codex-assign`
+- `flow-codex-receive`
+- `flow-codex-apply`
+- `flow-codex-report`
+- `flow-codex-status`
+- `flow-codex-verify`
+- `flow-codex-test`
+- `flow-codex-change`
+- `flow-codex-archive`
+- `flow-codex-kb`
+- `flow-codex-hotfix`
+
+## 内部 Skills
+
+- `flow-codex-core`
+- `flow-codex-review`
+
+## 工具
+
+- `install.ps1`
+- `validate.ps1`

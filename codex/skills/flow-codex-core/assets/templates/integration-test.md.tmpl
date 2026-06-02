@@ -1,0 +1,68 @@
+# 集成测试用例
+
+> 由 `$flow-codex-test` 自动生成，基于概要设计.md 的验收标准
+
+需求：{{requirement_name}}
+生成时间：{{generated_at}}
+
+---
+
+## 测试环境
+
+- 服务地址：
+{{#each services}}
+  - {{name}}: {{url}}
+{{/each}}
+- 数据库：{{db_connection}}
+{{#if mq_connection}}
+- MQ：{{mq_connection}}
+{{/if}}
+
+---
+
+## 测试用例
+
+### 用例 1：{{test_case_1_name}}
+
+**类型**：HTTP 接口验证
+
+**请求**：
+```
+{{method}} {{url}}
+{{#if body}}
+Body: {{body}}
+{{/if}}
+```
+
+**期望**：
+- 状态码：{{expected_status}}
+- 响应包含：{{expected_response}}
+
+---
+
+### 用例 2：{{test_case_2_name}}
+
+**类型**：MQ 消息验证
+
+**发送消息**：
+```
+Topic: {{topic}}
+Payload: {{payload}}
+```
+
+**验证方式**：{{verification_method}}（HTTP 查询 / DB 直查）
+
+**期望结果**：{{expected_result}}
+
+---
+
+### 用例 3：{{test_case_3_name}}
+
+**类型**：数据库直查验证
+
+**查询**：
+```sql
+{{sql_query}}
+```
+
+**期望结果**：{{expected_db_result}}

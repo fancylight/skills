@@ -1,0 +1,4 @@
+interface:
+  display_name: "Flow 初始化"
+  short_description: "初始化根目录或服务的 Flow 元数据"
+  default_prompt: "为这个仓库初始化 Codex 兼容的 Flow 元数据。"

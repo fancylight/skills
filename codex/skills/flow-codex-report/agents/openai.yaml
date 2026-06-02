@@ -1,0 +1,4 @@
+interface:
+  display_name: "Flow 汇报"
+  short_description: "串行记录 Flow 完成情况并更新任务"
+  default_prompt: "记录已完成的 Flow spec，并更新根追踪文件。"

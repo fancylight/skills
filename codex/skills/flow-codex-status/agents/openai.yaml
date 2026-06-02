@@ -1,0 +1,4 @@
+interface:
+  display_name: "Flow 状态"
+  short_description: "只读展示 Flow 需求进度"
+  default_prompt: "展示这个需求当前的 Flow 进度和阻断项。"

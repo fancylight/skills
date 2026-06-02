@@ -1,0 +1,4 @@
+interface:
+  display_name: "Flow 派发"
+  short_description: "通过 Codex 子 agents 派发 Flow specs"
+  default_prompt: "通过 Codex 子 agents 安全派发选中的 Flow change。"

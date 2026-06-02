@@ -1,0 +1,4 @@
+interface:
+  display_name: "Flow 需求变更"
+  short_description: "根据已批准的范围变更更新 Flow 产物"
+  default_prompt: "将已批准的范围变更应用到 Flow 产物和受影响的 specs。"

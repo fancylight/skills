@@ -1,0 +1,4 @@
+interface:
+  display_name: "Flow 编码"
+  short_description: "实现、审核、测试并提交一个 Flow spec"
+  default_prompt: "对已接收的 Flow spec 执行编码、审核中继、测试和提交。"

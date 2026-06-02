@@ -1,0 +1,4 @@
+interface:
+  display_name: "Flow 测试"
+  short_description: "协调 Flow 集成测试"
+  default_prompt: "协调已完成 Flow 需求的集成测试。"

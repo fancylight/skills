@@ -1,0 +1,4 @@
+interface:
+  display_name: "Flow 验证"
+  short_description: "不编辑文件，验证 Flow 就绪状态"
+  default_prompt: "在不编辑文件的前提下验证这个 Flow 需求，并报告发布阻断项。"

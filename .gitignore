@@ -12,6 +12,9 @@ Thumbs.db
 # Claude Code
 .claude/
 
+# Codex generated install or migration output
+/.agents/
+
 # Backup / Temp
 *.bak
 *.tmp

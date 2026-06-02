@@ -1,0 +1,4 @@
+interface:
+  display_name: "Flow 审核"
+  short_description: "根据设计审核一个 Flow 实现"
+  default_prompt: "根据 Flow 设计审核已分配的实现。"
