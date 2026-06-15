@@ -19,8 +19,13 @@ description: 在提交后记录一个已完成的 Flow spec，并更新根追踪
 1. 只更新根 `.flow/changes/<change_name>/task.md` 中选中的 spec。
 2. 标记完成日期和 commit hash，重新计算选中服务的状态和 frontmatter 日期。
 3. 仅在存在 DDL 或配置变更时更新 `发版记录.md`。
-4. 向进度文件追加结构化汇报。
-5. 返回简短的知识库维护建议。
-6. 返回 `[REPORT] complete`，让根 agent 释放租约。
+4. **同步接口到 Apifox**：读取根 `开发文档.md` 3.2.2 接口表格，按状态处理：
+   - 已有 Apifox 链接 + ✏️修改 → MCP 更新接口定义
+   - 待录入 + 🆕新增 → MCP 创建接口
+   - 待录入 + ✏️修改 → 提示先手动创建
+   MCP 不可用时降级跳过。同步后将"待录入"替换为实际链接（格式 `https://app.apifox.com/link/project/{projectId}/apis/api-{entityId}`）。
+5. 向进度文件追加结构化汇报。
+6. 返回简短的知识库维护建议。
+7. 返回 `[REPORT] complete`，让根 agent 释放租约。
 
 不要与其他执行 agent 并发汇报。

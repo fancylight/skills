@@ -1,0 +1,69 @@
+# Codex Flow 子 Agent 启动指南
+
+> 本文件由 `$flow-codex-init` 自动生成，位于根目录 `.flow/`。
+
+## 一、两层职责
+
+```text
+根 Agent（orchestrator）
+  职责：需求拆分、概要设计、派发、审核中继、报告租约、集成测试、归档
+  位置：项目根目录
+
+执行 Agent（executor）
+  职责：receive -> apply -> report，单个 spec 的编码、测试、提交和汇报
+  位置：服务目录
+```
+
+根 agent 通过 Codex 多 agent 工具派发执行 agent。执行 agent 不启动嵌套审核 agent：它在编码后
+返回 `REVIEW_REQUEST`，由根 agent 启动同级只读审核 agent，再恢复原执行 agent。
+
+多个服务可并行；同一仓库默认串行。根目录 `task.md` 更新必须通过报告租约串行执行。
+
+## 二、根 Agent 约束
+
+- 根 agent 负责编排，不读取服务业务代码，不代替执行 agent 编码。
+- `$flow-codex-assign` 派发前检查期望分支、工作区基线和 OpenSpec apply-readiness。
+- 分支不匹配或存在未知改动时停止，不静默切换分支。
+- 审核最多三轮。审核通过、测试通过、提交完成后才可发放报告租约。
+
+## 三、执行 Agent 固定流程
+
+```text
+$flow-codex-receive
+  -> 加载一个明确的 change_name + spec_id
+  -> 检查分支、上下文和 OpenSpec apply 指令
+
+$flow-codex-apply
+  -> 编码
+  -> REVIEW_REQUEST
+  -> 根 agent 中继审核结果
+  -> 测试
+  -> 单 spec 提交
+  -> REPORT_REQUEST
+
+$flow-codex-report
+  -> 等待 REPORT_LEASE_GRANTED
+  -> 更新根 task.md 和必要的发版记录
+  -> REPORT complete
+```
+
+## 四、项目规范
+
+### 提交格式
+`{{conventions.commit_format}}`
+
+### 分支规范
+`{{conventions.branch_pattern}}`
+
+### 知识库规则
+{{#if knowledge_base.enabled}}
+- 路径：`{{knowledge_base.path}}`
+- 写入前列出变更内容并确认
+- 触发：新业务规则、接口契约、可复用运维说明
+{{else}}
+知识库未启用。
+{{/if}}
+
+## 五、服务地图
+
+查看：`{{root_path}}/.flow/services.md`

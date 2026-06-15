@@ -43,6 +43,18 @@ version: "0.1.0"
    如启用知识库，提醒用户查阅相关历史方案。
    如需求不清晰，使用 **AskUserQuestion** 澄清边界。
 
+2.5 **查询 Apifox 已有接口**
+
+   **前置**：检测 Apifox MCP 是否可用。若未配置，提示"未检测到 Apifox MCP，接口设计将不参考已有定义"，跳过本步骤继续。
+
+   从步骤 2 的需求分析结果中提取涉及的接口列表（区分「修改」和「新增」），依次查询：
+
+   - **修改已有接口**：使用 Apifox MCP 搜索工具按接口路径/名称查询当前定义。查到则比对设计意图，记录差异点；查不到则提醒用户"接口 {名称} 在 Apifox 中未找到，请确认接口名或是否尚未录入"。
+   - **新增接口**：使用 Apifox MCP 搜索工具检查是否有路径/命名相似的已有接口。查到潜在的则提醒用户确认是否存在功能重复；查不到则标记为全新接口。
+
+   查询结果作为步骤 3（概要设计接口契约）和步骤 4.6（开发文档.md 3.2.2）的依据。
+   Apifox 接口协作链接格式：`https://app.apifox.com/link/project/{projectId}/apis/api-{entityId}`。
+
 3. **与用户协力生成 `概要设计.md`**
 
    **强制交互规则**：根模式设计必须与用户交互，不能自动生成完所有内容。以下节点必须使用 **AskUserQuestion** 暂停确认：
@@ -82,6 +94,18 @@ version: "0.1.0"
 
    写入 `.flow/changes/{change-name}/发版记录.md`。DDL 和配置列留空，由子 agent `/flow:report` 补充。
 
+4.6 **生成 `开发文档.md`**
+
+   读取 `~/.claude/commands/flow/templates/开发文档模板.md.tmpl`，按模板结构生成 `.flow/changes/{change-name}/开发文档.md`。
+
+   填充策略：
+   - 第 1 节（需求文档）：询问用户需求文档链接，如无则跳过
+   - 第 2 节（需求分析）：从步骤 2 的需求分析结果填入
+   - 第 3 节（开发设计）：3.2.1 方案设计从步骤 3 概要设计提取；3.2.2 接口设计从步骤 2.5 的 Apifox MCP 查询结果填充「Apifox 接口地址」列，**不写 JSON 示例**，接口细节由 Apifox 承载
+   - 第 4 节（上线 checkList）：4.1 服务-分支从 task.md services 数组填充；4.2 SQL/配置留空，由子 agent `/flow:report` 补充
+
+   与用户交互确认关键内容（需求分析、接口列表）。
+
 5. **为每个 spec 创建设计文档**
 
    从 `.flow/config.yaml` 读取 `child_agent.spec_tool` 和服务 `path`。
@@ -104,7 +128,7 @@ version: "0.1.0"
 
 6. **展示并确认，写入文件**
 
-   展示所有产物（概要设计.md、task.md、发版记录.md、各 spec 的 proposal.md + design.md）供用户审阅，确认后写入。
+   展示所有产物（概要设计.md、开发文档.md、task.md、发版记录.md、各 spec 的 proposal.md + design.md）供用户审阅，确认后写入。
    提示："设计完成。使用 `/flow:assign <service>` 分配任务给子 agent 进行编码。"
 
 ---

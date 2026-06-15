@@ -122,6 +122,24 @@ version: "0.2.0"
 
    不涉及 DDL 或配置变更时保持表格原有 `—` 不变。
 
+4.6 **同步接口到 Apifox**
+
+   **前置**：检测 Apifox MCP 是否可用。若未配置，提示"Apifox MCP 未配置，跳过接口同步"，不阻断流程。
+
+   读取根目录 `{root_path}/.flow/changes/{active-change}/开发文档.md` 的 3.2.2 接口表格，逐一处理：
+
+   | 表格状态 | 操作 |
+   |---------|------|
+   | 已有 Apifox 链接 + ✏️修改 | 使用 Apifox MCP 更新接口定义（从代码/spec design.md 取最终字段） |
+   | 待录入 Apifox + 🆕新增 | 使用 Apifox MCP 创建接口，写入完整定义 |
+   | 待录入 Apifox + ✏️修改 | 提示"接口 {名称} 需先在 Apifox 中手动创建，再重新 report 同步" |
+
+   同步完成后，更新 `开发文档.md` 的接口表格：
+   - "待录入 Apifox" → 替换为实际 Apifox 链接
+   - 链接格式：`[Apifox 接口](https://app.apifox.com/link/project/{projectId}/apis/api-{entityId})`
+
+   追加进度：`- [REPORT] Apifox 同步完成 — {n}个（新增 {a}/更新 {b}）`
+
 5. **强制知识库维护判断**（不可跳过）
 
    根据 `inline_agents.knowledge_maintenance.auto_trigger`：

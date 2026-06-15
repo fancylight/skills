@@ -72,15 +72,32 @@ Get-ChildItem -LiteralPath $skillsDir -Directory | ForEach-Object {
 }
 
 $coreDir = Join-Path $skillsDir "flow-codex-core"
+$projectRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
+$sharedTemplatesDir = Join-Path $projectRoot "flow\templates"
+$codexOverridesDir = Join-Path $sharedTemplatesDir "codex"
+
 @(
     "references\platform.md",
-    "references\checkpoints.md",
-    "assets\templates\child-agent-prompt.md",
-    "assets\templates\onboarding.md.tmpl"
+    "references\checkpoints.md"
 ) | ForEach-Object {
     if (-not (Test-Path -LiteralPath (Join-Path $coreDir $_))) {
         $errors += "Missing core resource: $_"
     }
+}
+
+# Shared templates now live in flow/templates/ (single source of truth)
+if (-not (Test-Path -LiteralPath $codexOverridesDir)) {
+    $errors += "Missing Codex template overrides directory: $codexOverridesDir"
+}
+else {
+    $overrideFiles = @(Get-ChildItem -LiteralPath $codexOverridesDir -File)
+    if ($overrideFiles.Count -lt 4) {
+        $errors += "Codex template overrides directory has fewer than 4 files ($($overrideFiles.Count) found)"
+    }
+}
+
+if (-not (Test-Path -LiteralPath $sharedTemplatesDir)) {
+    $errors += "Missing shared templates directory: $sharedTemplatesDir"
 }
 
 if ($errors.Count -gt 0) {
