@@ -134,8 +134,37 @@ version: "0.2.0"
    | 待录入 Apifox + 🆕新增 | 使用 Apifox MCP 创建接口，写入完整定义 |
    | 待录入 Apifox + ✏️修改 | 提示"接口 {名称} 需先在 Apifox 中手动创建，再重新 report 同步" |
 
+   **构建 POST 接口 requestBody 的格式要求**：
+
+   Apifox MCP 的 `createHttpEndpoint` / `updateHttpEndpoint` 在处理 POST 请求体时，必须使用 **jsonSchema 模式**，否则 Apifox 页面 Body 显示为空：
+
+   ```json
+   {
+     "requestBody": {
+       "type": "application/json",
+       "required": true,
+       "parameters": [],
+       "jsonSchema": {
+         "type": "object",
+         "properties": {
+           "fieldName": { "type": "integer", "format": "int64", "description": "说明" }
+         },
+         "required": ["fieldName"],
+         "x-apifox-orders": ["fieldName"]
+       }
+     }
+   }
+   ```
+
+   ❌ 错误写法：`"type": "json"` + 字段放 `parameters[]`（API 不报错但 UI 不渲染）
+   ✅ 正确写法：`"type": "application/json"` + `"parameters": []` + 字段放 `jsonSchema.properties`
+
+   对于 GET 接口，参数仍放在 `parameters.query[]` 中，不受此影响。
+
+   **兜底规则**：若接口的表格状态无法匹配以上任一条（如地址列写的是"待补充"、"无"等模糊值，或变更类型缺失），**禁止静默跳过**。必须在汇报中逐条列出此类接口，说明"未匹配到可执行的分支，请人工确认 Apifox 操作"，并给出建议（创建 / 更新 / 暂不处理）。
+
    同步完成后，更新 `开发文档.md` 的接口表格：
-   - "待录入 Apifox" → 替换为实际 Apifox 链接
+   - "待录入 Apifox" / "待补充" / "无" → 替换为实际 Apifox 链接
    - 链接格式：`[Apifox 接口](https://app.apifox.com/link/project/{projectId}/apis/api-{entityId})`
 
    追加进度：`- [REPORT] Apifox 同步完成 — {n}个（新增 {a}/更新 {b}）`

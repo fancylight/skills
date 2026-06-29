@@ -23,7 +23,9 @@ description: 在提交后记录一个已完成的 Flow spec，并更新根追踪
    - 已有 Apifox 链接 + ✏️修改 → MCP 更新接口定义
    - 待录入 + 🆕新增 → MCP 创建接口
    - 待录入 + ✏️修改 → 提示先手动创建
-   MCP 不可用时降级跳过。同步后将"待录入"替换为实际链接（格式 `https://app.apifox.com/link/project/{projectId}/apis/api-{entityId}`）。
+   - **兜底：表格状态不匹配任何分支时，禁止静默跳过，必须在汇报中逐条列出并提示人工确认**
+   **POST 接口 requestBody 格式**：必须用 jsonSchema 模式（`type: "application/json"` + `parameters: []` + 字段放 `jsonSchema.properties`），禁止用 `type: "json"` + `parameters[]` 写法（UI 不渲染）。
+   MCP 不可用时降级跳过。同步后将"待录入/待补充"替换为实际链接（格式 `https://app.apifox.com/link/project/{projectId}/apis/api-{entityId}`）。
 5. 向进度文件追加结构化汇报。
 6. 返回简短的知识库维护建议。
 7. 返回 `[REPORT] complete`，让根 agent 释放租约。
