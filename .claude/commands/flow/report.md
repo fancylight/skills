@@ -126,7 +126,7 @@ version: "0.2.0"
 
    **前置**：检测 Apifox MCP 是否可用。若未配置，提示"Apifox MCP 未配置，跳过接口同步"，不阻断流程。
 
-   读取根目录 `{root_path}/.flow/changes/{active-change}/开发文档.md` 的 3.2.2 接口表格，逐一处理：
+   读取根目录 `{root_path}/.flow/changes/{active-change}/开发文档.md` 的 **§3.2.4** 接口表格，逐一处理：
 
    | 表格状态 | 操作 |
    |---------|------|
@@ -168,6 +168,20 @@ version: "0.2.0"
    - 链接格式：`[Apifox 接口](https://app.apifox.com/link/project/{projectId}/apis/api-{entityId})`
 
    追加进度：`- [REPORT] Apifox 同步完成 — {n}个（新增 {a}/更新 {b}）`
+
+4.7 **回写 `开发文档.md`**
+
+   读取 `~/.claude/commands/flow/templates/dev-doc-update-rules.md`。
+
+   从本 spec 的 OpenSpec `design.md` 与 commit 更新根 `开发文档.md`（禁止 spec 名、文件清单、完整 JSON）：
+
+   - **§3.2.4**：本 spec 相关接口行（与 4.6 Apifox 同步结果一致）
+   - **§3.2.2**：有 DDL 时更新存储语义（不写 SQL 全文，SQL 在发版记录）
+   - **§3.2.3**：有新链路时更新数据流转
+   - **§3.2.1**：业务规则有收敛时更新
+   - **§4.2**：有 DDL/配置时增加摘要行
+
+   在汇报中增加 **【开发文档】** 小节，列出更新的章节。
 
 5. **强制知识库维护判断**（不可跳过）
 

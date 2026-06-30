@@ -21,6 +21,12 @@ version: "0.3.0"
 
 **步骤**
 
+0. **发布就绪检查（只读）**
+
+   读取 `~/.claude/commands/flow/templates/verify-checklist.md`，对本 change 执行 §1–§3（流程就绪、根产物、开发文档规范）。**不**在此步骤做跨服务契约比对（契约由步骤 2 的 `/flow:verify` 覆盖）。
+
+   存在 **ERROR** 时停止归档并列出项；**WARN** 时 AskUserQuestion 确认是否继续。
+
 1. **分支校验与一致性检查**
 
    从 task.md 元数据头读取 `services` 数组。对每个服务：
@@ -39,7 +45,8 @@ version: "0.3.0"
    归档条件检查：
 
    - [ ] task.md 中所有服务的所有 spec 已完成（无 - [ ] 项）
-   - [ ] 已执行 /flow:verify（接口契约已验证）
+   - [ ] 已执行发布就绪检查（verify-checklist §1–§3 无 ERROR）
+   - [ ] 已执行 /flow:verify（跨服务接口契约已验证）
    - [ ] 已执行 /flow:test（集成测试已通过）
    - [ ] 知识库已审核（如 review_on_archive: true）
    ```
