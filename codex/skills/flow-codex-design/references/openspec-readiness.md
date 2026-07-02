@@ -1,5 +1,7 @@
 # OpenSpec 就绪门禁
 
+每个 Flow spec 对应 **恰好一个 git 仓库** 下的 **一个** OpenSpec change 目录。根 task 里不得一行 c 绑多仓；跨仓须 c 递增（见 `../flow-codex-core/references/platform.md`）。
+
 Flow spec 只有满足以下条件时才可派发：
 
 - 存在 `proposal.md`。

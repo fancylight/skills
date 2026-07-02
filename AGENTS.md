@@ -32,7 +32,8 @@
 
 硬性规则（详见 [codex/PLAN.md](./codex/PLAN.md)、[codex/skills/flow-codex-core/references/platform.md](./codex/skills/flow-codex-core/references/platform.md)）：
 
-- `1 spec = 1 executor = 1 commit`
+- `1 spec = 1 executor = 1 commit`（spec = 根 task 单仓 OpenSpec change，非多仓 bundle）
+- 根 task 每个 c{n} = 1 git repo = 1 OpenSpec change；跨仓须 c 递增拆分
 - 仅**不同仓库**之间可并行写入；同一仓库禁止并发写入 Agent
 - 根追踪文件（`task.md` 等）**串行**更新，禁止并发 report
 - 分支不匹配或 worktree 有未确认历史改动时 **停止**，不要静默 checkout
@@ -53,7 +54,7 @@
 | `flow-codex-apply` | 执行 | OpenSpec 实现；返回 REVIEW_REQUEST |
 | `flow-codex-report` | 执行 | 更新根 `task.md`（须报告租约） |
 | `flow-codex-status` | 根 | 只读进度 |
-| `flow-codex-verify` | 根 | 发布就绪与产物规范（test/archive 门禁） |
+| `flow-codex-verify` | 根 | 根产物与子 OpenSpec 格式；test/archive 前附加发布就绪（§A+§B） |
 | `flow-codex-test` | 根 | 集成测试 |
 | `flow-codex-change` | 根 | 需求变更 |
 | `flow-codex-archive` | 根 | 归档 |

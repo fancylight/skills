@@ -40,7 +40,7 @@
 ### 核心约定
 
 - **文件通信**：根与执行 Agent 通过 `.flow/` 下文件协作，不依赖同一对话或进程。
-- **粒度**：`1 task = 1 spec = 1 executor = 1 commit`。
+- **粒度**：`1 task = 1 spec = 1 executor = 1 commit`（spec = 根 task 单仓 OpenSpec change；跨仓 c 递增，禁止多仓 bundle）。
 - **task.md 完成状态**：仅由汇报阶段写入（Claude：`flow:report`；Codex：`flow-codex-report`）。
 
 ---
@@ -168,7 +168,7 @@ flow-codex-assign        → 按依赖派发 spec
   └─ flow-codex-receive → flow-codex-apply
   └─ flow-codex-review  → （根调度）→ apply 继续 → report 租约
 flow-codex-status        → 查看进度
-flow-codex-verify        → 发布就绪与产物规范（test/archive 门禁）
+flow-codex-verify        → 根产物格式 + test/archive 前发布就绪（§A+§B）
 flow-codex-test          → 集成测试
 flow-codex-archive       → 归档
 ```

@@ -16,11 +16,27 @@
 - 需要用户选择时，在对话中提出一个简短问题。
 - 工作包含多个步骤时使用任务计划，不要依赖 Claude 专属任务列表工具。
 
+## Spec 粒度（铁律）
+
+根 `task.md` 里的每个 `c{n}` **不是**「逻辑能力名」下的多仓 bundle，而是 **单仓库 OpenSpec change** 的唯一标识。必须同时满足：
+
+| 维度 | 规则 |
+|------|------|
+| Git 仓库 | 恰好 1 个 |
+| OpenSpec | 恰好 1 个 change 目录（`<repo>/openspec/changes/<spec-id>/`） |
+| 派发 | 1 executor 处理上述一个 change → 理想 1 commit |
+| task 开发顺序 | 每行括号内 **恰好 1 个服务名** |
+
+**禁止**：`c4（service-a + service-b）`、一个根 c 下多个仓库各 commit、概要设计里一行 spec 绑多个 repo。
+
+**跨仓必须 c 递增拆分**——同一业务能力涉及 register + aggregator + worker 时，应是 c3 @ register、c4 @ aggregator、c5 @ worker，而不是 c4 = register + aggregator。
+
+格式权威：`../flow-codex-core/assets/templates/task-md-maintenance.md` §2.2。概要设计须产出 Spec | 服务 | 职责矩阵，每行恰好一个服务。
+
 ## 仓库安全
 
 - 编辑前读取期望分支。分支不匹配时停止，不要静默 checkout。
 - 编辑前读取 `git status --short`。存在未知历史改动时停止，除非用户已确认基线或选择隔离 worktree。
-- 保持 `1 spec = 1 executor = 1 commit`。
 - 没有隔离 worktree 时，不要在同一仓库并发运行两个写入 agent。
 - 不要并发更新根追踪文件。
 

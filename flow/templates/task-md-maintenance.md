@@ -50,11 +50,14 @@ updated: YYYY-MM-DD          # 任何修改都必须更新此字段
 
 ### 2.2 开发顺序
 
-- 列出所有 spec 的依赖拓扑排序，每行一个 spec
+- 列出所有 spec 的依赖拓扑排序，**每行一个 spec、恰好一个 git 仓库**
 - 依赖引用**必须用 spec ID**（`c3`），**禁止**用序号（`3`、`依赖3`）
-- 格式：`{序号}. {spec-id}（{service}，依赖 {spec-id 或 —}）`
-- 正例：`2. c4-float-validate（glm-attendance，依赖 c3）`
-- 反例：`3. c4-float-validate（glm-attendance，依赖3）`
+- 格式：`{序号}. {spec-id}（{单一 service}，依赖 {spec-id 或 —}）`
+- **括号内恰好一个服务名**——禁止 `c4（register + aggregator）`、`c5（worker-service + worker-register-service）`
+- 跨仓同能力须拆成多个递增 c，不是一行绑多仓
+- 正例：`2. c4-sub-job-read（worker-register-service，依赖 c3）`、`3. c5-sub-job-vo（worker-app-aggregator，依赖 c4）`
+- 反例：`3. c4-sub-job-read（worker-register-service + worker-app-aggregator，依赖 c3）`（一行多仓）
+- 反例：`3. c4-float-validate（glm-attendance，依赖3）`（依赖不用 spec ID）
 
 ### 2.3 服务章节
 
@@ -139,10 +142,11 @@ hotfix 与 feature spec 生命周期不同，放在每个服务章节**末尾**�
 ### 3.1 创建 task.md（flow:design）
 
 1. 按本文档第 2 节格式规范生成 task.md
-2. `开发顺序` 中的依赖引用必须用 spec ID
-3. 每个 spec 条目包含：spec-id、标题、边界、依赖
-4. 初始状态：所有 spec `[ ]`，服务头部 `📋 待开始 | 分配日期：—`
-5. 初始检查清单：所有条目 `[ ]`
+2. 概要设计须先有 **Spec | 服务 | 职责** 矩阵，每行恰好一个服务，再据此写 task.md
+3. `开发顺序` 中的依赖引用必须用 spec ID；每行括号内一个服务名
+4. 每个 spec 条目包含：spec-id、标题、边界、依赖（每个 spec-id 只出现在一个服务章节下）
+5. 初始状态：所有 spec `[ ]`，服务头部 `📋 待开始 | 分配日期：—`
+6. 初始检查清单：所有条目 `[ ]`
 
 ### 3.2 汇报完成（flow:report）
 
@@ -204,6 +208,8 @@ hotfix 与 feature spec 生命周期不同，放在每个服务章节**末尾**�
 | 反例 | 违反原则 | 正确做法 |
 |------|---------|---------|
 | 开发顺序写 `依赖3` 而非 `依赖 c3` | spec ID 是通用标识 | `依赖 c3` |
+| `c4（register + aggregator）` 一行绑两仓 | 1 c = 1 仓库 | 拆成 c4 register、c5 aggregator 递增 |
+| 开发顺序括号内多个服务名 | §2.2 每行一仓 | 每行恰好一个服务名 |
 | c10 条目 15 行，4 个不同日期的 ⚠️ 交叉 | 重写优于追加 | 重开时重写条目，控制在 6 行内 |
 | c18 `[ ]` + `~~完成：2026-05-11~~` 并存 | 重写优于追加 | 重开时清除旧完成记录 |
 | glm-attendance 头部 6 行日期流水 | 权威单一来源 | 1 行当前状态，历史在 git log |

@@ -17,12 +17,18 @@ description: 为 Codex 编排设计或修复 Flow 需求。创建根需求产物
    - 生成 `开发文档.md` 前读取 `../flow-codex-core/assets/templates/dev-doc-maintenance.md` 与 `开发文档模板.md.tmpl`。
    - **§1–§2**：从需求/用户输入填写；§2「相关规则」写业务可验证规则。
    - **§3.2.1–§3.2.3**：仅写摘要或占位（业务规则要点、存储语义草稿、流转草图）；**禁止**从 `概要设计.md` 复制消费点表、Java/文件清单、JSON。
-   - **§3.2.4**：接口表填路径 + 变更类型 + 一行说明；Apifox 列从步骤 3 填入链接或「待录入」；**禁止 JSON**。
+   - **§3.2.4**：接口表填路径 + **恰好一个服务（repo）** + 变更类型 + 一行说明；BFF 对外 HTTP 行填 BFF 服务，不得填后端 provider；Apifox 列从步骤 3 填入链接或「待录入」；**禁止 JSON**；design 自检每条接口在 Spec 矩阵中有唯一 owning spec（开发文档不写 c ID，见 dev-doc-maintenance §6 design 阶段）。
    - **§4.1**：从 task.md services 填分支；**§4.2** 留空（由 report 补充）。
-5. 按服务和 spec 拆分工作，记录依赖关系、期望分支和验收标准。
-6. 对每个服务 spec 使用已安装的 OpenSpec 流程生成 proposal、design、delta specs 和 tasks。
+5. **Spec 拆分（铁律）**——写 `task.md` 前**必须**读取 `../flow-codex-core/assets/templates/task-md-maintenance.md` §2.2 与 §3.1。
+   - 在 `概要设计.md` 产出 **「Spec | 服务 | 职责 | 依赖」矩阵**（每行恰好一个服务；跨仓同能力须多行、c 递增）。
+   - `task.md` 开发顺序必须符合 §2.2 格式：`{序号}. {spec-id}（{单一 service}，依赖 cX 或 —）`。
+   - **设计结束前自检（blocked 若任一成立）**：
+     - 某 c 的开发顺序行或矩阵行出现 `+`、顿号、多个服务名
+     - 某 c 对应多个 OpenSpec change 目录或多个 git repo
+     - 概要设计「开发顺序」仍按服务枚举而非 spec 矩阵驱动
+6. 对每个服务 spec（每行矩阵 = 一个 OpenSpec change）使用已安装的 OpenSpec 流程生成 proposal、design、delta specs 和 tasks。
 7. 对每个 spec 执行 OpenSpec readiness 检查，持续补齐设计，直到没有阻断项。
-8. 返回 spec 依赖图和 apply-readiness 结果。
+8. 返回 Spec 矩阵、spec 依赖图和 apply-readiness 结果。
 
 ## 服务模式
 

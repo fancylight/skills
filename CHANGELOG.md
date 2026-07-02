@@ -8,6 +8,11 @@
 
 ## [Unreleased]
 
+### Changed
+
+- **Spec 粒度铁律**：`platform.md`、`flow-codex-design`、`task-md-maintenance.md`、`overview-design.md.tmpl`、`dev-doc-maintenance.md` — 根 task 每个 c = 1 repo = 1 OpenSpec change，禁止多仓 bundle；design 强制 Spec | 服务 matrix 与 task-md §2.2 格式
+- **verify 分层**：`verify-checklist.md` 拆为 §A 产物格式（结构/格式，design 后可跑）与 §B 发布就绪（test/archive 全量）；Spec 粒度归入 §A；`flow-codex-verify` 说明双模式调用
+
 ### Added
 
 - `README.md`：项目框架、双平台架构、目录说明、安装与文档索引

@@ -12,16 +12,28 @@
 
 ## 涉及服务
 
-| 服务 | 职责 | 依赖 |
+| 服务 | 职责 | 备注 |
 |------|------|------|
 {{#each services}}
-| {{name}} | {{responsibility}} | {{dependency}} |
+| {{name}} | {{responsibility}} | {{note}} |
+{{/each}}
+
+## 服务拆分（Spec 矩阵）
+
+> **铁律**：每行恰好一个 Spec、一个服务（一个 git 仓库）。跨仓须多行、c 递增。禁止 `c4（a + b）`。
+
+| Spec | 服务 | 职责 | 依赖 |
+|------|------|------|------|
+{{#each specs}}
+| {{id}} | {{service}} | {{responsibility}} | {{depends}} |
 {{/each}}
 
 ## 开发顺序
 
-{{#each services}}
-{{@index_1}}. {{name}}（{{#if dependency}}依赖 {{dependency}}{{else}}无依赖，先开发{{/if}}）
+> 与 Spec 矩阵一一对应；格式见 `task-md-maintenance.md` §2.2。
+
+{{#each specs}}
+{{@index_1}}. {{id}}（{{service}}，依赖 {{depends}}）
 {{/each}}
 
 ## 接口契约草稿
