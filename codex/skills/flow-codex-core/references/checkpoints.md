@@ -63,4 +63,13 @@ tests: <summary>
 [REPORT_LEASE_GRANTED]
 ```
 
-执行 agent 运行 `flow-codex-report`，返回 `[REPORT] complete`，然后根 agent 释放租约。
+执行 agent 返回 `[REPORT] complete`，然后根 agent 释放租约。
+
+## 集成测试执行 Agent 生命周期
+
+glm-system-test 执行 agent 遵循：
+
+`flow-codex-test-receive -> flow-codex-test-apply -> flow-codex-test-report`
+
+由 `flow-codex-test-assign` 派发。审核与报告租约语义与业务 spec 相同；`design_path` 在 test 模式下为
+test-plan + manifest。

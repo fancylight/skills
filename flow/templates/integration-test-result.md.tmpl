@@ -1,0 +1,54 @@
+# 集成测试结果
+
+> 由 flow-codex-test 写入，记录 glm-system-test runner 执行摘要
+
+需求：{{requirement_name}}
+change：{{change_name}}
+执行时间：{{executed_at}}
+
+---
+
+## 门禁
+
+- verify 全量：{{verify_status}}
+- manifest：{{manifest_path}}
+- st-api 代码：{{st_api_status}}
+
+---
+
+## 执行命令
+
+```powershell
+{{run_commands}}
+```
+
+---
+
+## 结果
+
+| 指标 | 值 |
+|------|-----|
+| 套件 | {{suites}} |
+| 通过 | {{passed}} |
+| 失败 | {{failed}} |
+| 跳过 | {{skipped}} |
+| 整体 | {{overall_result}} |
+
+---
+
+## 证据
+
+- 摘要：`{{evidence_summary_path}}`
+- 运行时：`.runtime/{{change_name}}/`
+
+---
+
+## 阻断项
+
+{{blocked_items}}
+
+---
+
+## 备注
+
+{{notes}}

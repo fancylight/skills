@@ -8,8 +8,29 @@
 
 ## [Unreleased]
 
+### Added
+
+- **集成测试 Flow 工作流**（Codex）：业务 verify 全量 PASS 后
+  - `flow-codex-test-design` — manifest / test-plan / fixtures 设计（glm-system-test）
+  - `flow-codex-test-assign` — 派发 `st-api-<change>`（不动 `flow-codex-assign`）
+  - `flow-codex-test-receive` · `test-apply` · `test-report` — 测试代码子 agent 链
+  - `flow-codex-test` 重写 — 门禁 + 委托 system-test
+- **`flow-codex-system-test`** — 迁入 skills 仓库；glm-system-test runner 执行与 evidence（原 glm-system-test 仓内 skill 已废弃）
+- `flow/templates/codex/test-child-agent-prompt.md`、`integration-test-result.md.tmpl`
+- `task-md-maintenance.md` §2.7 st-api 格式与集成测试完成检查清单
+- `flow-codex-review` test 模式（对照 test-plan + manifest）
+
 ### Changed
 
+- `flow-codex-archive`：前置增加 `集成测试.md` PASS 或用户跳过
+- `verify-checklist.md` §A.3：可选 st-api 行型检查
+- `AGENTS.md` · `README.md` · `codex/PLAN.md` · `checkpoints.md`：集成测试生命周期文档
+- `integration-test.md.tmpl`：标记废弃，改由 test-design + result 模板
+- **开发文档 §4 规则收紧**（修复 report 回写踩坑）：`dev-doc-maintenance.md`、`dev-doc-update-rules.md`、`开发文档模板.md.tmpl`、`flow-codex-report`/`flow-codex-design`、Claude `/flow:report`/`/flow:design` + `flow-report`/`flow-design` skill、`verify-checklist.md`、`schema.md` §10
+  - §4.1：服务名称 = 可部署/运行单元，多模块仓拆行，禁止用仓库名冒充服务
+  - §4.2：DDL/SQL 直接写在本节（自包含），禁止「详见发版记录 / openspec / 本地路径」
+  - §4.3：新增必须章节，只写业务验收语义；禁止测试类名、本机地址、commit/spec
+  - 全文禁止本地路径依赖、类名堆砌、Flow 内部术语写入正文
 - **Spec 粒度铁律**：`platform.md`、`flow-codex-design`、`task-md-maintenance.md`、`overview-design.md.tmpl`、`dev-doc-maintenance.md` — 根 task 每个 c = 1 repo = 1 OpenSpec change，禁止多仓 bundle；design 强制 Spec | 服务 matrix 与 task-md §2.2 格式
 - **verify 分层**：`verify-checklist.md` 拆为 §A 产物格式（结构/格式，design 后可跑）与 §B 发布就绪（test/archive 全量）；Spec 粒度归入 §A；`flow-codex-verify` 说明双模式调用
 

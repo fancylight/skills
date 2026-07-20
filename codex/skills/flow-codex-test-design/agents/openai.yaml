@@ -1,0 +1,4 @@
+interface:
+  display_name: "Flow 集成测试设计"
+  short_description: "verify 通过后产出 glm-system-test manifest 与 test-plan"
+  default_prompt: "为已完成业务 specs 的 Flow change 设计 glm-system-test 集成测试产物。"

@@ -39,7 +39,13 @@ Codex 执行 agent 不负责调度审核 agent。保留原始生命周期，将�
 - `flow-codex-report`
 - `flow-codex-status`
 - `flow-codex-verify`
+- `flow-codex-test-design`
+- `flow-codex-test-assign`
+- `flow-codex-test-receive`
+- `flow-codex-test-apply`
+- `flow-codex-test-report`
 - `flow-codex-test`
+- `flow-codex-system-test`
 - `flow-codex-change`
 - `flow-codex-archive`
 - `flow-codex-kb`

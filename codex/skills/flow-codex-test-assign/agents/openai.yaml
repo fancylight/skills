@@ -1,0 +1,4 @@
+interface:
+  display_name: "Flow 集成测试派发"
+  short_description: "向 glm-system-test 派发 st-api 测试 spec"
+  default_prompt: "派发 glm-system-test 集成测试代码开发任务。"

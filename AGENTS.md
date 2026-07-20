@@ -9,7 +9,7 @@
 | 场景 | 先读什么 | 使用什么 skills |
 |------|----------|-----------------|
 | **维护本仓库**（`skills`） | [MAINTENANCE.md](./MAINTENANCE.md) | 改 `codex/skills/`、`flow/templates/`；跑 `codex/validate.ps1` |
-| **业务编排根目录**（`.flow/config.yaml` → `role: orchestrator`） | 当前 change 的 `概要设计.md`、`task.md`；开发文档规则见安装模板 `dev-doc-maintenance.md` | `flow-codex-design` · `assign` · `status` · `verify` · `test` · `archive` · `change` · `hotfix` |
+| **业务编排根目录**（`.flow/config.yaml` → `role: orchestrator`） | 当前 change 的 `概要设计.md`、`task.md`；开发文档规则见安装模板 `dev-doc-maintenance.md` | `flow-codex-design` · `assign` · `status` · `verify` · `test-design` · `test-assign` · `test` · `archive` · `change` · `hotfix` |
 | **业务服务目录**（`role: executor`） | 根 `task.md`、服务 OpenSpec、`工作流程.md` | `flow-codex-receive` · `apply` ·（经根调度）`report` |
 
 **维护 skills 仓库时不要读业务 change 里的开发文档来改 skill**；改开发文档规则请编辑 `flow/templates/dev-doc-maintenance.md` 等源文件（见 MAINTENANCE.md §0）。
@@ -28,7 +28,14 @@
   → 执行测试、提交，返回 REPORT_REQUEST
   → 根发放串行报告租约
   → 执行：flow-codex-report
+
+业务 verify 全量 PASS 后 — 集成测试：
+  flow-codex-test-design → flow-codex-test-assign
+  → test-receive → test-apply → test-review → test-report
+  → flow-codex-test → flow-codex-system-test（runner）
 ```
+
+集成测试 spec 使用 `st-api-<change>`（glm-system-test），与业务 `c{n}` 分离。详见 `task-md-maintenance.md` §2.7。
 
 硬性规则（详见 [codex/PLAN.md](./codex/PLAN.md)、[codex/skills/flow-codex-core/references/platform.md](./codex/skills/flow-codex-core/references/platform.md)）：
 
@@ -55,7 +62,13 @@
 | `flow-codex-report` | 执行 | 更新根 `task.md`（须报告租约） |
 | `flow-codex-status` | 根 | 只读进度 |
 | `flow-codex-verify` | 根 | 根产物与子 OpenSpec 格式；test/archive 前附加发布就绪（§A+§B） |
-| `flow-codex-test` | 根 | 集成测试 |
+| `flow-codex-test-design` | 根 | verify 后产出 glm-system-test manifest / test-plan |
+| `flow-codex-test-assign` | 根 | 向 glm-system-test 派发 `st-api-*` |
+| `flow-codex-test-receive` | 执行 | 加载 manifest + test-plan |
+| `flow-codex-test-apply` | 执行 | 编写 JUnit / fixtures / test-support |
+| `flow-codex-test-report` | 执行 | 更新 task.md st-api 条目（须报告租约） |
+| `flow-codex-test` | 根 | 集成测试门禁 + 委托 system-test + 更新检查清单 |
+| `flow-codex-system-test` | 根/执行 | glm-system-test runner（doctor/run/evidence） |
 | `flow-codex-change` | 根 | 需求变更 |
 | `flow-codex-archive` | 根 | 归档 |
 | `flow-codex-kb` | 根/执行 | 知识库维护 |
@@ -76,7 +89,7 @@
 
 - **格式规范**：[flow/docs/schema.md](./flow/docs/schema.md)
 - **模板源**：[flow/templates/](./flow/templates/)（安装时复制到 `flow-codex-core/assets/templates/`，并叠加 `flow/templates/codex/` 覆盖）
-- **task.md 维护规则**：`flow/templates/task-md-maintenance.md`、`codex/skills/flow-codex-report/references/task-update-rules.md`
+- **task.md 维护规则**：`flow/templates/task-md-maintenance.md`（含 §2.7 st-api）、`codex/skills/flow-codex-report/references/task-update-rules.md`、`codex/skills/flow-codex-test-report/references/task-update-rules.md`
 - **业务项目文档边界**（概要设计 vs 开发文档）：业务 Flow 读安装模板 `dev-doc-maintenance.md`；skills 维护者读 [MAINTENANCE.md](./MAINTENANCE.md) §5 索引
 
 ---

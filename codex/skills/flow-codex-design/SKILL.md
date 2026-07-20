@@ -17,8 +17,8 @@ description: 为 Codex 编排设计或修复 Flow 需求。创建根需求产物
    - 生成 `开发文档.md` 前读取 `../flow-codex-core/assets/templates/dev-doc-maintenance.md` 与 `开发文档模板.md.tmpl`。
    - **§1–§2**：从需求/用户输入填写；§2「相关规则」写业务可验证规则。
    - **§3.2.1–§3.2.3**：仅写摘要或占位（业务规则要点、存储语义草稿、流转草图）；**禁止**从 `概要设计.md` 复制消费点表、Java/文件清单、JSON。
-   - **§3.2.4**：接口表填路径 + **恰好一个服务（repo）** + 变更类型 + 一行说明；BFF 对外 HTTP 行填 BFF 服务，不得填后端 provider；Apifox 列从步骤 3 填入链接或「待录入」；**禁止 JSON**；design 自检每条接口在 Spec 矩阵中有唯一 owning spec（开发文档不写 c ID，见 dev-doc-maintenance §6 design 阶段）。
-   - **§4.1**：从 task.md services 填分支；**§4.2** 留空（由 report 补充）。
+   - **§3.2.4**：接口表填路径 + **恰好一个可部署服务**（非 git 仓库名）+ 变更类型 + 一行说明；BFF 对外 HTTP 行填 BFF 服务，不得填后端 provider；Apifox 列从步骤 3 填入链接或「待录入」；**禁止 JSON**；design 自检每条接口在 Spec 矩阵中有唯一 owning spec（开发文档不写 c ID，见 `dev-doc-maintenance.md`）。
+   - **§4.1**：按**可部署/运行单元**填服务-分支（多模块仓拆多行，`git 仓库` 列可重复；禁止一行只写仓名）；**§4.2** 留空或「无」（report 写 SQL 全文）；**§4.3** 写业务验收要点（非测试类名/本机环境）。
 5. **Spec 拆分（铁律）**——写 `task.md` 前**必须**读取 `../flow-codex-core/assets/templates/task-md-maintenance.md` §2.2 与 §3.1。
    - 在 `概要设计.md` 产出 **「Spec | 服务 | 职责 | 依赖」矩阵**（每行恰好一个服务；跨仓同能力须多行、c 递增）。
    - `task.md` 开发顺序必须符合 §2.2 格式：`{序号}. {spec-id}（{单一 service}，依赖 cX 或 —）`。

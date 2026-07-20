@@ -84,7 +84,7 @@ skills/
 │   ├── validate.ps1
 │   ├── PLAN.md
 │   └── skills/
-│       ├── flow-codex-*        公开 skills（14 个）
+│       ├── flow-codex-*        公开 skills（20 个）
 │       └── flow-codex-core     内部公共资源 + 安装后模板副本
 │
 ├── flow/                     ← 双平台共享
@@ -130,7 +130,7 @@ Skills 在业务仓库中读写以下结构（完整字段见 [flow/docs/schema.
 | 文档 | 读者 | 内容 |
 |------|------|------|
 | `概要设计.md` | Agent / 编排 | spec 拆分、开发顺序、验收标准、Flow 测试设计 |
-| `开发文档.md` | 开发 / 测试 / 运维 | §2 需求分析；§3.2.1 业务规则；§3.2.2 存储；§3.2.3 流转；§3.2.4 接口（Apifox）；§4 上线 |
+| `开发文档.md` | 开发 / 测试 / 运维 | §2 需求分析；§3.2.1–3.2.4；§4.1 可部署服务-分支；§4.2 SQL/配置（自包含）；§4.3 业务验收 |
 
 规范见 `flow/templates/dev-doc-maintenance.md`。design 写骨架，report 按实现回写。
 ---
@@ -169,7 +169,11 @@ flow-codex-assign        → 按依赖派发 spec
   └─ flow-codex-review  → （根调度）→ apply 继续 → report 租约
 flow-codex-status        → 查看进度
 flow-codex-verify        → 根产物格式 + test/archive 前发布就绪（§A+§B）
-flow-codex-test          → 集成测试
+flow-codex-test-design   → manifest + test-plan（glm-system-test）
+flow-codex-test-assign   → 派发 st-api-* 测试代码
+  └─ test-receive → test-apply → test-report
+flow-codex-test          → 门禁 + 委托 system-test + 检查清单
+flow-codex-system-test   → glm-system-test runner 执行
 flow-codex-archive       → 归档
 ```
 

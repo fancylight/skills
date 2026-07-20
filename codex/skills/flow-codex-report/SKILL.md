@@ -28,13 +28,15 @@ description: 在提交后记录一个已完成的 Flow spec，并更新根追踪
    - **兜底：表格状态不匹配任何分支时，禁止静默跳过，必须在汇报中逐条列出并提示人工确认**
    **POST 接口 requestBody 格式**：必须用 jsonSchema 模式（`type: "application/json"` + `parameters: []` + 字段放 `jsonSchema.properties`），禁止用 `type: "json"` + `parameters[]` 写法（UI 不渲染）。
    MCP 不可用时降级跳过。同步后将「待录入/待补充」替换为实际链接（格式 `https://app.apifox.com/link/project/{projectId}/apis/api-{entityId}`）。
-5. **回写开发文档.md**：按 `dev-doc-update-rules.md` 从本 spec 的 OpenSpec `design.md` 与 commit 更新：
-   - §3.2.4 本 spec 相关接口行
-   - §3.2.2 存储语义（有 DDL 时，不写 SQL 全文）
-   - §3.2.3 数据流转（有新链路时）
+5. **回写开发文档.md**：先读 `dev-doc-update-rules.md` 与 `dev-doc-maintenance.md`（尤其 §4.1/§4.2/§4.3），再从本 spec 的 OpenSpec `design.md` 与 commit **改写**为人读内容：
+   - §3.2.4 本 spec 相关接口行（「服务」列 = 可部署服务名）
+   - §3.2.2 存储语义（字段语义 + 兼容；完整 SQL 放 §4.2，禁止「见发版记录」）
+   - §3.2.3 数据流转（服务/接口路径级；禁止类名流水）
    - §3.2.1 业务规则（有收敛时）
-   - §4.2 SQL/配置摘要（有变更时）
-   禁止写入 spec 名、文件路径清单、完整 JSON。
+   - §4.1 补全/拆分本 spec 涉及的**可部署服务**行（禁止用 git 仓库名冒充服务）
+   - §4.2 **直接写入** DDL/SQL 或配置；无则写「无」；禁止「详见发版记录 / openspec / 本地路径」
+   - §4.3 只写**业务验收语义**；禁止测试类名、本机地址、启动清单、commit hash、spec id
+   禁止写入 spec 名、`c{n}-`、本地路径、类名堆砌、完整 JSON。
 6. 向进度文件追加结构化汇报，含 **【开发文档】** 变更摘要。
 7. 返回简短的知识库维护建议。
 8. 返回 `[REPORT] complete`，让根 agent 释放租约。

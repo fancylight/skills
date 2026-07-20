@@ -128,12 +128,43 @@ hotfix 与 feature spec 生命周期不同，放在每个服务章节**末尾**�
 - 每个条目对应一个可验证的事实（编译通过 / 测试通过 / spec 完成）
 - **变更重开 spec 时，必须同步取消**相关清单条目（`[x]` → `[ ]`）
 - 汇报完成勾选前，**必须验证**清单与任务实际状态一致
+- 集成测试相关（多服务需求建议包含）：
+  - `[ ] 集成测试设计 READY` — `flow-codex-test-design` 产出 manifest + test-plan
+  - `[ ] 集成测试代码完成` — `st-api-*` report 勾选
+  - `[ ] 集成测试执行 PASS` — `flow-codex-test` 写 `集成测试.md` 且 PASS
 
 ### 2.6 变更通知
 
 - 每行一个变更，格式：`- **{service}**：{spec-id} {变更类型} — {1行简述}`
 - 仅作为子 agent 的**消费队列**——子 agent receive 时读取并处理，处理后删除对应行
 - 详细变更内容记录在 `概要设计.md` 的变更记录章节，**不**在 task.md 展开
+
+### 2.7 集成测试 spec（st-api）
+
+与业务 `c{n}` **分离**，ID 格式：`st-api-{kebab-case}`（通常与 change 目录名一致，如 `st-api-guanghuo-wage-register-audit`）。
+
+**开发顺序**（追加在业务 spec 之后）：
+
+```text
+N. st-api-<change>（glm-system-test，依赖 cX 或 —）
+```
+
+- 括号内服务名固定为 `glm-system-test`（与根 `.flow/config.yaml` 中 `name` 一致）
+- 依赖引用业务 spec 时用 `c{n}`；全部业务完成后可写 `依赖 —`
+
+**服务章节** `## glm-system-test`：
+
+```
+> 状态：{emoji} {状态文本} | 分配日期：{date} | 模式：{mode} | 任务号：{id}
+
+- [{x| }] st-api-<change>: 集成测试代码··
+      边界：manifest test-plan 范围；JUnit + fixtures + test-support··
+      依赖：cX 或 —··
+      完成：{YYYY-MM-DD} commit {hash}   ← 或 local-only
+```
+
+- spec 权威在 glm-system-test 的 manifest + test-plan，**无 OpenSpec**
+- `flow-codex-test-design` 创建条目；`flow-codex-test-report` 勾选完成
 
 ---
 
@@ -236,4 +267,5 @@ hotfix 与 feature spec 生命周期不同，放在每个服务章节**末尾**�
 | 服务头部最大行数 | 1 行（blocked by 除外） |
 | 变更通知每行 | 1 行简述，不含详细修改内容 |
 | spec ID 格式 | `c{序号}-{kebab-case}` |
+| 集成测试 spec ID | `st-api-{kebab-case}`（仅 glm-system-test 章节） |
 | hotfix ID 格式 | `hotfix-{YYYYMMDD}-{kebab-slug}` |
