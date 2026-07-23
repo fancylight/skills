@@ -19,6 +19,17 @@ description: 维护 Flow 知识库。支持 change 上下文或 feedback 调查�
 
 1. 确认 KB 已启用
 2. 读取 change 产物，提取可复用知识
+
+**从概要设计提取（优先）**：
+- 仅处理 `## 领域概念` 中 `来源: change`（或 `source: change`）且 `kb_action: 待沉淀` 的行
+- 写入 KB 功能域 `## 业务规则` 或术语子表；不复制 change 全文
+- `来源: kb` 的词条：archive 时可做「实现是否违反 KB」抽检（可选，本 skill 不自动执行）
+
+**不沉淀**：
+- 联调修正、GLW/commit、一次性脏数据
+- `kb_action: 无需`
+- pass 决策表中纯流程临时约定（除非用户指定沉淀）
+
 3. 用户确认后写入 KB
 4. 若 git 仓库，按 KB 规范提交
 

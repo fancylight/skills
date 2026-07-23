@@ -10,6 +10,7 @@
 
 ### Added
 
+- **设计阶段领域概念 + verify §C**：`overview-design.md.tmpl` 强制「领域概念 / 歧义裁决 / 审核 pass 决策表 / 集成范围」；`verify-checklist.md` 新增 §C；`flow-codex-verify` 支持 `verify_mode=design`（§A+§C）；`flow-codex-assign` 派发前强制 design verify；`flow-codex-kb` / `flow-codex-archive` 联动 `kb_action: 待沉淀`。默认 format / 全量 verify（§A+§B）行为不变；`flow-codex-review` 未改。Claude 侧 design 对齐待 follow-up。
 - **`flow-codex-feedback`** / **`/flow:feedback`** — 线上反馈调查，`.flow/feedback/` 独立目录（懒创建）；不修代码、不写 task.md
 - **`flow-codex-kb` feedback 入口** / **`/flow:kb feedback/{id}`** — 从调查报告沉淀 KB
 - 模板：`feedback-index.md.tmpl`、`feedback-record.md.tmpl`、`feedback-report.md.tmpl`、`feedback-kb-rules.md`

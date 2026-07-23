@@ -22,7 +22,9 @@
 ## Codex 生命周期（必须遵守）
 
 ```text
-根：flow-codex-assign
+根：flow-codex-design
+  → flow-codex-verify（verify_mode=design，§A+§C）无 ERROR
+  → flow-codex-assign
   → 执行：flow-codex-receive → flow-codex-apply
   → 执行返回 REVIEW_REQUEST 并暂停
   → 根启动 flow-codex-review，回传 PASS / REJECT
@@ -54,7 +56,7 @@ flow-codex-feedback →（bug 要修）直接改代码 → flow-codex-kb feedbac
 - 仅**不同仓库**之间可并行写入；同一仓库禁止并发写入 Agent
 - 根追踪文件（`task.md` 等）**串行**更新，禁止并发 report
 - 分支不匹配或 worktree 有未确认历史改动时 **停止**，不要静默 checkout
-- 每个 OpenSpec change 须 apply-ready 后才能声明设计完成
+- 每个 OpenSpec change 须 apply-ready，且 `verify_mode=design`（§A+§C）无 ERROR 后，才能声明设计完成 / 派发
 
 ---
 
@@ -71,7 +73,7 @@ flow-codex-feedback →（bug 要修）直接改代码 → flow-codex-kb feedbac
 | `flow-codex-apply` | 执行 | OpenSpec 实现；返回 REVIEW_REQUEST |
 | `flow-codex-report` | 执行 | 更新根 `task.md`（须报告租约） |
 | `flow-codex-status` | 根 | 只读进度 |
-| `flow-codex-verify` | 根 | 根产物与子 OpenSpec 格式；test/archive 前附加发布就绪（§A+§B） |
+| `flow-codex-verify` | 根 | 格式 §A；design 模式 §A+§C（assign 前）；全量 §A+§B（test/archive 前） |
 | `flow-codex-test-design` | 根 | verify 后产出 glm-system-test manifest / test-plan |
 | `flow-codex-test-assign` | 根 | 向 glm-system-test 派发 `st-api-*` |
 | `flow-codex-test-receive` | 执行 | 加载 manifest + test-plan |

@@ -4,19 +4,31 @@
 > **不是**跨服务 api.md 契约比对（Claude `flow:verify` / flow-verify 专责）。
 > skills 仓库维护者改本文件后须同步 verify/archive skill（见仓库根 MAINTENANCE.md）。
 
-本清单分两层：**§A 产物格式**（结构/格式，不判业务内容）与 **§B 发布就绪**（完成度与 git 状态）。`flow-codex-test` / `flow-codex-archive` 前须 **§A + §B 全量** verify 且无 ERROR。design 完成后可 **仅跑 §A** 做格式复验。
+本清单分三层：
+
+- **§A 产物格式**（结构/格式，不判业务语义）
+- **§B 发布就绪**（完成度与 git 状态；仅全量 verify）
+- **§C 设计过程合规**（领域概念与向下传导；仅 `verify_mode=design`）
+
+| 调用模式 | 章节 |
+|----------|------|
+| 格式复验（默认轻量） | §A |
+| 设计合规（`verify_mode=design`） | §A + §C |
+| 全量 verify（test/archive） | §A + §B（**不**默认跑 §C；assign 前单独跑 design 模式） |
+
+`flow-codex-test` / `flow-codex-archive` 前须 **§A + §B 全量** verify 且无 ERROR。`flow-codex-assign` 前须 **§A + §C**（`verify_mode=design`）且无 ERROR。
 
 ---
 
 ## 输出格式
 
-按项输出 `PASS` / `WARN` / `ERROR`。全量 verify 存在 **ERROR** 时不可进入 `flow-codex-test` 或 `flow-codex-archive`（WARN 需用户确认后可继续）。
+按项输出 `PASS` / `WARN` / `ERROR`。全量 verify 存在 **ERROR** 时不可进入 `flow-codex-test` 或 `flow-codex-archive`（WARN 需用户确认后可继续）。design 模式存在 **ERROR** 时不可 `flow-codex-assign`。
 
 ---
 
 ## §A 产物格式（ERROR）
 
-**design 完成后可跑；test/archive 前必跑。** 只读、可机器判定；**不检查**业务逻辑、接口语义、拆法是否最优。
+**design 完成后可跑；test/archive 前必跑；design 模式一并跑。** 只读、可机器判定；**不检查**业务逻辑、接口语义、拆法是否最优。
 
 读取 `dev-doc-maintenance.md`、`task-md-maintenance.md` §2.2 与 `platform.md` Spec 粒度铁律。
 
@@ -85,7 +97,7 @@
 
 ## §B 发布就绪（ERROR）
 
-**仅 test/archive 全量 verify 时执行。** 不适用于 design 后仅跑 §A 的场景。
+**仅 test/archive 全量 verify 时执行。** 不适用于 design 后仅跑 §A、也不适用于 `verify_mode=design`。
 
 | 检查项 | 说明 |
 |--------|------|
@@ -100,16 +112,63 @@
 
 ---
 
+## §C 设计过程合规（ERROR / WARN）
+
+**仅 `verify_mode=design` 时执行。** 只读；不写 KB、不审代码、不跑集成测试。
+
+**标题匹配规则**（概要设计）：
+
+| 节 | 认可标题（任一） |
+|----|------------------|
+| 领域概念 | `## 领域概念` |
+| 歧义裁决 | `## 歧义裁决` |
+| pass 决策表 | `## 审核 pass / 写库决策表` 或 `## 审核 pass` |
+| 集成范围 | `## 集成 / 联调范围` 或 `## 集成` |
+
+读取 `.flow/changes/{change}/概要设计.md`；对每个 task spec-id 读取对应服务 `openspec/changes/{spec-id}/design.md` 与 `specs/**/*.md`。输出 `文件:行号` 或章节名。
+
+### C.1 概要设计必备节
+
+| ID | 级别 | 检查项 | 说明 |
+|----|------|--------|------|
+| C.1.1 | ERROR | 领域概念节存在 | `## 领域概念` 存在且至少 1 行数据行（非仅表头/占位） |
+| C.1.2 | ERROR | 词条字段完整 | 每行含 mandatory 列：词条、定义、判定条件、来源、影响 spec |
+| C.1.3 | ERROR/WARN | KB 引用可解析 | `来源=kb`（或 `source=kb`）时 KB 引用非空；若根 `config.yaml` 启用 KB 且路径可访问，引用路径或 @feature 须存在（不可访问时 WARN） |
+| C.1.4 | ERROR | change 词条 kb_action | `来源=change` 时 kb_action 为 `待沉淀` 或 `无需` |
+| C.1.5 | WARN | 歧义裁决 | 同目录存在对齐纪要等且含明显冲突表述时，须有 `## 歧义裁决` 且每议题有唯一「裁决」列；无冲突文档时若写「无未裁决歧义」则 PASS |
+| C.1.6 | ERROR | pass 决策表 | 存在多步审核/状态流转描述时须有 pass 决策表（见标题匹配）且覆盖文档中提到的每个审核节点；否则 ERROR。无多步审核时可缺省 |
+| C.1.7 | ERROR | 集成范围 | 集成范围节存在；首派 vs Phase-2（或不在本次）有明确标注 |
+
+### C.2 向下传导
+
+| ID | 级别 | 检查项 | 说明 |
+|----|------|--------|------|
+| C.2.1 | ERROR | 矩阵覆盖影响面 | 领域概念「影响 spec」列中出现的 c{n} 均在 Spec 矩阵中存在 |
+| C.2.2 | ERROR | 术语不降级 | 子 OpenSpec（proposal/design/delta spec）出现与根领域概念同主题但**更模糊**的表述，且未引用根词条名。启发式示例：根有「腾讯电子合同 type=3」，子 spec 仅写「正式合同」「worker_contract」而无 type/company 约束。报 ERROR 时须引用根概念行号与子 spec 位置 |
+| C.2.3 | ERROR | 裁决已传导 | 歧义裁决表的「回写」项在对应 OpenSpec 或概要设计验收标准中可找到一致表述 |
+| C.2.4 | WARN | pass 表与矩阵 | pass 决策表「owning spec」均在矩阵中且职责不空 |
+
+**C.2.2 模糊词示例（首版内联）**：仅写「正式合同」「普通合同」「worker_contract」而无类型/主体约束；仅写「预警」而无 type；仅写「通过」而无写库路径。有根词条名显式引用时不判降级。
+
+### C.2 检测方法
+
+- 读取概要设计与（若存在）同目录 `对齐纪要.md` 等对齐文档
+- 对每个 task spec-id 读取对应服务 OpenSpec 设计与 delta specs
+- **只读**；不得自动编辑/修复产物
+
+---
+
 ## 不在本清单范围
 
 - 跨服务 `api.md` / `{provider}-api.md` 契约比对 → Claude `/flow:verify`
-- 概要设计验收标准是否通过 → `flow-codex-test`
+- 运行时业务是否正确、验收是否通过 → `flow-codex-test` / 联调
+- 代码是否违背设计 → `flow-codex-review`（apply 后）
 - 单元测试是否充分 → apply/report 阶段
-- 业务拆法、接口语义、Non-goals 是否正确 → design / review
-- BFF 接口是否应归 aggregator → design Spec 矩阵 + review
+- §C 不判断：SQL 正确性、性能、安全 exploit、KB 正文业务是否过时
+- BFF 接口是否应归 aggregator → design Spec 矩阵（结构归 §A；语义归 design 产出 + §C 领域概念）
 
 ---
 
 ## Claude archive 用法
 
-`/flow:archive` 执行前运行本清单 **§A + §B** 全量（跳过「不在本清单范围」中的契约项）。有 ERROR 则停止归档。
+`/flow:archive` 执行前运行本清单 **§A + §B** 全量（**不**强制 §C）。有 ERROR 则停止归档。
