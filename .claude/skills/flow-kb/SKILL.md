@@ -1,12 +1,15 @@
 ---
 name: flow-kb
-description: "Knowledge base maintenance — both root and child agent can use. Reads KB rules, analyzes changes, writes to KB, commits if git repo. Use when: 'update knowledge base', 'maintain KB', 'document this change'"
+description: "Knowledge base maintenance — change or feedback entry. Use when: 'update knowledge base', 'maintain KB', 'document feedback investigation'"
 license: MIT
 metadata:
   author: flow
-  version: "0.1.0"
+  version: "0.2.0"
 ---
 
-知识库维护命令，根/子均可使用。读取维护指南和 change 上下文，分析需要记录的内容，经用户确认后写入 KB 并提交。
+知识库维护，根/子均可使用。双入口：
 
-执行 `/flow:kb <change-name>` 开始。
+- `/flow:kb <change-name>` — change 上下文
+- `/flow:kb feedback/{feedback-id}` — 反馈调查报告
+
+写入前经用户确认。feedback 规则见 commands/flow/templates/feedback-kb-rules.md。

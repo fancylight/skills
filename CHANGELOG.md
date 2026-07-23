@@ -10,6 +10,17 @@
 
 ### Added
 
+- **`flow-codex-feedback`** / **`/flow:feedback`** — 线上反馈调查，`.flow/feedback/` 独立目录（懒创建）；不修代码、不写 task.md
+- **`flow-codex-kb` feedback 入口** / **`/flow:kb feedback/{id}`** — 从调查报告沉淀 KB
+- 模板：`feedback-index.md.tmpl`、`feedback-record.md.tmpl`、`feedback-report.md.tmpl`、`feedback-kb-rules.md`
+- `flow/docs/schema.md` §11 feedback 协议
+- Claude：`.claude/commands/flow/feedback.md`、`.claude/commands/flow/kb.md`、`.claude/skills/flow-feedback/`
+
+### Changed
+
+- **`flow-codex-kb`** / **`flow-kb`** — 双入口（change / feedback）；`references/feedback-kb-rules.md`
+- `AGENTS.md` · `docs/claude-code.md` · `流程文档.md` · `codex/PLAN.md` — 反馈闭环文档
+
 - **集成测试 Flow 工作流**（Codex）：业务 verify 全量 PASS 后
   - `flow-codex-test-design` — manifest / test-plan / fixtures 设计（glm-system-test）
   - `flow-codex-test-assign` — 派发 `st-api-<change>`（不动 `flow-codex-assign`）

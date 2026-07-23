@@ -23,7 +23,8 @@ $requiredSkills = @(
     "flow-codex-change",
     "flow-codex-archive",
     "flow-codex-kb",
-    "flow-codex-hotfix"
+    "flow-codex-hotfix",
+    "flow-codex-feedback"
 )
 $forbiddenPattern = "TODO|Skill\(|AskUserQuestion|TaskCreate|/flow:|~/\.claude|~/\.Codex"
 

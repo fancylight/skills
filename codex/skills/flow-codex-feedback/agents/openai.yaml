@@ -1,0 +1,4 @@
+interface:
+  display_name: "Flow 反馈调查"
+  short_description: "调查线上反馈并产出结构化报告"
+  default_prompt: "调查这条线上反馈，产出 .flow/feedback/ 调查报告。"

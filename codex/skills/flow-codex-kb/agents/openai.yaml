@@ -1,4 +1,4 @@
 interface:
   display_name: "Flow 知识库"
-  short_description: "维护可复用的 Flow 知识库指引"
-  default_prompt: "根据本次发现的持久指引提出 Flow 知识库更新建议。"
+  short_description: "维护 KB（change 或 feedback 入口）"
+  default_prompt: "根据 change 或 feedback 调查报告提出 Flow 知识库更新建议。"

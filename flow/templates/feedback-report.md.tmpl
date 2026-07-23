@@ -1,0 +1,69 @@
+---
+feedback_id: {{feedback_id}}
+status: investigating
+type: unknown
+resolution: pending
+services: []
+created: {{created_date}}
+updated: {{updated_date}}
+closed:
+fix_service:
+fix_commit:
+fix_branch:
+kb_ref:
+---
+
+# 调查报告：{{title}}
+
+## 反馈场景
+
+- 端：
+- 页面/模块：
+- 用户操作：
+- 期望结果：
+- 实际结果：
+- 环境：
+
+## 相关链路
+
+- 接口：（服务名）
+- 关键表/字段：
+- 读写路径：Controller → Service → SQL → Adapter/Job
+
+## 数据验证
+
+| # | 假设 | SQL/方法 | 结果 | 结论 |
+|---|------|----------|------|------|
+| 1 | | | | |
+
+## 根因
+
+{一句话说明根本原因}
+
+- 影响范围：
+- 触发条件：
+
+## 判定摘要
+
+{引用 frontmatter 的 type 与 resolution，用自然语言解释}
+
+## 建议分流
+
+- 去向：flow:kb / 直接关闭 / 待直接修复
+- 理由：
+
+## 修复记录
+
+> 仅 `resolution=fix-now` 时填写。修复不走 flow:hotfix，直接在服务仓库改代码并 commit。
+
+- 服务：
+- 分支：
+- commit：
+- 改动摘要：
+- 是否发版：
+
+## 调查日志
+
+| 轮次 | 时间 | 动作 | 结论 |
+|------|------|------|------|
+| 1 | {{updated_date}} | Intake | 创建调查报告 |

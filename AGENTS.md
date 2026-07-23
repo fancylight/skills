@@ -10,6 +10,7 @@
 |------|----------|-----------------|
 | **维护本仓库**（`skills`） | [MAINTENANCE.md](./MAINTENANCE.md) | 改 `codex/skills/`、`flow/templates/`；跑 `codex/validate.ps1` |
 | **业务编排根目录**（`.flow/config.yaml` → `role: orchestrator`） | 当前 change 的 `概要设计.md`、`task.md`；开发文档规则见安装模板 `dev-doc-maintenance.md` | `flow-codex-design` · `assign` · `status` · `verify` · `test-design` · `test-assign` · `test` · `archive` · `change` · `hotfix` |
+| **线上反馈调查**（`.flow/feedback/`，与 change 无关） | 当前 feedback 的 `反馈记录.md`、`调查报告.md` | `flow-codex-feedback` · `flow-codex-kb feedback/{id}` |
 | **业务服务目录**（`role: executor`） | 根 `task.md`、服务 OpenSpec、`工作流程.md` | `flow-codex-receive` · `apply` ·（经根调度）`report` |
 
 **维护 skills 仓库时不要读业务 change 里的开发文档来改 skill**；改开发文档规则请编辑 `flow/templates/dev-doc-maintenance.md` 等源文件（见 MAINTENANCE.md §0）。
@@ -36,6 +37,15 @@
 ```
 
 集成测试 spec 使用 `st-api-<change>`（glm-system-test），与业务 `c{n}` 分离。详见 `task-md-maintenance.md` §2.7。
+
+**反馈闭环**（独立于上述 change 生命周期）：
+
+```text
+flow-codex-feedback →（bug 要修）直接改代码 → flow-codex-kb feedback/{id} → closed
+                   ↘ flow-codex-kb / 关闭
+```
+
+详见 [flow/docs/schema.md](./flow/docs/schema.md) §11。feedback 不写 task.md、不走 hotfix 编排。
 
 硬性规则（详见 [codex/PLAN.md](./codex/PLAN.md)、[codex/skills/flow-codex-core/references/platform.md](./codex/skills/flow-codex-core/references/platform.md)）：
 
@@ -71,8 +81,9 @@
 | `flow-codex-system-test` | 根/执行 | glm-system-test runner（doctor/run/evidence） |
 | `flow-codex-change` | 根 | 需求变更 |
 | `flow-codex-archive` | 根 | 归档 |
-| `flow-codex-kb` | 根/执行 | 知识库维护 |
-| `flow-codex-hotfix` | 根 | 热修通道 |
+| `flow-codex-feedback` | 根/执行 | 线上反馈调查（`.flow/feedback/`，独立于 change） |
+| `flow-codex-kb` | 根/执行 | 知识库维护（change 或 `feedback/{id}` 入口） |
+| `flow-codex-hotfix` | 根 | 热修通道（正式 assign 编排；非 feedback 默认路径） |
 
 ### 内部（由其他 skill 引用，非用户入口）
 

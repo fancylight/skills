@@ -33,7 +33,8 @@
 | `/flow:test` | 根 | flow-test |
 | `/flow:change` | 根 | flow-change |
 | `/flow:archive` | 根 | flow-archive |
-| `/flow:kb` | 根/子 | flow-kb |
+| `/flow:feedback` | 根/子 | flow-feedback |
+| `/flow:kb` | 根/子 | flow-kb（`<change-name>` 或 `feedback/{id}`） |
 | `/flow:hotfix` | 根 | flow-hotfix |
 
 执行命令时读取同名 `flow-*` skill 的 `SKILL.md`。模板安装路径：`commands/flow/templates/`（来自 `flow/templates/`）。

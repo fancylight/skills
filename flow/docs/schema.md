@@ -389,3 +389,97 @@ updated: string             # 必填。YYYY-MM-DD
 
 详细规则见模板目录 `dev-doc-maintenance.md`。
 
+---
+
+## 11. feedback（线上反馈，独立于 change）
+
+由 `/flow:feedback` 或 `flow-codex-feedback` 懒创建，位于 `.flow/feedback/`。**与 `.flow/changes/`、`task.md`、OpenSpec spec 无关联**；禁止写入 task.md 或创建 spec 目录。
+
+### 11.1 目录布局
+
+```text
+.flow/feedback/
+  _index.md
+  {YYYY-MM-DD}-{slug}/
+    反馈记录.md
+    调查报告.md
+```
+
+- `feedback_id` = 目录名 = `{YYYY-MM-DD}-{slug}`（slug 为 kebab-case）
+- 首次执行 feedback skill 时创建 `.flow/feedback/` 与 `_index.md`
+
+### 11.2 `_index.md` 台账
+
+表头列：`feedback_id` | `status` | `type` | `resolution` | 标题 | `updated`
+
+Intake 时追加一行；关闭或状态变更时更新对应行。
+
+### 11.3 反馈记录.md
+
+由 Intake 写入，调查开始后**只读**（禁止后续步骤修改）。
+
+```yaml
+---
+feedback_id: string           # 必填。与目录名一致
+received: string              # 必填。YYYY-MM-DD
+reporter: string              # 可选。客户/渠道/内部
+environment: string           # 可选。public | private
+tenant: string                # 可选。私有云客户名
+contact: string               # 可选
+severity: string              # 可选。P0 | P1 | P2 | unknown
+related_services: array       # 可选。初步猜测
+duplicate_of: string          # 可选。重复反馈时填原 feedback_id
+related_change: string        # 可选。仅背景参考，不挂靠
+---
+```
+
+正文必须章节：问题描述、复现材料、补充。
+
+**最小可接受输入**：问题描述 +（接口路径 或 业务主键 之一）。
+
+模板源：`flow/templates/feedback-record.md.tmpl`
+
+### 11.4 调查报告.md
+
+Frontmatter 为**唯一状态源**；正文不重复枚举 type/resolution。
+
+```yaml
+---
+feedback_id: string           # 必填
+status: string                # 必填。investigating | confirmed | closed
+type: string                  # bug | data-issue | by-design | unknown
+resolution: string            # fix-now | fix-later | kb-only | close | pending
+services: array[string]       # 调查后确认的服务名
+created: string               # 必填。YYYY-MM-DD
+updated: string               # 必填。YYYY-MM-DD
+closed: string                # status=closed 时必填
+fix_service: string           # resolution=fix-now 时
+fix_commit: string            # 直接修复完成后
+fix_branch: string
+kb_ref: string                # flow-codex-kb / flow:kb 写入后
+---
+```
+
+正文必须章节：反馈场景、相关链路、数据验证、根因、判定摘要、建议分流、修复记录、调查日志。
+
+**状态机**：`investigating` → `confirmed` → `closed`
+
+- `type=unknown` 仅允许 `status=investigating`
+- `closed` 条件：`kb_ref` 或 `fix_commit` 已填，或 `resolution=close` 且理由已写
+
+**修复路径**：`resolution=fix-now` 时在服务仓库**直接改代码并 commit**，不走 `flow:hotfix` / assign / apply。完成后回填「修复记录」与 `fix_commit`。
+
+模板源：`flow/templates/feedback-report.md.tmpl`
+
+### 11.5 与 hotfix / change 的关系
+
+| 体系 | 路径 | 关系 |
+|------|------|------|
+| feature change | `.flow/changes/{change}/` | **无关联** |
+| hotfix 编排 | task.md `### Hotfix` + OpenSpec | feedback 默认**不经过** |
+| feedback | `.flow/feedback/{id}/` | 独立事件流 |
+
+KB 沉淀：`flow-codex-kb feedback/{id}` 或 `/flow:kb feedback/{id}`，读取调查报告写入知识库。
+
+模板源（index）：`flow/templates/feedback-index.md.tmpl`
+

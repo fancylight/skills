@@ -1,74 +1,52 @@
 ---
 name: "Flow: KB"
-description: "Knowledge base maintenance — both root and child agent can use. Reads KB rules, analyzes changes, writes to KB, commits if git repo."
+description: "Maintain knowledge base from change context or feedback investigation report"
 category: Workflow
-tags: [workflow, orchestration, multi-agent, knowledge-base]
-version: "0.1.0"
+tags: [workflow, knowledge-base, feedback]
+version: "0.2.0"
 ---
 
-知识库维护命令，根 agent 和子 agent 均可使用。
+知识库维护。根/子均可使用。**写入前经用户确认**。
 
-**输入**：`/flow:kb <change-name>`
+**输入**（二选一）：
+
+- `/flow:kb <change-name>` — 从 change 产物沉淀
+- `/flow:kb feedback/{feedback-id}` — 从反馈调查报告沉淀
 
 ---
 
 **前置检查**
 
-1. 确认 `.flow/config.yaml` 存在
-2. 读取 `knowledge_base` 配置：
-   - `enabled` 必须为 `true`，否则提示"知识库未启用"
-   - `path` — 知识库根目录绝对路径
-   - `overview` — 知识库概要说明文档路径（如未配置，警告但不中止）
-   - `maintenance_guide` — 知识库维护指南文档路径（如未配置，警告但不中止）
-3. 确认知识库目录存在，否则提示"知识库路径不存在：{path}"
+1. 根 `.flow/config.yaml` 中 `knowledge_base.enabled=true`；否则停止并说明
+2. 读取 KB `maintenance_guide` / `overview`（若配置）
 
 ---
 
-**步骤**
+**入口 A：change**
 
-1. **读取 KB 设计文档**
+1. 读取 `.flow/changes/{change-name}/` 概要设计、开发文档等
+2. 提取可复用知识清单，用户确认后写入 KB
+3. 若 KB 为 git 仓库，按规范提交
 
-   - 读取 `overview`（如已配置）：理解 KB 的目录结构、内容概要、设计意图
-   - 读取 `maintenance_guide`（如已配置）：理解文档命名规范、内容格式要求、判断标准（什么需要记录、什么不需要）
+跳过：纯格式调整、普通 bug 修复、无复用价值的内部重构。
 
-2. **分析本次变更**
+---
 
-   读取活跃 change 的：
-   - `概要设计.md` — 整体背景
-   - `task.md` — 完成的 spec 清单
-   - 各 spec 的 `design.md` — 实现细节
+**入口 B：feedback**
 
-   按维护指南的判断标准，列出需要写入 KB 的内容：
-   - 新业务规则
-   - 新功能域/模块
-   - 坑点/根因
-   - 接口变更
+1. 读取 `.flow/feedback/{feedback-id}/调查报告.md`
+2. 要求 `status=confirmed`（closed 前一步）
+3. 按 `feedback-kb-rules.md`（模板目录）提取清单，用户确认后写入 KB
+4. 回写调查报告 `kb_ref`；更新 `_index.md`
+5. 提示是否 `status=closed` 并填 `closed`
 
-   **展示变更清单给用户确认。** 不自动写入。
+若 `resolution=fix-now` 且 `fix_commit` 为空，提醒修复是否已完成。
 
-3. **写入知识库**
-
-   用户确认后，按维护指南的格式规范写入 KB 文件。
-   新建文件时遵循 KB 目录结构和命名规范。
-   更新已有文件时在对应章节追加，不覆盖原内容。
-
-4. **提交 KB（如为 git 仓库）**
-
-   检查知识库目录是否为 git 仓库（`git status`）：
-   - 是 → `git add` 本次修改/新增的文件（不用 `git add .`），`git commit -m "知识库: {change-name} — {变更简述}"`
-   - 否 → 跳过
-
-5. **输出摘要**
-
-   ```
-   ## KB 维护完成
-   - 新增：{文件路径列表}
-   - 更新：{文件路径列表}
-   - 提交：{commit hash 或 跳过}
-   ```
+映射与段落模板详见 `~/.claude/commands/flow/templates/feedback-kb-rules.md`（与 Codex `flow-codex-kb/references/` 同源，install 时复制）。
 
 ---
 
 **约束**
-- 遵循 `maintenance_guide` 定义的格式和结构
-- KB 提交只涉及本次修改的文件，不用 `git add .`
+
+- feedback 模式不读取 task.md
+- feedback-kb 与 report 内 KB 判断独立，不冲突

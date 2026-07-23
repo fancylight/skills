@@ -48,7 +48,8 @@ Codex 执行 agent 不负责调度审核 agent。保留原始生命周期，将�
 - `flow-codex-system-test`
 - `flow-codex-change`
 - `flow-codex-archive`
-- `flow-codex-kb`
+- `flow-codex-feedback`
+- `flow-codex-kb`（change 或 `feedback/{id}` 入口）
 - `flow-codex-hotfix`
 
 ## 内部 Skills

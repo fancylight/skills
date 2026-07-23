@@ -63,6 +63,8 @@ if (Test-Path -LiteralPath $sharedTemplatesDir) {
     Write-Output ""
     Write-Output "Installing shared templates from $sharedTemplatesDir..."
 
+    New-Item -ItemType Directory -Force -Path $coreTemplatesDir -WhatIf:$WhatIf | Out-Null
+
     # Copy all templates from shared source
     Get-ChildItem -LiteralPath $sharedTemplatesDir -File | ForEach-Object {
         $dest = Join-Path $coreTemplatesDir $_.Name
