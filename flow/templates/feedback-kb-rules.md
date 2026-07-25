@@ -1,33 +1,45 @@
 # Feedback → KB 规则
 
-`/flow:kb feedback/{feedback-id}` 专用。主输入：`.flow/feedback/{id}/调查报告.md`。
+`flow-codex-kb feedback/{feedback-id}` / `/flow:kb feedback/{feedback-id}` 专用。主输入：`.flow/feedback/{id}/调查报告.md`。
+
+**默认不写入 KB。** 仅当澄清了稳定业务规则或字段语义时才候选。
 
 ## 前置
 
 - 根 `config.yaml` 中 `knowledge_base.enabled=true`
 - 调查报告 `status=confirmed`（或即将 closed）
 - 读取 KB `maintenance_guide` / `overview`（若配置）
+- 先读调查日志「KB 沉淀」行；若为「否」→ 输出无需写入并仍可 closed
+
+## 决策树（按序）
+
+1. 是否澄清了**稳定业务规则**或**字段语义**？→ 候选 KB（功能域 / 数据设计 / 坑点）
+2. 是否仅为**单次脏数据**且已 `data-fix`（或手工处理）？→ **跳过 KB**，feedback closed 即可
+3. 是否为 **CDP / 运维手法**（鉴权、查库步骤、脚本）？→ 进 `{root}/.flow/cdp` playbook，**不进 KB**
+4. 修 bug 且业务规则未变？→ **跳过 KB**
 
 ## 提取清单（给用户确认）
 
-从调查报告提取可写入 KB 的条目，逐条列出路径与摘要。**用户确认后**再写入。
+仅对决策树第 1 步为「是」的条目，列出路径与摘要。**用户确认后**再写入。不要默认「每条 feedback 一条已知问题」。
 
-## 映射表
+## 映射表（仅候选通过后）
 
-| 调查报告 type + resolution | KB 产物 |
-|---------------------------|---------|
-| bug + fix-now / fix-later | 已知问题：根因、触发条件、影响范围 |
-| by-design | FAQ / 业务规则说明 |
-| data-issue（反复出现） | 运维指引 / 清理 SQL 模式 |
-| 字段语义误读 | 坑点 / 字段说明 |
+| 调查报告情形 | KB 产物 |
+|--------------|---------|
+| bug + 新触发条件/根因模式（可复用） | 已知问题：根因、触发条件、影响范围 |
+| by-design / 字段语义澄清 | FAQ / 业务规则 / 坑点 |
+| data-issue **反复**且沉淀的是规则而非单次 SQL | 业务规则或字段说明（不是整段修正 SQL） |
 
 ## 跳过 KB
 
 以下情况输出「无需写入 KB」并仍可 closed：
 
-- 一次性脏数据已手工处理
+- 一次性脏数据已 data-fix / 手工处理
+- 联调修正、GLW/commit、单次 MERGE 失效手法
 - 纯 typo、无业务复用价值
+- CDP playbook 级结论（应写 `.flow/cdp`）
 - 用户明确拒绝
+- Conclude「KB 沉淀：否」
 
 ## 写入后
 
@@ -75,4 +87,4 @@
 
 ## 与 report KB 判断的关系
 
-`/flow:report` 仍跳过普通 bug 修复。feedback-kb 是独立入口，消费调查结论，不冲突。
+`flow-codex-report` 仍跳过普通 bug 修复。feedback-kb 是独立入口，消费调查结论，不冲突；且比 change 入口更严（默认跳过）。

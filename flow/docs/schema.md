@@ -441,14 +441,15 @@ related_change: string        # 可选。仅背景参考，不挂靠
 
 ### 11.4 调查报告.md
 
-Frontmatter 为**唯一状态源**；正文不重复枚举 type/resolution。
+Frontmatter 为**唯一状态源**；正文不重复枚举 type/resolution/remediation。
 
 ```yaml
 ---
 feedback_id: string           # 必填
 status: string                # 必填。investigating | confirmed | closed
-type: string                  # bug | data-issue | by-design | unknown
-resolution: string            # fix-now | fix-later | kb-only | close | pending
+type: string                  # 问题性质：bug | data-issue | by-design | unknown
+resolution: string            # 收尾路径：fix-now | fix-later | data-fix | kb-only | close | pending
+remediation: string           # 修复形态：pending | data-fix | code-fix | none
 services: array[string]       # 调查后确认的服务名
 created: string               # 必填。YYYY-MM-DD
 updated: string               # 必填。YYYY-MM-DD
@@ -456,20 +457,27 @@ closed: string                # status=closed 时必填
 fix_service: string           # resolution=fix-now 时
 fix_commit: string            # 直接修复完成后
 fix_branch: string
-kb_ref: string                # flow-codex-kb / flow:kb 写入后
+kb_ref: string                # flow-codex-kb / flow:kb 写入后（可选；data-fix 不强制）
 ---
 ```
 
-正文必须章节：反馈场景、相关链路、数据验证、根因、判定摘要、建议分流、修复记录、调查日志。
+正文必须章节：反馈场景、相关链路、数据验证、根因、判定摘要、建议分流、数据修复说明、修复记录、调查日志。
+
+**字段正交**：`type` = 问题性质；`resolution` = 收尾路径；`remediation` = 修复形态（如 `data-fix`↔`data-fix`，`fix-now`↔`code-fix`）。
 
 **状态机**：`investigating` → `confirmed` → `closed`
 
 - `type=unknown` 仅允许 `status=investigating`
-- `closed` 条件：`kb_ref` 或 `fix_commit` 已填，或 `resolution=close` 且理由已写
+- `closed` 条件（满足其一）：`resolution=data-fix` 且修复说明已交付并经用户确认执行/不执行；或 `fix_commit` 已填；或 `kb_ref` 已填；或 `resolution=close` 且理由已写
 
-**修复路径**：`resolution=fix-now` 时在服务仓库**直接改代码并 commit**，不走 `flow:hotfix` / assign / apply。完成后回填「修复记录」与 `fix_commit`。
+**修复路径**：
 
-模板源：`flow/templates/feedback-report.md.tmpl`
+- `resolution=fix-now`：在服务仓库**直接改代码并 commit**，不走 `flow:hotfix` / assign / apply；回填「修复记录」与 `fix_commit`
+- `resolution=data-fix`：填「数据修复说明」（修改内容 / 根本原因 / 影响范围 + 预览/修正/验证 SQL）；由用户/工单执行，skill **不**自动写库
+
+**Discover**（Intake 后）：查已有 feedback、KB 选篇、CDP playbook（`{root}/.flow/cdp/`）；规范见 `flow-codex-feedback/references/cdp.md`，产物不进 `local_rag`。
+
+模板源：`flow/templates/feedback-report.md.tmpl`；CDP playbook 模板：`flow/templates/cdp-playbook.md.tmpl`
 
 ### 11.5 与 hotfix / change 的关系
 

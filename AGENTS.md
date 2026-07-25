@@ -43,9 +43,14 @@
 **反馈闭环**（独立于上述 change 生命周期）：
 
 ```text
-flow-codex-feedback →（bug 要修）直接改代码 → flow-codex-kb feedback/{id} → closed
-                   ↘ flow-codex-kb / 关闭
+flow-codex-feedback（Intake → Discover → … → Conclude）
+  → data-fix：工单 SQL → closed（默认不写 KB）
+  → fix-now：直接改代码 →（可选）flow-codex-kb → closed
+  → kb-only / 有稳定新规则：flow-codex-kb → closed
+  → close
 ```
+
+Discover 自动查已有 feedback、KB 选篇、`{root}/.flow/cdp` playbook（规范在 skill，产物不进 local_rag）。
 
 详见 [flow/docs/schema.md](./flow/docs/schema.md) §11。feedback 不写 task.md、不走 hotfix 编排。
 
@@ -83,7 +88,7 @@ flow-codex-feedback →（bug 要修）直接改代码 → flow-codex-kb feedbac
 | `flow-codex-system-test` | 根/执行 | glm-system-test runner（doctor/run/evidence） |
 | `flow-codex-change` | 根 | 需求变更 |
 | `flow-codex-archive` | 根 | 归档 |
-| `flow-codex-feedback` | 根/执行 | 线上反馈调查（`.flow/feedback/`，独立于 change） |
+| `flow-codex-feedback` | 根/执行 | 线上反馈调查（Discover + 可选 data-fix；`.flow/feedback/`） |
 | `flow-codex-kb` | 根/执行 | 知识库维护（change 或 `feedback/{id}` 入口） |
 | `flow-codex-hotfix` | 根 | 热修通道（正式 assign 编排；非 feedback 默认路径） |
 

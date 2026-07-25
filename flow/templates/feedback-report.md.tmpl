@@ -3,6 +3,7 @@ feedback_id: {{feedback_id}}
 status: investigating
 type: unknown
 resolution: pending
+remediation: pending
 services: []
 created: {{created_date}}
 updated: {{updated_date}}
@@ -45,12 +46,40 @@ kb_ref:
 
 ## 判定摘要
 
-{引用 frontmatter 的 type 与 resolution，用自然语言解释}
+{引用 frontmatter 的 type、resolution、remediation，用自然语言解释}
 
 ## 建议分流
 
-- 去向：flow:kb / 直接关闭 / 待直接修复
+- 去向：data-fix 工单 / 直接改代码 / flow:kb / 直接关闭 / 继续调查
 - 理由：
+
+## 数据修复说明
+
+> 仅 `remediation=data-fix`（或 `resolution=data-fix`）时必填。skill **不**自动执行 UPDATE/DELETE。
+
+修改内容:
+
+根本原因:
+
+影响范围:
+
+### 预览 SQL
+
+```sql
+-- 只读，确认影响行
+```
+
+### 修正 SQL
+
+```sql
+-- 由用户/工单执行
+```
+
+### 验证 SQL
+
+```sql
+-- 执行后核对
+```
 
 ## 修复记录
 

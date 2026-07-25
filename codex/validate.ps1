@@ -107,6 +107,24 @@ if (-not (Test-Path -LiteralPath $sharedTemplatesDir)) {
     $errors += "Missing shared templates directory: $sharedTemplatesDir"
 }
 
+# Feedback / CDP templates and skill references (Discover + data-fix)
+$feedbackSkillDir = Join-Path $skillsDir "flow-codex-feedback"
+@(
+    (Join-Path $sharedTemplatesDir "feedback-report.md.tmpl"),
+    (Join-Path $sharedTemplatesDir "feedback-record.md.tmpl"),
+    (Join-Path $sharedTemplatesDir "feedback-index.md.tmpl"),
+    (Join-Path $sharedTemplatesDir "cdp-playbook.md.tmpl"),
+    (Join-Path $sharedTemplatesDir "feedback-kb-rules.md"),
+    (Join-Path $feedbackSkillDir "references\cdp.md"),
+    (Join-Path $feedbackSkillDir "references\discover-kb.md"),
+    (Join-Path $feedbackSkillDir "references\workflow.md"),
+    (Join-Path $skillsDir "flow-codex-kb\references\feedback-kb-rules.md")
+) | ForEach-Object {
+    if (-not (Test-Path -LiteralPath $_)) {
+        $errors += "Missing feedback/CDP resource: $_"
+    }
+}
+
 if ($errors.Count -gt 0) {
     $errors | ForEach-Object { Write-Error $_ }
     exit 1
