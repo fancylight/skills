@@ -10,6 +10,7 @@
 
 ### Added
 
+- **设计阶段操作链路 + verify §D/§E + assign 门禁**：新增 `flow/templates/操作链路.md.tmpl`（`as-built` 行须带 `文件:行` 证据）；`verify-checklist.md` 新增 §D（D.1.1/D.1.2/D.2.1/D.2.2/D.2.5）与 §E（Apifox、接口表范围、文档一致性）；`verify_mode=design` 扩展为 §A+§C+§D+§E；verify 报告含编排人 WARN 确认清单；`flow-codex-design` 新增步骤 3.5 现状链路提取、产出 `操作链路.md`、Apifox MCP 强制路径、去自检化；`flow-codex-assign` 门禁扩展到 §D/§E；`flow-codex-change` 接口变化时同步链路。缺链路默认 WARN（`journey_required: true` 升 ERROR）；Apifox 待录入默认 WARN（`apifox_required: true` 升 ERROR）。默认 format / 全量 verify（§A+§B）行为不变；`flow-codex-review` / `test-design` / `kb` 未改。Claude 侧待 follow-up。
 - **`flow-codex-feedback` Discover + CDP playbook**：Intake 后自动查已有 feedback / KB 选篇 / `{root}/.flow/cdp`；新增 `references/cdp.md`、`discover-kb.md`、`flow/templates/cdp-playbook.md.tmpl`；报告支持 `remediation` 与 `resolution=data-fix`（数据修复说明三段式）；收紧 feedback→KB（默认不写）；`validate.ps1` 校验 feedback/CDP 资源路径。Claude `/flow:feedback` 对齐待 follow-up。
 - **设计阶段领域概念 + verify §C**：`overview-design.md.tmpl` 强制「领域概念 / 歧义裁决 / 审核 pass 决策表 / 集成范围」；`verify-checklist.md` 新增 §C；`flow-codex-verify` 支持 `verify_mode=design`（§A+§C）；`flow-codex-assign` 派发前强制 design verify；`flow-codex-kb` / `flow-codex-archive` 联动 `kb_action: 待沉淀`。默认 format / 全量 verify（§A+§B）行为不变；`flow-codex-review` 未改。Claude 侧 design 对齐待 follow-up。
 - **`flow-codex-feedback`** / **`/flow:feedback`** — 线上反馈调查，`.flow/feedback/` 独立目录（懒创建）；不修代码、不写 task.md

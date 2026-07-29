@@ -14,7 +14,7 @@ description: 通过 Codex 子 agent 派发 Flow specs。用户要求分配、委
 1. 要求根角色为 `orchestrator`，并明确提供 `change_name` 和选中的 specs。
 2. 读取根追踪元数据和依赖状态，不要读取服务业务代码。
 3. 对每个选中的服务仓库检查期望分支和干净基线。
-4. 对本 change 执行 `flow-codex-verify`（`verify_mode=design`）。存在 §C 或 §A ERROR 时停止派发；WARN 须向用户说明并获确认后继续。
+4. 对本 change 执行 `flow-codex-verify`（`verify_mode=design`，覆盖 §A+§C+§D+§E）。存在 §A、§C、§D 或 §E **ERROR** 时停止派发。存在 **WARN** 时须对照 verify 报告末尾「编排人 WARN 确认清单」**逐项**向用户确认（确认 / 回 design 修 / waive 并说明）；未确认不得 assign。
 5. 确认每个选中的 OpenSpec 均可 apply，遇到阻断 spec 时停止。
 6. 只派发依赖就绪的 specs。仅在不同仓库或隔离 worktree 之间并行。
 

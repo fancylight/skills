@@ -125,6 +125,17 @@ $feedbackSkillDir = Join-Path $skillsDir "flow-codex-feedback"
     }
 }
 
+$journeyTemplateFound = $false
+Get-ChildItem -LiteralPath $sharedTemplatesDir -Filter "*.tmpl" -File -ErrorAction SilentlyContinue | ForEach-Object {
+    $head = (Get-Content -LiteralPath $_.FullName -TotalCount 12 -Encoding utf8 -ErrorAction SilentlyContinue) -join "`n"
+    if ($head -match 'J\{n\}') {
+        $journeyTemplateFound = $true
+    }
+}
+if (-not $journeyTemplateFound) {
+    $errors += "Missing journey template (operation journey .tmpl with J{n} sections) in $sharedTemplatesDir"
+}
+
 if ($errors.Count -gt 0) {
     $errors | ForEach-Object { Write-Error $_ }
     exit 1

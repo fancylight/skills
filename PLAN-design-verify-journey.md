@@ -1,6 +1,7 @@
 # 改动方案：设计阶段操作链路 + verify §D 链路合规
 
 > **状态**：待实施
+> **已合并至** [`PLAN-design-verify-assign-gate.md`](./PLAN-design-verify-assign-gate.md)（§D 内容）；**勿单独实施本文**。
 > **实施者**：由其他 agent 按本文 §3–§13 改 `self/skills` 仓库并提交。
 > **检视者**：编排 agent（或用户指定的审核 agent）按本文 **§检视要求** 对提交做只读 PASS/REJECT，**不**替代实施者改文件。
 > **前置**：`PLAN-design-verify-domain-concepts.md`（§C 设计合规）已实施。本 PLAN 在其之上增加 **§D**，**不改动 §C 任何检查项**。

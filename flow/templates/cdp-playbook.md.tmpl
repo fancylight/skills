@@ -1,0 +1,48 @@
+# {{title}}
+
+> CDP playbook · 场景：{{scenario}} · 创建：{{created_date}} · 来源 feedback：{{feedback_id}}
+
+## 适用场景
+
+- **何时使用**：
+- **何时不用**：
+
+## 环境准备
+
+- Edge：`--remote-debugging-port=9222`（或 `debug-edge.ps1`）
+- 浏览器：须已登录 {{platform_url}}
+- 页面状态：（例：GBP 数据库运维 → 已选环境/Tab/库）
+
+## 核心方式
+
+<!-- 优先写 API / Runtime.evaluate + fetch，少写 UI 点击 -->
+
+### 鉴权
+
+### 请求格式
+
+### 连接参数如何获取
+
+| 参数 | 获取方式 |
+|------|----------|
+
+## 安全与规范
+
+- 默认只读 SELECT
+- UPDATE/DELETE 由用户工单执行
+- Token 勿提交 git
+
+## 排查清单
+
+| 现象 | 处理 |
+|------|------|
+
+## 参考脚本
+
+- `scripts/{{script_name}}.py`（如有）
+
+## 变更记录
+
+| 日期 | 说明 |
+|------|------|
+| {{created_date}} | 初版，feedback {{feedback_id}} |

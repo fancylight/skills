@@ -1,6 +1,6 @@
 ---
 name: flow-codex-verify
-description: 只读检查 Flow 根产物格式与发布就绪；可选 design 模式校验设计过程合规（领域概念与 OpenSpec 传导）。不验证运行时行为与跨服务 api.md 契约。
+description: 只读检查 Flow 根产物格式与发布就绪；可选 design 模式校验设计过程合规（领域概念、OpenSpec 传导、操作链路与设计文档一致性）。不验证运行时行为与跨服务 api.md 契约。
 ---
 
 # Codex Flow 验证
@@ -11,7 +11,7 @@ description: 只读检查 Flow 根产物格式与发布就绪；可选 design �
 对明确指定的 `change_name` 执行只读检查，输出结构化报告：
 
 - **ERROR**：阻断进入 `flow-codex-test` / `flow-codex-archive`（全量）或 `flow-codex-assign`（design 模式）
-- **WARN**：提示用户确认后可继续
+- **WARN**：提示用户确认后可继续；design 模式存在 WARN 时报告末尾 **必须**附编排人确认清单
 - **PASS**：该项满足
 
 ## 调用模式
@@ -19,18 +19,20 @@ description: 只读检查 Flow 根产物格式与发布就绪；可选 design �
 | 模式 | 参数 | 执行章节 | 时机 | ERROR 阻断 |
 |------|------|----------|------|------------|
 | **格式复验** | 默认 / `verify_mode=format` | §A | design 后可选 | 仅当调用方声明为门禁时 |
-| **设计合规** | `verify_mode=design` | §A + §C | design 完成 → **assign 前强制** | assign |
+| **设计合规** | `verify_mode=design` | §A + §C + §D + §E | design 完成 → **assign 前强制** | assign |
 | **全量 verify** | `verify_mode=full` 或 test/archive 前置 | §A + §B | test / archive | test / archive |
 
-格式复验时 §B / §C 未完成属正常，不得因此报 ERROR。全量 verify **不**默认跑 §C。design 模式 **不**跑 §B。
+格式复验时 §B / §C / §D / §E 未完成属正常，不得因此报 ERROR。全量 verify **不**默认跑 §C / §D / §E。design 模式 **不**跑 §B。
 
 ## 检查范围
 
 1. **§A 产物格式**（见 checklist §A）：根四件套、概要设计 Spec 矩阵、task.md 行型与 Spec 粒度、开发文档格式、子 OpenSpec 结构、发版记录行型
 2. **§B 发布就绪**（见 checklist §B，仅全量）：spec 完成度、分支、worktree、发版记录覆盖
 3. **§C 设计过程合规**（见 checklist §C，仅 `verify_mode=design`）：领域概念、歧义裁决、pass 决策表、集成范围、向下传导
+4. **§D 链路合规**（见 checklist §D，仅 `verify_mode=design`）：操作链路结构与证据、变更步骤归属 spec、接口有调用方、跨服务两侧登记
+5. **§E 设计文档一致性**（见 checklist §E，仅 `verify_mode=design`）：Apifox、接口表范围、开发文档与 OpenSpec 矛盾、非目标与矩阵矛盾
 
-Spec 粒度（1 c = 1 repo）主门禁在 `flow-codex-design` 第 5 步；verify §A 做只读复验。
+Spec 粒度（1 c = 1 repo）在 design 写 task 时须遵守铁律；verify §A 做只读复验。
 
 ## §C 设计过程合规
 
@@ -40,11 +42,48 @@ Spec 粒度（1 c = 1 repo）主门禁在 `flow-codex-design` 第 5 步；verify
 - 输出格式与 §A 相同：`[ERROR|WARN|PASS] C.x.x: …`
 - **只读**：不写入 KB、不编辑产物、不审代码实现
 
+## §D 链路合规
+
+- 读取 `.flow/changes/{change}/操作链路.md`、`概要设计.md` Spec 矩阵、`开发文档.md` §3.2.4
+- **防自证**：`as-built` 行须带代码位置证据。整份文件无 `as-built` 行且非纯新建服务时输出 WARN
+- 代码位置存在性：仓库在根 `.flow/config.yaml` 登记且可访问时校验文件存在；否则仅校验格式并标注「未校验」
+- 缺 `操作链路.md`：默认 D.1.1 WARN、其余 SKIP；根 config 设 `journey_required: true` 时 D.1.1 升 ERROR。文件存在时 D.1.2/D.2.* 一律 ERROR
+- 报 ERROR 须同时给出链路侧（`J{n} 步骤 {#}`）与设计侧（矩阵行 / §3.2.4 行）位置
+- 输出格式与 §A 相同：`[ERROR|WARN|PASS] D.x.x: …`
+- **只读**：不补写链路、不编辑产物、不判断链路业务正确性
+
+## §E 设计文档一致性
+
+- 读取 `概要设计.md`、`开发文档.md` 与各 task spec 的 OpenSpec design/delta specs
+- 读取根 `.flow/config.yaml` → `apifox_required`（默认 false）解析 E.1 级别
+- 可比对字段规则见 checklist §E.0；不读取产品 PDF 全文
+- 输出格式与 §A 相同：`[ERROR|WARN|PASS] E.x: …`
+- **只读**：不编辑产物
+
+## 编排人 WARN 确认清单（design 模式存在 WARN 时 mandatory）
+
+报告末尾追加：
+
+```markdown
+## 编排人 WARN 确认清单（assign 前）
+
+| ID | 项 | 建议动作 |
+|----|-----|----------|
+| W1 | … | 确认 / 回 design 修 / waive（说明） |
+
+- ERROR：不可 assign
+- WARN：须上表逐项确认；未确认不得 assign
+```
+
+为每个 WARN 检查项分配 W{n}，简述问题与建议动作。
+
 ## 不在范围
 
 - 跨服务 api.md 契约比对（Claude Code 的 flow-verify 专责）
 - §A / §B：不验证业务运行时行为、接口语义是否「最优」、验收是否通过
 - §C：不验证代码实现（归 `flow-codex-review`）、不写入 KB（归 `flow-codex-kb`）
+- §D：不验证运行时行为与既有方法的隐藏前置条件、不生成测试用例（归 `flow-codex-test-design` / `flow-codex-test`）
+- §E：不读取产品 PDF 全文；不判断 SQL 正确性、性能、安全
 - HTTP 集成测试、单元测试覆盖
 
 不要编辑或静默修复任何文件。按服务汇总阻断项。
