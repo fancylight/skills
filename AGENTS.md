@@ -23,7 +23,7 @@
 
 ```text
 根：flow-codex-design
-  → flow-codex-verify（verify_mode=design，§A+§C+§D+§E）无 ERROR
+  → flow-codex-verify（verify_mode=design，§A+§C+§D+§E+§F.1–§F.3）无 ERROR
   → flow-codex-assign
   → 执行：flow-codex-receive → flow-codex-apply
   → 执行返回 REVIEW_REQUEST 并暂停
@@ -36,9 +36,10 @@
   flow-codex-test-design → flow-codex-test-assign
   → test-receive → test-apply → test-review → test-report
   → flow-codex-test → flow-codex-system-test（runner）
+  → flow-codex-verify（verify_mode=release，§A+§B+§F）→ archive
 ```
 
-集成测试 spec 使用 `st-api-<change>`（glm-system-test），与业务 `c{n}` 分离。详见 `task-md-maintenance.md` §2.7。
+集成测试 spec 使用 `st-api-<change>`（config 中 `type: system-test` 服务仓），与业务 `c{n}` 分离。首次 `flow-codex-test-design` 可从 `flow/templates/system-test/` scaffold 测试仓。详见 `task-md-maintenance.md` §2.7。
 
 **反馈闭环**（独立于上述 change 生命周期）：
 
@@ -61,7 +62,7 @@ Discover 自动查已有 feedback、KB 选篇、`{root}/.flow/cdp` playbook（�
 - 仅**不同仓库**之间可并行写入；同一仓库禁止并发写入 Agent
 - 根追踪文件（`task.md` 等）**串行**更新，禁止并发 report
 - 分支不匹配或 worktree 有未确认历史改动时 **停止**，不要静默 checkout
-- 每个 OpenSpec change 须 apply-ready，且 `verify_mode=design`（§A+§C+§D+§E）无 ERROR 后，才能声明设计完成 / 派发
+- 每个 OpenSpec change 须 apply-ready，且 `verify_mode=design`（§A+§C+§D+§E+§F.1–§F.3）无 ERROR 后，才能声明设计完成 / 派发；涉及 SQL 风险的 change 归档前还须 `verify_mode=release`（§A+§B+§F）无 ERROR
 
 ---
 
@@ -78,14 +79,14 @@ Discover 自动查已有 feedback、KB 选篇、`{root}/.flow/cdp` playbook（�
 | `flow-codex-apply` | 执行 | OpenSpec 实现；返回 REVIEW_REQUEST |
 | `flow-codex-report` | 执行 | 更新根 `task.md`（须报告租约） |
 | `flow-codex-status` | 根 | 只读进度 |
-| `flow-codex-verify` | 根 | 格式 §A；design 模式 §A+§C+§D+§E（assign 前）；全量 §A+§B（test/archive 前） |
-| `flow-codex-test-design` | 根 | verify 后产出 glm-system-test manifest / test-plan |
-| `flow-codex-test-assign` | 根 | 向 glm-system-test 派发 `st-api-*` |
+| `flow-codex-verify` | 根 | 格式 §A；design 模式 §A+§C+§D+§E+§F.1–§F.3（assign 前）；全量 §A+§B（test 前）；release §A+§B+§F（archive 前） |
+| `flow-codex-test-design` | 根 | 确保测试仓就绪（可 scaffold）并产出 manifest / test-plan |
+| `flow-codex-test-assign` | 根 | 向 system-test 仓派发 `st-api-*` |
 | `flow-codex-test-receive` | 执行 | 加载 manifest + test-plan |
 | `flow-codex-test-apply` | 执行 | 编写 JUnit / fixtures / test-support |
 | `flow-codex-test-report` | 执行 | 更新 task.md st-api 条目（须报告租约） |
 | `flow-codex-test` | 根 | 集成测试门禁 + 委托 system-test + 更新检查清单 |
-| `flow-codex-system-test` | 根/执行 | glm-system-test runner（doctor/run/evidence） |
+| `flow-codex-system-test` | 根/执行 | system-test runner（doctor/run/evidence） |
 | `flow-codex-change` | 根 | 需求变更 |
 | `flow-codex-archive` | 根 | 归档 |
 | `flow-codex-feedback` | 根/执行 | 线上反馈调查（Discover + 可选 data-fix；`.flow/feedback/`） |

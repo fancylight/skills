@@ -22,7 +22,12 @@ description: 根据 OpenSpec 设计对一个 Flow spec 实现执行独立只读�
 
 1. 读取设计产物和变更文件（按 review_mode 选择 OpenSpec 或 test-plan/manifest）。
 2. 检查正确性、缺失的验收标准、回归风险、不安全行为和缺失测试。
-3. test 模式额外检查：验收 ID 覆盖、无理由 skip、fixtures 预留 ID 合规。
-4. 不要编辑文件、提交或扩大范围。
-5. 没有可执行问题时返回 `[REVIEW_RESULT] PASS`。
-6. 否则返回 `[REVIEW_RESULT] REJECT`，并附带简短的问题列表、文件和行号。
+3. 变更涉及列表、分页、报表 SQL 或 Mapper 的 JOIN / 选行 / 过滤时，读取根 `概要设计.md` 的「数据访问契约」和本 spec `design.md`：
+   - 契约缺失、未传导到 spec，或未声明查询风险为「无」时 **REJECT**。
+   - 逐项比对主表过滤、JOIN 等值键、基数、唯一性/索引依据与跨服务参考实现；偏离没有设计理由时 **REJECT**。
+   - `max/min` 选行、相关子查询、`EXISTS/IN`、跨表 `OR`、前置 `%LIKE%`、`GROUP BY + PageHelper count` 均为风险形态；没有明确业务语义、索引路径和允许理由时 **REJECT**。不得以 `max(id)` 臆断「最新」。
+   - 检查 Mapper 契约测试覆盖 JOIN 键和禁止形态；在可运行 EXPLAIN 前不接受「性能已验证」声明，并要求测试/发布计划覆盖最终列表 SQL 与分页 count。
+4. test 模式额外检查：验收 ID 覆盖、无理由 skip、fixtures 预留 ID 合规。
+5. 不要编辑文件、提交或扩大范围。
+6. 没有可执行问题时返回 `[REVIEW_RESULT] PASS`。
+7. 否则返回 `[REVIEW_RESULT] REJECT`，并附带简短的问题列表、文件和行号。

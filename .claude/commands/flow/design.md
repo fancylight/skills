@@ -76,6 +76,9 @@ version: "0.1.0"
 
    模板文件：`~/.claude/commands/flow/templates/overview-design.md.tmpl`。
 
+   **数据访问契约**：新增或修改列表、分页、报表 SQL，或改变 JOIN / 选行 / 过滤逻辑时，必须填写模板的 `## 数据访问契约`：主表过滤键、每个 JOIN 等值键、期望基数/选行语义、唯一性或索引依据、跨服务参考实现/偏离理由、列表 SQL 与分页 count 的 EXPLAIN 验收。无此类查询时明确写「无」；不得以 `max(id)` 等实现猜测「最新」。
+
+
 4. **生成 `task.md`**
 
    读取 `~/.claude/commands/flow/templates/task-md-maintenance.md`，按第 2 节格式规范生成 task.md。
@@ -126,6 +129,7 @@ version: "0.1.0"
    - `## 数据迁移` — 如有数据迁移逻辑
    - `## 单元测试计划` — 必须章节，列出每个接口/功能的测试场景
    - `## 非目标` — 明确不做的事项
+   - `## 数据访问契约` — 根契约适用行、允许/禁止 SQL 形态与 Mapper 契约测试要求（仅相关 SQL；无则写「无」）
 
    **不手动创建 spec 文件**——spec 文档的创建和维护由 spec skills 负责。
    与用户交互确认关键设计决策。
@@ -181,6 +185,7 @@ version: "0.1.0"
      | 正常查询 | userId=1 | 返回权限列表 | PermissionService.query |
      | 空结果 | userId=999 | 返回空列表 | PermissionService.query |
    - `## 非目标` — 明确不做的事项
+   - `## 数据访问契约` — 根契约适用行、允许/禁止 SQL 形态与 Mapper 契约测试要求（仅相关 SQL；无则写「无」）
 
    按依赖顺序处理（无依赖的 spec 先做）。
 

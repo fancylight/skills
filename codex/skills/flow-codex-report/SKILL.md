@@ -20,7 +20,7 @@ description: 在提交后记录一个已完成的 Flow spec，并更新根追踪
 
 1. 只更新根 `.flow/changes/<change_name>/task.md` 中选中的 spec。
 2. 标记完成日期和 commit hash，重新计算选中服务的状态和 frontmatter 日期。
-3. 仅在存在 DDL 或配置变更时更新 `发版记录.md`。
+3. 仅在存在 DDL、配置或数据访问契约风险时更新 `发版记录.md`；后者在「SQL 风险与 EXPLAIN 证据」登记查询入口、风险形态、最终列表 SQL/分页 count 的 evidence 路径、环境、验收结论、豁免（如有）与回滚方案，不能以源码路径或「待补」代替。
 4. **同步接口到 Apifox**：读取根 `开发文档.md` **§3.2.4** 接口表格，按 `dev-doc-update-rules.md` 处理：
    - 已有 Apifox 链接 + ✏️修改 → MCP 更新接口定义
    - 待录入 + 🆕新增 → MCP 创建接口

@@ -11,13 +11,13 @@ description: 在 glm-system-test 实现 st-api 集成测试代码（JUnit、test
 ## 实现
 
 1. 要求明确提供 `change_name` 和 `spec_id`（`st-api-<change_name>`）。
-2. 编辑前重新检查 glm-system-test 期望分支和干净基线。
+2. 编辑前重新检查测试仓期望分支和干净基线。
 3. 按 `test-plan.md` 与 `manifest.yaml` 实现：
    - `backend-tests/` JUnit API 测试
    - `test-support/` 共享支撑（鉴权、HTTP 客户端等）
    - `fixtures/` 落地与 `config/services/*/application-system-test.yml` 必要修改
 4. **禁止**修改业务服务源码。
-5. 本地冒烟：`mvn -f glm-system-test/pom.xml -pl backend-tests -am test`，使用 manifest 的
+5. 本地冒烟：在测试仓根执行 `mvn -f pom.xml -pl backend-tests -am test`，使用 manifest 的
    `apiTestFilter`（或 test-plan 指定子集）。
 6. 实现完成后返回 `REVIEW_REQUEST`（design_path 指向 test-plan + manifest）。
 

@@ -65,10 +65,21 @@ if (Test-Path -LiteralPath $sharedTemplatesDir) {
 
     New-Item -ItemType Directory -Force -Path $coreTemplatesDir -WhatIf:$WhatIf | Out-Null
 
-    # Copy all templates from shared source
+    # Copy all top-level template files from shared source
     Get-ChildItem -LiteralPath $sharedTemplatesDir -File | ForEach-Object {
         $dest = Join-Path $coreTemplatesDir $_.Name
         Copy-Item -LiteralPath $_.FullName -Destination $dest -Force -WhatIf:$WhatIf
+    }
+
+    # Copy system-test framework skeleton (directory tree used by flow-codex-test-design)
+    $systemTestSrc = Join-Path $sharedTemplatesDir "system-test"
+    $systemTestDest = Join-Path $coreTemplatesDir "system-test"
+    if (Test-Path -LiteralPath $systemTestSrc) {
+        if (-not $WhatIf -and (Test-Path -LiteralPath $systemTestDest)) {
+            Remove-Item -LiteralPath $systemTestDest -Recurse -Force
+        }
+        Copy-Item -LiteralPath $systemTestSrc -Destination $systemTestDest -Recurse -Force -WhatIf:$WhatIf
+        Write-Output "  [dir] system-test/ -> $systemTestDest"
     }
 
     # Apply command-name substitution for Codex platform

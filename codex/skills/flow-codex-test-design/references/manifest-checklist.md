@@ -2,6 +2,8 @@
 
 `flow-codex-test-design` 产出须满足以下项。blocked 任一项则 `[TEST_DESIGN_RESULT] BLOCKED`。
 
+测试仓路径来自 config（`type: system-test` 等）；若仓不存在须先按 `scaffold.md` 初始化。
+
 ## manifest.yaml
 
 | 字段 / 节 | 要求 |
@@ -26,6 +28,7 @@
 | 分期 | S0 库准备、S1…Sn 服务叠加（可写在 manifest `phase` / `phaseNote`） |
 | Non-Goals | 明确不测项（如 datacenter、腾讯真回调） |
 | 跑法 | `system-test.ps1 doctor/run` 或等价命令 |
+| SQL 计划验证（有数据访问契约风险时） | 每行含查询入口、代表性参数、最终列表 SQL 与分页 count SQL、只读 `EXPLAIN` 命令/数据源、验收阈值、evidence 路径；缺任一项即 BLOCKED |
 
 ## test-design.md
 
@@ -44,5 +47,5 @@
 
 ## 根 task.md
 
-- 开发顺序含 `st-api-<change>（glm-system-test，依赖 …）`
-- `## glm-system-test` 章节含对应 spec 条目
+- 开发顺序含 `st-api-<change>（{system_test_service}，依赖 …）`
+- `## {system_test_service}` 章节含对应 spec 条目（服务名与 config 一致）

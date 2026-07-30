@@ -12,9 +12,9 @@ description: 集成测试代码就绪后，门禁校验并委托 flow-codex-syst
 
 1. 要求根角色为 `orchestrator`，并明确提供 `change_name`。
 2. `flow-codex-verify` **全量（§A+§B）** 已成功且无 ERROR。
-3. `glm-system-test/changes/<change_name>/manifest.yaml` 与 `test-plan.md` 存在。
+3. 根 config 可解析 system-test 服务仓，且 `changes/<change_name>/manifest.yaml` 与 `test-plan.md` 存在。
 4. `task.md` 中 `st-api-<change_name>` 已完成，**或**用户明示跳过 test-assign、由根代跑。
-5. manifest 缺失时 **停止**，不要临时拼凑命令。
+5. 测试仓或 manifest 缺失时 **停止**；提示 `flow-codex-test-design`，不要临时拼凑命令。
 
 ## 编排
 

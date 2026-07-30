@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
-const COMMANDS_DIR = path.join(ROOT, 'flow', 'commands');
+const COMMANDS_DIR = path.join(ROOT, '.claude', 'commands', 'flow');
 const TEMPLATES_DIR = path.join(ROOT, 'flow', 'templates');
 
 const REQUIRED_FRONTMATTER = ['name', 'description', 'category', 'tags', 'version'];
@@ -66,7 +66,7 @@ function parseFrontmatter(filePath) {
 
 // 检查命令文件
 function validateCommands() {
-  console.log('\n## 验证命令文件 (flow/commands/*.md)\n');
+  console.log('\n## 验证命令文件 (.claude/commands/flow/*.md)\n');
   const files = fs.readdirSync(COMMANDS_DIR).filter(f => f.endsWith('.md'));
 
   for (const file of files) {
@@ -157,9 +157,9 @@ function validateTemplateRefs() {
     const content = fs.readFileSync(filePath, 'utf-8');
 
     // 匹配引用的模板文件（如 assign.md.tmpl、child-config.yaml.tmpl 等）
-    const refs = content.match(/[\w-]+\.(tmpl|tmpl\))+/g) || [];
-    // 更精确的匹配：*.tmpl 或 .tmpl 结尾的词
-    const matches = [...content.matchAll(/(\w[\w.-]*\.tmpl)/g)].map(m => m[1]);
+    // 支持中文模板文件名与绝对路径；只比较 templates/ 下的文件名。
+    const matches = [...content.matchAll(/(?:^|[`"'(\s])([^`"'\s)]+\.tmpl)/gm)]
+      .map(m => path.basename(m[1]));
 
     for (const ref of matches) {
       if (!templateFiles.has(ref)) {

@@ -12,7 +12,7 @@ READY -> IMPLEMENTING -> REVIEWING -> FIXING -> REVIEWING
 ## 并发规则
 
 - 每个 change 通常 **一个** `st-api-<change>`，单 executor。
-- glm-system-test 与业务仓库并行写入允许，但 glm-system-test 内禁止并发写入 agent。
+- system-test 仓与业务仓库并行写入允许，但同一测试仓内禁止并发写入 agent。
 - 汇报更新根 `task.md`，必须串行执行（与业务 report 共用租约语义）。
 
 ## 完成标准

@@ -4,21 +4,23 @@
 > **不是**跨服务 api.md 契约比对（Claude `flow:verify` / flow-verify 专责）。
 > skills 仓库维护者改本文件后须同步 verify/archive skill（见仓库根 MAINTENANCE.md）。
 
-本清单分五层：
+本清单分六层：
 
 - **§A 产物格式**（结构/格式，不判业务语义）
 - **§B 发布就绪**（完成度与 git 状态；仅全量 verify）
 - **§C 设计过程合规**（领域概念与向下传导；仅 `verify_mode=design`）
 - **§D 链路合规**（操作链路与设计/代码事实比对；仅 `verify_mode=design`）
 - **§E 设计文档一致性**（跨文档客观矛盾；仅 `verify_mode=design`）
+- **§F SQL 数据访问门禁**（设计契约在 design；EXPLAIN 证据在 release）
 
 | 调用模式 | 章节 |
 |----------|------|
 | 格式复验（默认轻量） | §A |
-| 设计合规（`verify_mode=design`） | §A + §C + §D + §E |
-| 全量 verify（test/archive） | §A + §B（**不**默认跑 §C/§D/§E；assign 前单独跑 design 模式） |
+| 设计合规（`verify_mode=design`） | §A + §C + §D + §E + §F.1–§F.3 |
+| 全量 verify（test 前置） | §A + §B（**不**默认跑 §C/§D/§E/§F；assign 前单独跑 design 模式） |
+| 发布 verify（`verify_mode=release`） | §A + §B + §F |
 
-`flow-codex-test` / `flow-codex-archive` 前须 **§A + §B 全量** verify 且无 ERROR。`flow-codex-assign` 前须 **§A + §C + §D + §E**（`verify_mode=design`）且无 ERROR。
+`flow-codex-test` 前须 **§A + §B 全量** verify 且无 ERROR。`flow-codex-assign` 前须 **§A + §C + §D + §E + §F.1–§F.3**（`verify_mode=design`）且无 ERROR。`flow-codex-archive` 前须 **§A + §B + §F** 发布 verify 且无 ERROR。
 
 ---
 
@@ -59,7 +61,7 @@
 | 单仓约束 | 括号内不得出现 `+` 或多个已知服务名（Spec 粒度铁律） |
 | spec 唯一归属 | 同一 `c{n}-…` spec-id 只出现在 **一个** `## {service}` 章节下 |
 | 依赖引用 | 依赖须用 `c{n}` 格式，禁止纯数字（见 task-md-maintenance §2.2） |
-| st-api 行型（test-design 后） | 若含集成测试，开发顺序含 `st-api-*（glm-system-test，依赖 …）`；`## glm-system-test` 章节存在 |
+| st-api 行型（test-design 后） | 若含集成测试，开发顺序含 `st-api-*（{system_test_service}，依赖 …）`；对应 `## {system_test_service}` 章节存在 |
 
 ### A.4 开发文档格式
 
@@ -99,7 +101,7 @@
 
 ## §B 发布就绪（ERROR）
 
-**仅 test/archive 全量 verify 时执行。** 不适用于 design 后仅跑 §A、也不适用于 `verify_mode=design`。
+**仅 full/release verify 时执行。** 不适用于 design 后仅跑 §A、也不适用于 `verify_mode=design`。
 
 | 检查项 | 说明 |
 |--------|------|
@@ -274,6 +276,39 @@
 
 ---
 
+## §F SQL 数据访问门禁（ERROR）
+
+**设计契约仅 `verify_mode=design` 执行 F.1–F.3；运行时 EXPLAIN 仅 `verify_mode=release` 执行 F.1–F.4。**
+design 阶段不得伪造运行时计划；但缺少本应存在的契约时不得派发。release 阶段缺证据时不得归档。
+
+### F.1 查询风险判定
+
+根 `概要设计.md` 必须有 `## 数据访问契约`：新增或修改列表、分页、报表 SQL，或改变 JOIN / 选行 / 过滤时，须有风险行；没有此类查询时须明确写「无」。
+
+若对应 OpenSpec `design.md` 或 delta spec 出现 Mapper、SQL、分页、列表、报表、JOIN、子查询、`max/min`、`EXISTS/IN`、`LIKE`、`GROUP BY` 等查询信号，而根契约写「无」或缺失风险行，输出 **ERROR**。
+
+### F.2 契约完整性
+
+每个风险行必须具备以下内容，任一缺失为 **ERROR**：
+
+- 查询入口；主表过滤键；每个 JOIN 的等值键。
+- 期望基数与选行语义；`max/min`、去重或相关子查询若允许，须有明确业务语义，禁止以 id 大小臆断「最新」。
+- 唯一约束或可用索引左前缀的依据。
+- 同字段/同查询的跨服务参考实现；未找到参考实现时记录已检索服务与结论，偏离时同时写理由。
+- 风险形态，以及最终列表 SQL 和分页 count SQL 的 EXPLAIN 验收条件。
+
+### F.3 向 OpenSpec 传导
+
+每个涉及 SQL 风险的 OpenSpec `design.md` 必须带本 spec 适用的契约行、允许/禁止 SQL 形态和 Mapper 契约测试要求；与根契约的 JOIN 键、过滤条件、选行优先级或参考实现相矛盾为 **ERROR**。
+
+### F.4 发布 EXPLAIN 证据
+
+每个风险行的 `发版记录.md`「SQL 风险与 EXPLAIN 证据」和 `.flow/changes/<change>/集成测试.md` 必须可定位到：最终绑定后的列表 SQL、框架生成的分页 count SQL、只读 EXPLAIN 文本或 JSON、代表性参数/数据量、环境与时间、验收结论及回滚方案。缺任一项为 **ERROR**。
+
+非预先批准豁免的 `DEPENDENT SUBQUERY`，或关键大表 `ALL` 扫描，为 **ERROR**；豁免必须写明索引/容量边界、风险接受人和失效后的回滚动作。不得以 Mapper 源码、普通 API 断言或小样本计划替代最终分页 count 的 EXPLAIN。
+
+---
+
 ## 不在本清单范围
 
 - 跨服务 `api.md` / `{provider}-api.md` 契约比对 → Claude `/flow:verify`
@@ -285,10 +320,10 @@
 - §D 不判断：链路设计得对不对、期望结果是否符合产品预期、既有方法的运行时前置条件（如某方法要求某字段非空）→ 归 `flow-codex-test` / 联调
 - §D 不生成集成测试用例 → 归 `flow-codex-test-design`
 - §D 不校验代码位置的行号内容是否真的对应该接口（仅校验文件存在性）
-- §E 不读取产品 PDF 做全文语义比对；不判断 SQL/性能/安全
+- §E 不读取产品 PDF 做全文语义比对；SQL 契约与证据归 §F，具体代码 SQL 审查归 `flow-codex-review`
 
 ---
 
 ## Claude archive 用法
 
-`/flow:archive` 执行前运行本清单 **§A + §B** 全量（**不**强制 §C）。有 ERROR 则停止归档。
+`/flow:archive` 执行前运行本清单 **§A + §B + §F** 发布 verify（**不**强制 §C/§D/§E）。有 ERROR 则停止归档。

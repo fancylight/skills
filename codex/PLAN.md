@@ -28,7 +28,7 @@ Codex 执行 agent 不负责调度审核 agent。保留原始生命周期，将�
 - 汇报会更新根 `.flow` 追踪文件，必须串行执行。
 - 分支不匹配或 worktree 存在历史改动时停止，不要静默切换分支。
 - 每个 OpenSpec change 均可 apply 后，才能声明设计完成。
-- `flow-codex-assign` 前须 `flow-codex-verify`（`verify_mode=design`，§A+§C+§D+§E）无 ERROR；全量 verify（test/archive）仍为 §A+§B，不默认跑 §C/§D/§E。
+- `flow-codex-assign` 前须 `flow-codex-verify`（`verify_mode=design`，§A+§C+§D+§E+§F.1–§F.3）无 ERROR；test 前全量 verify 为 §A+§B；archive 前 `verify_mode=release` 为 §A+§B+§F（SQL 风险 EXPLAIN 证据），不默认跑 §C/§D/§E。
 
 ## 公开 Skills
 

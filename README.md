@@ -168,12 +168,12 @@ flow-codex-assign        → 按依赖派发 spec
   └─ flow-codex-receive → flow-codex-apply
   └─ flow-codex-review  → （根调度）→ apply 继续 → report 租约
 flow-codex-status        → 查看进度
-flow-codex-verify        → 根产物格式 + test/archive 前发布就绪（§A+§B）
-flow-codex-test-design   → manifest + test-plan（glm-system-test）
+flow-codex-verify        → 根产物格式；design SQL 契约（§F.1–§F.3）+ archive 前 EXPLAIN 证据（§F.4）
+flow-codex-test-design   → 缺仓则 scaffold 模板 + manifest / test-plan
 flow-codex-test-assign   → 派发 st-api-* 测试代码
   └─ test-receive → test-apply → test-report
 flow-codex-test          → 门禁 + 委托 system-test + 检查清单
-flow-codex-system-test   → glm-system-test runner 执行
+flow-codex-system-test   → 测试仓 runner 执行
 flow-codex-archive       → 归档
 ```
 

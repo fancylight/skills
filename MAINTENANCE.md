@@ -35,7 +35,7 @@
 | `codex/skills/flow-codex-*` | Codex/Cursor 技能实现 | 改完跑 `codex/validate.ps1` |
 | `.claude/commands/flow/` | Claude 斜杠命令 | 与 `flow-*` skill 保持一致 |
 | `.claude/skills/flow-*` | Claude 技能 | gitignore；改完用 `install.sh` 验证；**需纳入版本库时用 `git add -f .claude/`** |
-| `flow/templates/` | **共享模板源** | Codex 覆盖放 `flow/templates/codex/` |
+| `flow/templates/` | **共享模板源** | Codex 覆盖放 `flow/templates/codex/`；集成测试框架骨架在 `flow/templates/system-test/`（`install.ps1` 整目录复制） |
 | `flow/docs/schema.md` | `.flow/` 数据格式 | 协议变更须同步两套 skills |
 | `scripts/validate.js` | Claude 侧校验 | 注意路径是否仍指向 `.claude/` |
 | `install.sh` / `codex/install.ps1` | 安装脚本 | 改模板路径须两边检查 |

@@ -17,6 +17,12 @@
 ### 测试
 - [PASS|REJECT] <检查项>: <原因>
 
+### SQL 数据访问（仅相关 SQL）
+- [PASS|REJECT] 数据访问契约: <根契约与 spec 传导；或不适用>
+- [PASS|REJECT] JOIN/选行/索引: <与参考实现、等值键、基数和索引依据的比对>
+- [PASS|REJECT] 风险形态与验证: <相关子查询、max/min、PageHelper count 与 Mapper/EXPLAIN 覆盖>
+
+
 ### 问题
 1. <文件>:<行号> - <问题> - <必需修复>
 ```
