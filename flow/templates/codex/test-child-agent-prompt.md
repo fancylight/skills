@@ -26,12 +26,12 @@
 
 每个阶段向进度文件追加一行状态。不要写思考过程。
 
-**Spec 权威**：`{service_path}/changes/{change_name}/manifest.yaml` 与 `test-plan.md`。**不使用 OpenSpec**。
+**测试设计权威**：`{service_path}/changes/{change_name}/test-design.md`、`test-plan.md` 与 `manifest.yaml`。**不使用 OpenSpec**。
 
 ## 审核 Checkpoint
 
 完成编码后，按 `flow-codex-test-apply` 返回 `[REVIEW_REQUEST]` 并停止。根 agent 会启动同级只读
-审核 agent（test 模式，对照 test-plan + manifest），再恢复你并传入 `[REVIEW_RESULT] PASS` 或
+审核 agent（test 模式，对照 test-design + test-plan + manifest），再恢复你并传入 `[REVIEW_RESULT] PASS` 或
 `[REVIEW_RESULT] REJECT`。
 
 驳回时只修复审核问题，然后再次返回 `[REVIEW_REQUEST]`。最多三轮。

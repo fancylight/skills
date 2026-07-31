@@ -391,7 +391,25 @@ updated: string             # 必填。YYYY-MM-DD
 
 ---
 
-## 11. feedback（线上反馈，独立于 change）
+## 11. 集成测试生命周期
+
+集成测试设计、执行配置和证据分别位于 system-test 仓的
+`changes/{change}/test-design.md`、`test-plan.md`、`manifest.yaml` 和 `evidence/`；根
+`.flow/changes/{change}/集成测试.md` 仅镜像执行结果。
+
+| 状态 | 语义 | 不能替代 |
+|---|---|---|
+| `TEST_DESIGN_RESULT READY` | 设计产物者认为完成 | `TEST_VERIFY_RESULT design PASS` |
+| `TEST_VERIFY_RESULT design PASS` | 设计可派发 | 测试代码实现 |
+| `TEST_VERIFY_RESULT implementation PASS` | review/report/revision 可复现 | runner 结果 |
+| `SYSTEM_TEST_RESULT PASS` | 一次指定 revision 的 runner 成功 | 完整 Flow 完成 |
+| `TEST_VERIFY_RESULT result PASS` | 运行证据、revision 和验收一致 | 业务 release verify |
+| `INTEGRATION_TEST_RESULT PASS` | 完整集成测试 Flow 完成 | archive |
+
+`test-design.md` 必须说明 SUT revision、拓扑、真实/桩边界、数据/观测/覆盖/SQL/失败归因；
+`test-plan.md` 必须将概要设计 AC 映射到场景、方法、准备、步骤和断言。`manifest.yaml` 仅承载运行配置。
+
+## 12. feedback（线上反馈，独立于 change）
 
 由 `/flow:feedback` 或 `flow-codex-feedback` 懒创建，位于 `.flow/feedback/`。**与 `.flow/changes/`、`task.md`、OpenSpec spec 无关联**；禁止写入 task.md 或创建 spec 目录。
 

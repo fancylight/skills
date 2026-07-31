@@ -7,13 +7,14 @@
 
 ```powershell
 .\scripts\system-test.ps1 doctor -Change <change> -EnvFile .env.local
-.\scripts\system-test.ps1 run -Change <change> -Suite <suite> -EnvFile .env.local
+.\scripts\system-test.ps1 run -Change <change> -Suite <suite> -ExecutionMode <orchestrated|standalone> -EnvFile .env.local
 .\scripts\system-test.ps1 cleanup -Change <change> -EnvFile .env.local
 ```
 
 可选 `-OrchRoot` 或环境变量 `FLOW_ORCH_ROOT`（默认测试仓父目录 = Flow 编排根）。
 
 `<suite>` 默认 manifest 的 `defaultSuites` 首项或 `api`。
+由 `flow-codex-test` 委托时使用 `orchestrated`；用户直接复现默认 `standalone`，两者都不自行完成 Flow。
 
 仓不存在时：先跑 `flow-codex-test-design`（会从 skills 模板 scaffold），不要临时拼凑命令。
 

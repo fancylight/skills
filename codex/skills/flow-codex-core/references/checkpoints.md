@@ -71,5 +71,6 @@ glm-system-test 执行 agent 遵循：
 
 `flow-codex-test-receive -> flow-codex-test-apply -> flow-codex-test-report`
 
-由 `flow-codex-test-assign` 派发。审核与报告租约语义与业务 spec 相同；`design_path` 在 test 模式下为
-test-plan + manifest。
+由 design verify PASS 后的 `flow-codex-test-assign` 派发。审核与报告租约语义与业务 spec 相同；`design_path`
+在 test 模式下为 test-design + test-plan + manifest。REPORT complete 后必须先经 implementation verify PASS，才可
+运行 runner；runner 后必须经 result verify PASS，才可完成集成测试 Flow。

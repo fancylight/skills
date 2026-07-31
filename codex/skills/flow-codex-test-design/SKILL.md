@@ -1,76 +1,49 @@
 ---
 name: flow-codex-test-design
-description: 业务 spec verify 全量通过后，确保集成测试仓就绪并产出可执行集成测试设计（manifest、test-plan、fixtures、环境契约）。不修改业务服务代码，不写 JUnit。
+description: 在业务代码已审核提交后，基于概要设计验收、as-built revision 和本地环境设计可独立实施的 Flow 集成测试。产出 test-design、test-plan、manifest 与 fixtures 契约，不编写 JUnit。
 ---
 
 # Codex Flow 集成测试设计
 
 作为根编排 agent 执行。读取 `../flow-codex-core/references/platform.md`、
-`references/manifest-checklist.md` 和 `references/scaffold.md`。可选参考
-`references/guanghuo-example-index.md`（GLM 样例结构）。
+`references/manifest-checklist.md`、`references/scaffold.md` 和已安装模板中的
+`test-design.md.tmpl`、`test-plan.md.tmpl`。
 
-## 前置
+## 硬前置与输入
 
-1. 要求根角色为 `orchestrator`，并明确提供 `change_name`。
-2. 要求 `flow-codex-verify` **全量（§A+§B）** 已成功且无 ERROR。
-3. 读取 `.flow/changes/<change_name>/概要设计.md` 验收标准与 `task.md`（业务 spec 应已完成或用户指定范围）。
-
-## 输入
-
-- 根 `.flow/config.yaml`、`.flow/changes/<change_name>/概要设计.md`、`task.md`、`发版记录.md`
-- 各业务仓 **as-built**（只读）：OpenSpec `design.md`、发版 SQL 路径、关键 Feign/鉴权/端口配置
-- 集成测试仓（见步骤 0；已有则增量更新 `changes/<change_name>/`）
-- 模板：`../flow-codex-core/assets/templates/system-test/`（见 scaffold.md）
+1. 要求根角色为 `orchestrator` 与明确的 `change_name`。
+2. 所有纳入范围的业务 spec 已完成 review、单元测试和提交；`flow-codex-verify` 全量 §A+§B 无 ERROR。
+3. 每个 SUT 记录仓库、期望分支、commit、启动模块和配置；未提交业务代码不得作为基线。
+4. 读取概要设计验收、操作链路、数据访问契约、OpenSpec/as-built、单元测试结果、本地 playbook 和现有
+   system-test 支撑。不得读取本需求已写集成测试代码反推设计。
+5. 关键中间件、数据、鉴权、外部依赖替身或观测能力无法盘点时 BLOCKED。
 
 ## 步骤
 
-0. **确保测试仓就绪**（`references/scaffold.md`）：
-   - 解析 config 中的 system-test 服务；缺失或目录不存在则从模板 scaffold，并登记 `type: system-test`。
-   - 已有完整仓（含 `scripts/system-test.ps1`）则复用，勿覆盖。
-   - 记 `service_name` / `service_path` 供后续步骤使用。
-1. 从验收表列出每条验收 ID 及是否纳入本地集成（Y/N）、Non-Goals（不测范围）。
-2. 只读扫描 as-built：SQL 顺序、服务端口、Feign 常量、WireMock 需求、Redis 鉴权方案；存在「数据访问契约」风险行时，提取最终列表 SQL、框架生成的分页 count SQL 和可用只读数据源/执行命令。
-3. 编写或更新 **测试仓** 内产物（见 manifest-checklist）；路径前缀为 `service_path`。
-4. 同步发版 SQL：从业务仓复制到 `{service_path}/changes/<change_name>/fixtures/release/`，并在根
-   `.flow/changes/<change_name>/release-sql/` 保留镜像（若已有则对齐更新）。
-5. 在根 `task.md` 追加或更新（服务名 = `service_name`）：
-   - `开发顺序` 末行：`st-api-<change_name>（{service_name}，依赖 — 或 cX…）`
-   - `## {service_name}` 章节与 `st-api-<change_name>` 条目（格式见 `task-md-maintenance.md` §2.7）
-   - 完成检查清单：`集成测试设计 READY` — READY 时勾选 `[x]`，BLOCKED 保持 `[ ]`
-6. 可选：在根 `.flow/changes/<change_name>/集成测试设计.md` 写摘要并指向测试仓权威路径。
-7. 对每个「数据访问契约」风险行，在 `test-plan.md` 增加 SQL 计划验证：查询入口、代表性高基数参数、最终列表 SQL、分页 count SQL、只读 `EXPLAIN` 命令/数据源、验收阈值与 evidence 路径。无法取得最终 SQL、只读连接或代表性数据时标记 **BLOCKED**，不得用普通 API 断言替代。
-7. 输出 readiness 结果（见下）。
+0. 按 `scaffold.md` 解析或初始化 config 中的 system-test 仓；已存在完整仓时只增量更新 change 产物。
+1. 为概要设计每条验收分配稳定 `AC-n`，确定集成 Y/N、Non-Goal 或后续阶段；N 不得伪装为覆盖。
+2. 设计并写入 `test-design.md`：完整覆盖 TDD.1–TDD.10（目标与风险、SUT revision、拓扑、真实/桩边界、
+   鉴权、夹具、观测点、覆盖策略、SQL、失败归因）。
+3. 写入 `test-plan.md` 场景矩阵：每个 Y 验收映射至 `AC-n-Sn`、required/optional、测试类和方法、准备数据、
+   操作、响应、文件/Excel、数据/副作用、清理和 suite。正向能力缺 happy path，或“未写入”缺观测，均 BLOCKED。
+4. 由设计推导 manifest、IDS、幂等 seed/cleanup、环境契约及必要 release SQL 镜像；manifest 不得承担覆盖论证。
+5. 数据访问风险必须在 plan 中列最终列表 SQL/count、代表性参数、只读 EXPLAIN 命令/阈值/evidence 路径；不可得则 BLOCKED。
+6. 在根 task 创建 st-api 条目和“集成测试设计 READY”待验证状态；不得因自身 READY 勾选为通过。
 
-## 输出（权威路径在测试仓）
+禁止写 JUnit、修改业务源码，或在 design/plan 中写实际 PASS、日期、耗时、真实 EXPLAIN 与事后 evidence。
 
-| 产物 | 路径 |
-|------|------|
-| manifest | `{service_path}/changes/<change_name>/manifest.yaml` |
-| test-plan | `{service_path}/changes/<change_name>/test-plan.md` |
-| test-design | `{service_path}/changes/<change_name>/test-design.md` |
-| fixtures | `fixtures/IDS.md`、`seed-fixture.sql`、`cleanup.sql` 等 |
-| 环境契约 | `config/services/*/application-system-test.yml` 清单（test-design 列需项，apply 阶段落地） |
-
-## 门禁
-
-- 测试仓无法就绪（拒绝 scaffold / 路径冲突）→ **BLOCKED**。
-- 无 `manifest.yaml` 或 `test-plan.md` → **BLOCKED**，不可进入 `flow-codex-test-assign` 或 `flow-codex-test`。
-- 禁止在本阶段编写 `backend-tests/` 下的 Java 测试类（留给 `flow-codex-test-apply`）。
-- 禁止修改业务服务源码。
-- 禁止把中间件 compose 或业务服务实现打进 skills 模板；仅复制 `system-test` 骨架。
-
-## 结果格式
-
-严格输出：
+## 结果
 
 ```text
 [TEST_DESIGN_RESULT] READY | BLOCKED
 change_name: <name>
 service_name: <system-test service name>
-service_path: <absolute path to test repo>
-scaffold: created | reused | blocked
-artifacts: <absolute path to manifest.yaml>
+service_path: <absolute path>
+business_revisions:
+  - <repo> <branch> <commit>
+acceptance: <AC count>; required_scenarios: <count>
+topology: <summary>
 blocked:
   - <item or none>
-next: flow-codex-test-assign
+next: flow-codex-test-verify design
 ```

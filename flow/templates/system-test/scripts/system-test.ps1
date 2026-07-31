@@ -7,6 +7,8 @@ param(
   [string]$Change,
   [ValidateSet('ui-mock','api','e2e','cdc','all')]
   [string]$Suite = 'all',
+  [ValidateSet('orchestrated','standalone')]
+  [string]$ExecutionMode = 'standalone',
   [string]$EnvFile = '.env.local',
   [string]$OrchRoot = ''
 )
@@ -276,29 +278,74 @@ function Invoke-Suite([string]$Name, $Manifest) {
   }
 }
 
-function Write-Summary([string]$Status, [string[]]$Suites, [string]$Message='') {
+function Get-GitRevision([string]$Path) {
+  try {
+    $revision = (& git -C $Path rev-parse HEAD 2>$null).Trim()
+    if (-not [string]::IsNullOrWhiteSpace($revision)) { return $revision }
+  } catch { }
+  return 'unavailable'
+}
+
+function Get-ApiCounts {
+  $reportDir = Join-Path $TestRoot 'backend-tests\target\surefire-reports'
+  $reports = @(Get-ChildItem -LiteralPath $reportDir -Filter 'TEST-*.xml' -File -ErrorAction SilentlyContinue)
+  if ($reports.Count -eq 0) { throw "Surefire raw reports missing: $reportDir" }
+  $tests = 0; $failed = 0; $skipped = 0
+  foreach ($report in $reports) {
+    [xml]$xml = Get-Content -LiteralPath $report.FullName -Raw -Encoding UTF8
+    $tests += [int]$xml.testsuite.tests
+    $failed += [int]$xml.testsuite.failures + [int]$xml.testsuite.errors
+    $skipped += [int]$xml.testsuite.skipped
+  }
+  return @{ passed = $tests - $failed - $skipped; failed = $failed; skipped = $skipped; raw = $reportDir }
+}
+
+function Reset-ApiReports {
+  $reportDir = Join-Path $TestRoot 'backend-tests\target\surefire-reports'
+  if (Test-Path $reportDir) {
+    Get-ChildItem -LiteralPath $reportDir -Filter 'TEST-*.xml' -File -ErrorAction SilentlyContinue |
+      Remove-Item -Force
+  }
+}
+
+function Write-Summary([string]$Status, [string[]]$Suites, [hashtable]$Counts, [string]$Message='') {
   $evidenceDir = Join-Path $TestRoot "changes\$Change\evidence"
   New-Item -ItemType Directory -Force $evidenceDir | Out-Null
   $summary = Join-Path $evidenceDir 'summary.md'
   $retained = if ($Status -eq 'PASS') { 'false' } else { 'true' }
   $cleanup = if ($Status -eq 'PASS') { 'none' } else { ".\scripts\system-test.ps1 cleanup -Change $Change" }
+  $manifestPath = Join-Path $TestRoot "changes\$Change\manifest.yaml"
+  $manifestHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $manifestPath).Hash
+  $testRevision = Get-GitRevision $TestRoot
+  $businessRevisions = if ($Manifest.PSObject.Properties.Name -contains 'businessRevisions') { $Manifest.businessRevisions | ConvertTo-Json -Compress } else { 'not-declared' }
   @"
 # System Test Result
 
 - status: $Status
 - change_name: $Change
+- execution_mode: $ExecutionMode
+- flow_completed: false
 - suites: $($Suites -join ',')
 - generated_at: $([DateTime]::Now.ToString('s'))
+- manifest_hash: $manifestHash
+- test_revision: $testRevision
+- business_revisions: $businessRevisions
+- raw_reports: $($Counts.raw)
+- passed: $($Counts.passed)
+- failed: $($Counts.failed)
+- skipped: $($Counts.skipped)
 - retained_state: $retained
 - cleanup_command: $cleanup
 - message: $Message
 "@ | Set-Content -Encoding UTF8 $summary
   Write-Host "[SYSTEM_TEST_RESULT] $Status"
   Write-Host "change_name: $Change"
+  Write-Host "execution_mode: $ExecutionMode"
+  Write-Host 'flow_completed: false'
   Write-Host "suites: $($Suites -join ',')"
-  Write-Host "passed: $(if ($Status -eq 'PASS') { $Suites.Count } else { 0 })"
-  Write-Host "failed: $(if ($Status -eq 'PASS') { 0 } else { 1 })"
-  Write-Host 'skipped: 0'
+  Write-Host "passed: $($Counts.passed)"
+  Write-Host "failed: $($Counts.failed)"
+  Write-Host "skipped: $($Counts.skipped)"
   Write-Host "evidence: $summary"
   Write-Host "retained_state: $retained"
   Write-Host "cleanup_command: $cleanup"
@@ -340,6 +387,7 @@ switch ($Command) {
   }
   'run' {
     $suites = $requestedSuites
+    $counts = @{ passed = 0; failed = 0; skipped = 0; raw = 'not-applicable' }
     try {
       if ($suites.Count -eq 1 -and $suites[0] -eq 'cdc') {
         Invoke-Suite 'cdc' $manifest
@@ -352,13 +400,19 @@ switch ($Command) {
           Invoke-Seeds $manifest
           New-Item -ItemType File -Force $SeedMarker | Out-Null
         }
+        if ($suites -contains 'api') { Reset-ApiReports }
         foreach ($name in $suites) { Invoke-Suite $name $manifest }
+        if ($suites -contains 'api') { $counts = Get-ApiCounts }
+        else { $counts.passed = $suites.Count }
         if (Test-Path $SeedMarker) { Invoke-CleanupData $manifest; Remove-Item $SeedMarker -Force }
         Invoke-Down
       }
-      Write-Summary 'PASS' $suites
+      Write-Summary 'PASS' $suites $counts
     } catch {
-      Write-Summary 'FAIL' $suites $_.Exception.Message
+      if ($suites -contains 'api') {
+        try { $counts = Get-ApiCounts } catch { $counts.failed = 1; $counts.raw = 'missing' }
+      } else { $counts.failed = 1 }
+      Write-Summary 'FAIL' $suites $counts $_.Exception.Message
       Write-Warning "failure state retained; cleanup with: .\scripts\system-test.ps1 cleanup -Change $Change"
       throw
     }

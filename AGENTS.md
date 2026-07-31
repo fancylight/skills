@@ -33,9 +33,11 @@
   → 执行：flow-codex-report
 
 业务 verify 全量 PASS 后 — 集成测试：
-  flow-codex-test-design → flow-codex-test-assign
+  flow-codex-test-design → flow-codex-test-verify design
+  → flow-codex-test-assign
   → test-receive → test-apply → test-review → test-report
-  → flow-codex-test → flow-codex-system-test（runner）
+  → flow-codex-test-verify implementation → flow-codex-test
+  → flow-codex-system-test（runner）→ flow-codex-test-verify result
   → flow-codex-verify（verify_mode=release，§A+§B+§F）→ archive
 ```
 
@@ -53,7 +55,7 @@ flow-codex-feedback（Intake → Discover → … → Conclude）
 
 Discover 自动查已有 feedback、KB 选篇、`{root}/.flow/cdp` playbook（规范在 skill，产物不进 local_rag）。
 
-详见 [flow/docs/schema.md](./flow/docs/schema.md) §11。feedback 不写 task.md、不走 hotfix 编排。
+详见 [flow/docs/schema.md](./flow/docs/schema.md) §12。feedback 不写 task.md、不走 hotfix 编排。
 
 硬性规则（详见 [codex/PLAN.md](./codex/PLAN.md)、[codex/skills/flow-codex-core/references/platform.md](./codex/skills/flow-codex-core/references/platform.md)）：
 
@@ -80,13 +82,14 @@ Discover 自动查已有 feedback、KB 选篇、`{root}/.flow/cdp` playbook（�
 | `flow-codex-report` | 执行 | 更新根 `task.md`（须报告租约） |
 | `flow-codex-status` | 根 | 只读进度 |
 | `flow-codex-verify` | 根 | 格式 §A；design 模式 §A+§C+§D+§E+§F.1–§F.3（assign 前）；全量 §A+§B（test 前）；release §A+§B+§F（archive 前） |
-| `flow-codex-test-design` | 根 | 确保测试仓就绪（可 scaffold）并产出 manifest / test-plan |
+| `flow-codex-test-design` | 根 | 在业务 as-built revision 后设计 test-design / test-plan / manifest |
+| `flow-codex-test-verify` | 根 | 只读验证测试设计、实现生命周期或运行结果 |
 | `flow-codex-test-assign` | 根 | 向 system-test 仓派发 `st-api-*` |
-| `flow-codex-test-receive` | 执行 | 加载 manifest + test-plan |
+| `flow-codex-test-receive` | 执行 | 加载 test-design + test-plan + manifest |
 | `flow-codex-test-apply` | 执行 | 编写 JUnit / fixtures / test-support |
 | `flow-codex-test-report` | 执行 | 更新 task.md st-api 条目（须报告租约） |
-| `flow-codex-test` | 根 | 集成测试门禁 + 委托 system-test + 更新检查清单 |
-| `flow-codex-system-test` | 根/执行 | system-test runner（doctor/run/evidence） |
+| `flow-codex-test` | 根 | implementation/result verify 门禁后编排 runner 并更新检查清单 |
+| `flow-codex-system-test` | 根/执行 | system-test runner（orchestrated / standalone evidence） |
 | `flow-codex-change` | 根 | 需求变更 |
 | `flow-codex-archive` | 根 | 归档 |
 | `flow-codex-feedback` | 根/执行 | 线上反馈调查（Discover + 可选 data-fix；`.flow/feedback/`） |

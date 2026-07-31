@@ -1,0 +1,4 @@
+interface:
+  display_name: "Flow 集成测试独立验证"
+  short_description: "独立只读验证 Flow 集成测试设计、实现和最终运行证据门禁"
+  default_prompt: "使用 $flow-codex-test-verify 验证当前 Flow 集成测试阶段。"

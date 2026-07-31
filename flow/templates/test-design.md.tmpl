@@ -1,0 +1,49 @@
+# 集成测试设计 — {{change_name}}
+
+> 本文只记录验证策略与计划，不记录实际 PASS/FAIL、执行日期或 evidence 结果。
+
+## TDD.1 测试目标与风险
+
+- 验收范围：{{acceptance_scope}}
+- 最高风险路径/边界：{{risks}}
+- 明确不测项：{{non_goals}}
+
+## TDD.2 SUT 与 revision
+
+| 服务/仓库 | 分支 | commit | 启动模块 | 端口 | 配置 |
+|---|---|---|---|---|---|
+| {{sut_service}} | {{sut_branch}} | {{sut_commit}} | {{sut_module}} | {{sut_port}} | {{sut_config}} |
+
+## TDD.3–TDD.4 本地拓扑与真实/替身边界
+
+| 调用方 → 依赖 | 真实/替身 | 地址/启动方式 | 请求匹配与响应/失败契约 | 理由 |
+|---|---|---|---|---|
+| {{caller}} → {{dependency}} | {{boundary}} | {{runtime}} | {{stub_contract}} | {{reason}} |
+
+## TDD.5 鉴权与上下文
+
+{{auth_context}}
+
+## TDD.6 数据模型与夹具
+
+| 实体/状态 | 预留 ID | seed 顺序 | 幂等方式 | cleanup 范围 |
+|---|---|---|---|---|
+| {{entity}} | {{reserved_id}} | {{seed_order}} | {{idempotency}} | {{cleanup_scope}} |
+
+## TDD.7 可观测点
+
+| 义务 | HTTP/异步/文件/DB/MQ/缓存观测 | 无副作用验证 |
+|---|---|---|
+| {{obligation}} | {{observation}} | {{no_side_effect}} |
+
+## TDD.8 验收覆盖策略
+
+说明每条 AC 的 happy path、boundary、failure、regression 组合及可降至单元层的理由。
+
+## TDD.9 SQL 计划策略
+
+{{sql_plan_strategy_or_not_applicable}}
+
+## TDD.10 失败归因
+
+`doctor → health → fixture/schema → stub/Feign → 鉴权 → 业务断言`

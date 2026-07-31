@@ -15,6 +15,7 @@ $requiredSkills = @(
     "flow-codex-verify",
     "flow-codex-test",
     "flow-codex-test-design",
+    "flow-codex-test-verify",
     "flow-codex-test-assign",
     "flow-codex-test-receive",
     "flow-codex-test-apply",
@@ -105,6 +106,32 @@ else {
 
 if (-not (Test-Path -LiteralPath $sharedTemplatesDir)) {
     $errors += "Missing shared templates directory: $sharedTemplatesDir"
+}
+
+@(
+    "test-design.md.tmpl",
+    "test-plan.md.tmpl",
+    "test-verify-checklist.md",
+    "integration-test-result.md.tmpl"
+) | ForEach-Object {
+    if (-not (Test-Path -LiteralPath (Join-Path $sharedTemplatesDir $_))) {
+        $errors += "Missing integration-test template: $_"
+    }
+}
+
+$workflowMarkers = @(
+    @{ File = "flow-codex-test-design\SKILL.md"; Marker = "TDD.1" },
+    @{ File = "flow-codex-test-assign\SKILL.md"; Marker = "verify_mode: design" },
+    @{ File = "flow-codex-test\SKILL.md"; Marker = "verify_mode: implementation" },
+    @{ File = "flow-codex-test\SKILL.md"; Marker = "flow-codex-test-verify result" },
+    @{ File = "flow-codex-system-test\SKILL.md"; Marker = "execution_mode" },
+    @{ File = "flow-codex-archive\SKILL.md"; Marker = "verify_mode: result" }
+)
+$workflowMarkers | ForEach-Object {
+    $path = Join-Path $skillsDir $_.File
+    if (-not (Test-Path -LiteralPath $path) -or (Get-Content -LiteralPath $path -Raw -Encoding utf8) -notmatch [regex]::Escape($_.Marker)) {
+        $errors += "Missing integration-test lifecycle marker '$($_.Marker)' in $($_.File)"
+    }
 }
 
 # Feedback / CDP templates and skill references (Discover + data-fix)

@@ -20,7 +20,7 @@ description: 将 st-api 集成测试 spec 加载到 glm-system-test 执行 agent
 4. 确认 spec_id 为 `st-api-<change_name>`，且仅负责该集成测试 spec。
 5. 检查测试仓工作区期望分支与干净基线（该仓通常无 `.flow/config.yaml`，以根 config 中
    `type: system-test` 条目为准）。
-6. **不**调用 OpenSpec；spec 权威 = manifest + test-plan。
+6. **不**调用 OpenSpec；测试设计权威 = test-design + test-plan + manifest。
 7. 向进度文件追加 `[TEST_RECEIVE] complete`，概述覆盖范围与 apiTestFilter。
 
 产物缺失、分支不匹配或 spec 歧义时停止。

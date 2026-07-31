@@ -129,9 +129,9 @@ hotfix 与 feature spec 生命周期不同，放在每个服务章节**末尾**�
 - **变更重开 spec 时，必须同步取消**相关清单条目（`[x]` → `[ ]`）
 - 汇报完成勾选前，**必须验证**清单与任务实际状态一致
 - 集成测试相关（多服务需求建议包含）：
-  - `[ ] 集成测试设计 READY` — `flow-codex-test-design` 产出 manifest + test-plan
-  - `[ ] 集成测试代码完成` — `st-api-*` report 勾选
-  - `[ ] 集成测试执行 PASS` — `flow-codex-test` 写 `集成测试.md` 且 PASS
+  - `[ ] 集成测试设计 READY` — `flow-codex-test-design` 产出 test-design + test-plan + manifest；不等于 design verify PASS
+  - `[ ] 集成测试代码完成` — `st-api-*` report 完成；不等于 implementation verify PASS
+  - `[ ] 集成测试执行 PASS` — `flow-codex-test` 在 result verify PASS 后写 `集成测试.md`
 
 ### 2.6 变更通知
 
@@ -165,7 +165,7 @@ N. st-api-<change>（{system_test_service}，依赖 cX 或 —）
       完成：{YYYY-MM-DD} commit {hash}   ← 或 local-only
 ```
 
-- spec 权威在测试仓的 manifest + test-plan，**无 OpenSpec**
+- 测试设计权威在测试仓的 test-design + test-plan + manifest，**无 OpenSpec**
 - `flow-codex-test-design` 创建条目；`flow-codex-test-report` 勾选完成
 
 ---

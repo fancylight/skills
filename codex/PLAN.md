@@ -41,6 +41,7 @@ Codex 执行 agent 不负责调度审核 agent。保留原始生命周期，将�
 - `flow-codex-status`
 - `flow-codex-verify`（`format` / `design` / `full`；design 模式校验领域概念、操作链路与设计文档一致性）
 - `flow-codex-test-design`
+- `flow-codex-test-verify`
 - `flow-codex-test-assign`
 - `flow-codex-test-receive`
 - `flow-codex-test-apply`

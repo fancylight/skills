@@ -1,39 +1,33 @@
 ---
 name: flow-codex-test
-description: 集成测试代码就绪后，门禁校验并委托 flow-codex-system-test 执行 runner，更新 task 检查清单。用户要求运行 Flow 集成测试时使用。
+description: 在测试实现生命周期独立验证后编排 Flow 集成测试 runner，并仅在最终结果验证通过时更新完成状态。
 ---
 
 # Codex Flow 集成测试编排
 
-作为根编排 agent 执行。读取 `../flow-codex-core/references/platform.md` 和
-`../flow-codex-core/assets/templates/integration-test-result.md.tmpl`。
+作为根编排 agent 执行。读取 core platform 与 `integration-test-result.md.tmpl`。
 
 ## 前置（硬门禁）
 
-1. 要求根角色为 `orchestrator`，并明确提供 `change_name`。
-2. `flow-codex-verify` **全量（§A+§B）** 已成功且无 ERROR。
-3. 根 config 可解析 system-test 服务仓，且 `changes/<change_name>/manifest.yaml` 与 `test-plan.md` 存在。
-4. `task.md` 中 `st-api-<change_name>` 已完成，**或**用户明示跳过 test-assign、由根代跑。
-5. 测试仓或 manifest 缺失时 **停止**；提示 `flow-codex-test-design`，不要临时拼凑命令。
+1. 根角色为 `orchestrator`，并提供 `change_name`。
+2. `flow-codex-verify` 全量 §A+§B 无 ERROR。
+3. 当前轮 `[TEST_VERIFY_RESULT] PASS` 且 `verify_mode: implementation`；测试仓 revision 未漂移。
+4. config 可解析 system-test 仓，且 manifest、test-design、test-plan、fixtures 存在。
+5. 不接受 task 勾选、TEST_DESIGN READY、用户要求根代跑或 local-only 替代 implementation PASS。
 
 ## 编排
 
-1. 读取 manifest / test-plan / 概要设计验收表。
-2. **委托 `flow-codex-system-test`** 执行 doctor → run（suite 默认 manifest 声明或 `api`）。
-   将 `change_name` 与可选 `suite` 传入；由该 skill 写 evidence 与 `集成测试.md`。
-3. 收到 `[SYSTEM_TEST_RESULT]` 后：
-   - PASS：勾选 task.md 完成检查清单 `集成测试执行 PASS`；输出 `[INTEGRATION_TEST_RESULT] PASS`（字段与
-     system-test 一致）。
-   - FAIL：不勾选清单；输出 `[INTEGRATION_TEST_RESULT] FAIL` 并保留 cleanup 指引。
-4. 可选：委托子 agent 仅运行 `flow-codex-system-test`，根 agent 汇总并更新 checklist。
+1. 委托 `flow-codex-system-test`，明确 `execution_mode: orchestrated`，执行 doctor → run；该 skill 写 evidence 与根
+   `集成测试.md` 摘要，但不更新 task 完成状态。
+2. runner 返回后运行 `flow-codex-test-verify result`，传入当前 manifest、业务/测试 revision 和原始报告路径。
+3. result PASS 才勾选 task 的“集成测试执行 PASS”，写入结果模板并输出：
 
-## 与 system-test 的分工
+```text
+[INTEGRATION_TEST_RESULT] PASS
+change_name: <name>
+result_verify: PASS
+```
 
-| Skill | 职责 |
-|-------|------|
-| `flow-codex-test`（本 skill） | 门禁、task 检查清单、INTEGRATION_TEST_RESULT |
-| `flow-codex-system-test` | runner 命令、evidence、`集成测试.md` 正文 |
+4. runner 或 result verify FAIL/ERROR 时不得勾选 task、不得输出完成；保留 cleanup/阻断指引。
 
-不要在本 skill 内重复拼 `system-test.ps1` 命令；统一走 `flow-codex-system-test`。
-
-作为根编排 agent 时不要修改业务代码。
+独立调试只能直接调用 system-test 的 `standalone`，其 PASS 不完成 Flow。

@@ -1,20 +1,20 @@
 # 集成测试结果
 
-> 由 flow-codex-test 写入，记录 glm-system-test runner 执行摘要
+> 由 flow-codex-test 在 result verify PASS 后写入；记录运行事实，不改写测试设计基线。
 
 需求：{{requirement_name}}
 change：{{change_name}}
 执行时间：{{executed_at}}
+execution_mode：{{execution_mode}}
 
----
+## 门禁与 revisions
 
-## 门禁
-
-- verify 全量：{{verify_status}}
-- manifest：{{manifest_path}}
-- st-api 代码：{{st_api_status}}
-
----
+- 业务 verify：{{verify_status}}
+- test verify implementation：{{implementation_verify_status}}
+- test verify result：{{result_verify_status}}
+- manifest：{{manifest_path}}（hash：{{manifest_hash}}）
+- 测试仓 revision：{{test_revision}}
+- 业务仓 revisions：{{business_revisions}}
 
 ## 执行命令
 
@@ -22,34 +22,23 @@ change：{{change_name}}
 {{run_commands}}
 ```
 
----
-
 ## 结果
 
 | 指标 | 值 |
-|------|-----|
+|---|---|
 | 套件 | {{suites}} |
 | 通过 | {{passed}} |
 | 失败 | {{failed}} |
 | 跳过 | {{skipped}} |
 | 整体 | {{overall_result}} |
 
----
-
-## 证据
+## 证据与清理
 
 - 摘要：`{{evidence_summary_path}}`
-- 运行时：`.runtime/{{change_name}}/`
-- SQL 计划（如适用）：`{{sql_plan_evidence_path}}`
-
----
+- 原始报告：`{{raw_report_paths}}`
+- SQL 计划：`{{sql_plan_evidence_path}}`
+- cleanup：{{cleanup_status}}
 
 ## 阻断项
 
 {{blocked_items}}
-
----
-
-## 备注
-
-{{notes}}
