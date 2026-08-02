@@ -41,7 +41,10 @@ or:
 <actionable findings>
 ```
 
-驳回时恢复同一个执行 agent。连续三轮驳回后停止并报告阻断项。
+驳回时恢复同一个执行 agent。连续三轮驳回后停止并报告阻断项。测试 spec 的 identity 为
+`<change_name>/<spec_id>/<design_fingerprint>`，计数由根状态维护；不得因更换 agent/reviewer、branch、baseline 或
+SUT revision 清零。第三轮必须输出 `[REVIEW_LOOP] STOPPED` / `reason: MAX_REJECT_ROUNDS`；只有用户明确授权重新设计或
+新实现周期才可创建新 fingerprint。
 
 ## 报告租约
 
@@ -67,10 +70,12 @@ tests: <summary>
 
 ## 集成测试执行 Agent 生命周期
 
-glm-system-test 执行 agent 遵循：
+system-test 执行 agent 遵循：
 
 `flow-codex-test-receive -> flow-codex-test-apply -> flow-codex-test-report`
 
-由 design verify PASS 后的 `flow-codex-test-assign` 派发。审核与报告租约语义与业务 spec 相同；`design_path`
-在 test 模式下为 test-design + test-plan + manifest。REPORT complete 后必须先经 implementation verify PASS，才可
-运行 runner；runner 后必须经 result verify PASS，才可完成集成测试 Flow。
+由 design verify PASS 且用户 ceiling>=implementation 后的 `flow-codex-test-assign` 派发。审核与报告租约语义与业务 spec 相同；`design_path`
+在 test 模式下为 test-design + test-plan + manifest。REPORT complete 后必须先经 implementation verify PASS，且 design verify
+已核验配置契约及最小只读探针，才可在用户 ceiling>=execution 时运行 runner；runner 后必须经 result verify PASS，才可完成集成测试 Flow。外部 evidence 缺失只能记录
+`[TEST_EXTERNAL_EVIDENCE] BLOCKED`，不得自动写 owning repo。创建 agent 时记录 capability fingerprint
+（sandboxMode/approvalPolicy/dockerAvailable/networkAvailable）；根环境变化时旧 agent 为 stale，必须 interrupt 而非恢复。

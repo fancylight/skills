@@ -53,7 +53,7 @@ updated: YYYY-MM-DD          # 任何修改都必须更新此字段
 - 列出所有 spec 的依赖拓扑排序，**每行一个 spec、恰好一个 git 仓库**
 - 依赖引用**必须用 spec ID**（`c3`），**禁止**用序号（`3`、`依赖3`）
 - 格式：`{序号}. {spec-id}（{单一 service}，依赖 {spec-id 或 —}）`
-- **括号内恰好一个服务名**——禁止 `c4（register + aggregator）`、`c5（worker-service + worker-register-service）`
+- **括号内恰好一个服务名**——禁止 `c4（service-a + service-b）`、`c5（service-c + service-d）`
 - 跨仓同能力须拆成多个递增 c，不是一行绑多仓
 - 正例：`2. c4-sub-job-read（worker-register-service，依赖 c3）`、`3. c5-sub-job-vo（worker-app-aggregator，依赖 c4）`
 - 反例：`3. c4-sub-job-read（worker-register-service + worker-app-aggregator，依赖 c3）`（一行多仓）
@@ -141,9 +141,9 @@ hotfix 与 feature spec 生命周期不同，放在每个服务章节**末尾**�
 
 ### 2.7 集成测试 spec（st-api）
 
-与业务 `c{n}` **分离**，ID 格式：`st-api-{kebab-case}`（通常与 change 目录名一致，如 `st-api-guanghuo-wage-register-audit`）。
+与业务 `c{n}` **分离**，ID 格式：`st-api-{kebab-case}`（通常与 change 目录名一致，如 `st-api-<change-id>`）。
 
-集成测试服务名 = 根 `.flow/config.yaml` 中 `type: system-test`（或兼容名 `system-test` / `glm-system-test`）的 `name`，下记为 `{system_test_service}`。首次 `flow-codex-test-design` 可从 skills 模板 scaffold 并登记该服务。
+集成测试服务名 = 根 `.flow/config.yaml` 中 `type: system-test` 的 `name`，下记为 `{system_test_service}`。首次 `flow-codex-test-design` 可从 skills 模板 scaffold 并登记该服务。
 
 **开发顺序**（追加在业务 spec 之后）：
 
@@ -151,7 +151,7 @@ hotfix 与 feature spec 生命周期不同，放在每个服务章节**末尾**�
 N. st-api-<change>（{system_test_service}，依赖 cX 或 —）
 ```
 
-- 括号内服务名与 config `name` 一致（常见 `system-test`；存量项目可为 `glm-system-test`）
+- 括号内服务名与 config 中 `type: system-test` 条目的 `name` 一致
 - 依赖引用业务 spec 时用 `c{n}`；全部业务完成后可写 `依赖 —`
 
 **服务章节** `## {system_test_service}`：

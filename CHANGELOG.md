@@ -10,9 +10,23 @@
 
 ### Added
 
+- **集成测试 Flow 收口与配置停止**：移除独立运行前 skill 与 READY 凭据；设计阶段声明用户确认的配置来源、必需端点、
+  最小只读探针和归属。implementation verify 保留静态检查；runner 仅在 implementation PASS、execution 授权、配置探针
+  成功及 revision 一致时执行一次。失败统一停止分类，不自动修复配置、测试或业务仓。
+- **集成测试失败归因与报告**：system-test runner 现在为每次运行生成统一 evidence index；FAIL 时收集原始报告和允许的
+  日志/桩/数据库证据，生成脱敏 `failure-report.md`。失败项按配置、测试、数据契约、SUT 行为或未定性分类；证据不足只能
+  标记 `UNDETERMINED`，同一 revision 不得重跑。
+
+- **集成测试授权与范围硬门禁**：新增 `testAuthorization` ceiling（design / implementation / execution / result）、
+  `validate-test-artifacts.ps1` 和 `test-scope-guard.ps1`。test-design/verify/assign/apply/test/system-test 现分别门禁
+  授权、唯一 system-test 仓写入、静态实现校验、runner，以及 external-evidence BLOCKED、不可重置三轮 REJECT 和 stale
+  capability fingerprint；模板、schema、status/archive 与结果记录同步。该变更不修改业务仓或自动修复外部证据。
+  **迁移**：进行中的集成测试须补齐 `testAuthorization`、manifest `stage: "design"` 和 test-plan 的
+  `system-test path:`，再重新执行对应阶段 verify。
+
 - **集成测试设计协议与独立 verify**：新增 `test-design.md.tmpl`、`test-plan.md.tmpl`、`test-verify-checklist.md` 和 `flow-codex-test-verify`；test-design 固定 SUT revision、拓扑、真实/桩、夹具、观测和覆盖策略，test-plan 固定 AC→场景→方法→断言。design / implementation / result 三次只读验证分别门禁派发、runner 和完成状态；standalone runner 不得完成 Flow，local-only 不得进入发布或 Goal complete。
 - **SQL 数据访问门禁**：`overview-design.md.tmpl` 新增条件必填「数据访问契约」；`flow-codex-design` 向 OpenSpec 传导过滤键、JOIN、基数/选行、索引与参考实现。`flow-codex-review` 审查相关子查询、`max/min` 选行、跨表风险形态及 Mapper 契约测试。`verify_mode=design` 新增 §F.1–§F.3，`verify_mode=release` 新增 §F.4，归档前强制最终列表 SQL 与 PageHelper count 的只读 EXPLAIN evidence；集成测试/发版记录模板同步记录风险与回滚。`scripts/validate.js` 同步 `.claude/commands/flow` 路径并支持中文模板名。
-- **集成测试框架模板 + test-design scaffold**：`flow/templates/system-test/`（Maven 双模块、`scripts/system-test.ps1`、FixtureTool 等）；`flow-codex-test-design` 步骤 0 在编排根缺失测试仓时从模板初始化并登记 `type: system-test`（兼容已有 `glm-system-test`）；`codex/install.ps1` 安装 `system-test/` 目录树；`task-md-maintenance` §2.7 / runtime-contract 改为按 config 服务名解析。
+- **集成测试框架模板 + test-design scaffold**：`flow/templates/system-test/`（Maven 双模块、`scripts/system-test.ps1`、FixtureTool 等）；`flow-codex-test-design` 步骤 0 在编排根缺失测试仓时从模板初始化并登记 `type: system-test`；`codex/install.ps1` 安装 `system-test/` 目录树；`task-md-maintenance` §2.7 / runtime-contract 按 config 动态解析服务名。
 - **设计阶段操作链路 + verify §D/§E + assign 门禁**：新增 `flow/templates/操作链路.md.tmpl`（`as-built` 行须带 `文件:行` 证据）；`verify-checklist.md` 新增 §D（D.1.1/D.1.2/D.2.1/D.2.2/D.2.5）与 §E（Apifox、接口表范围、文档一致性）；`verify_mode=design` 扩展为 §A+§C+§D+§E；verify 报告含编排人 WARN 确认清单；`flow-codex-design` 新增步骤 3.5 现状链路提取、产出 `操作链路.md`、Apifox MCP 强制路径、去自检化；`flow-codex-assign` 门禁扩展到 §D/§E；`flow-codex-change` 接口变化时同步链路。缺链路默认 WARN（`journey_required: true` 升 ERROR）；Apifox 待录入默认 WARN（`apifox_required: true` 升 ERROR）。默认 format / 全量 verify（§A+§B）行为不变；`flow-codex-review` / `test-design` / `kb` 未改。Claude 侧待 follow-up。
 - **`flow-codex-feedback` Discover + CDP playbook**：Intake 后自动查已有 feedback / KB 选篇 / `{root}/.flow/cdp`；新增 `references/cdp.md`、`discover-kb.md`、`flow/templates/cdp-playbook.md.tmpl`；报告支持 `remediation` 与 `resolution=data-fix`（数据修复说明三段式）；收紧 feedback→KB（默认不写）；`validate.ps1` 校验 feedback/CDP 资源路径。Claude `/flow:feedback` 对齐待 follow-up。
 - **设计阶段领域概念 + verify §C**：`overview-design.md.tmpl` 强制「领域概念 / 歧义裁决 / 审核 pass 决策表 / 集成范围」；`verify-checklist.md` 新增 §C；`flow-codex-verify` 支持 `verify_mode=design`（§A+§C）；`flow-codex-assign` 派发前强制 design verify；`flow-codex-kb` / `flow-codex-archive` 联动 `kb_action: 待沉淀`。默认 format / 全量 verify（§A+§B）行为不变；`flow-codex-review` 未改。Claude 侧 design 对齐待 follow-up。
@@ -28,11 +42,11 @@
 - `AGENTS.md` · `docs/claude-code.md` · `流程文档.md` · `codex/PLAN.md` — 反馈闭环文档
 
 - **集成测试 Flow 工作流**（Codex）：业务 verify 全量 PASS 后
-  - `flow-codex-test-design` — manifest / test-plan / fixtures 设计（glm-system-test）
+  - `flow-codex-test-design` — manifest / test-plan / fixtures 设计（system-test 服务）
   - `flow-codex-test-assign` — 派发 `st-api-<change>`（不动 `flow-codex-assign`）
   - `flow-codex-test-receive` · `test-apply` · `test-report` — 测试代码子 agent 链
   - `flow-codex-test` 重写 — 门禁 + 委托 system-test
-- **`flow-codex-system-test`** — 迁入 skills 仓库；glm-system-test runner 执行与 evidence（原 glm-system-test 仓内 skill 已废弃）
+- **`flow-codex-system-test`** — 迁入 skills 仓库；system-test runner 执行与 evidence
 - `flow/templates/codex/test-child-agent-prompt.md`、`integration-test-result.md.tmpl`
 - `task-md-maintenance.md` §2.7 st-api 格式与集成测试完成检查清单
 - `flow-codex-review` test 模式（对照 test-plan + manifest）

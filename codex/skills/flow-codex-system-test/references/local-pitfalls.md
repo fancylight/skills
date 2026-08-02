@@ -1,6 +1,6 @@
 # 本地集成常见卡点
 
-执行前读取 glm-system-test 仓内 `docs/local-integration-playbook.md`（路径由根 config 解析）。
+执行前读取 config 解析出的 system-test 仓内 `docs/local-integration-playbook.md`。
 
 ## 强制 preflight（手工 IDEA 模式）
 

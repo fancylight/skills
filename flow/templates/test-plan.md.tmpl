@@ -1,28 +1,30 @@
-# 集成测试计划 — {{change_name}}
+# 集成测试计划：{{change_name}}
 
 > 本文只定义场景和断言；实际执行结果写入 evidence 与根 `集成测试.md`。
+> system-test path: {{system_test_path}}（必须与根 config 中 `type: system-test` 条目一致）
 
 ## 场景矩阵
 
-| 验收 ID / 原文 | 场景 ID / 名称 | 必需性 | 测试类 / 方法 | 前置与准备数据 | 请求或操作步骤 | 响应断言 | 文件/Excel 断言 | 数据与副作用断言 | 清理 | 阶段 / suite |
-|---|---|---|---|---|---|---|---|---|---|---|
-| AC-1 / {{acceptance_text}} | AC-1-S1 / {{scenario_name}} | required | {{test_class}}#{{test_method}} | {{fixture}} | {{steps}} | {{response_assertion}} | {{file_assertion}} | {{side_effect_assertion}} | {{cleanup}} | S1 / api |
+| 验收 ID / 原文 | 场景 ID / 名称 | 必需 | 集成 Y/N | 测试类 / 方法 | fixture | 步骤 | 核心断言 | 清理 | suite |
+|---|---|---|---|---|---|---|---|---|---|
+| AC-1 / {{acceptance_text}} | AC-1-S1 / {{scenario_name}} | required | Y | {{test_class}}#{{test_method}} | {{fixture}} | {{steps}} | {{assertion}} | {{cleanup}} | api |
 
-## 集成 N / Non-Goals
+## 外部证据契约
 
-| 验收 ID | 不纳入集成的理由 | 已覆盖层级 / 后续阶段 | 观测字段或证据 |
-|---|---|---|---|
-| {{acceptance_id}} | {{reason}} | {{layer}} | {{evidence}} |
+| AC / 场景 | owning repo | 文件/方法/证据 anchor | 必需断言 | 缺失处理 |
+|---|---|---|---|---|
+| {{scenario_id}} | {{owning_repo}} | {{evidence_anchor}} | {{required_assertion}} | `[TEST_EXTERNAL_EVIDENCE] BLOCKED`；不自动修复 |
 
-## SQL 计划验证（如适用）
+## 配置与运行
 
-| 查询入口 | 代表性参数 | 最终列表 SQL / count | 只读 EXPLAIN 数据源与命令 | 阈值 | evidence 路径 |
-|---|---|---|---|---|---|
-| {{query}} | {{parameters}} | {{final_sql}} | {{explain_command}} | {{threshold}} | {{evidence_path}} |
+- 配置来源：{{configuration_source}}
+- 最小只读探针：{{connectivity_probe}}
+- 唯一 runner 命令：{{runner_command}}
 
-## 跑法
+runner 仅在 implementation PASS、execution 授权和配置探针证据一致后运行一次。
 
-```powershell
-{{doctor_command}}
-{{run_command}}
-```
+## 失败可观测性
+
+| 场景 | 关联字段 | 原始报告 | 日志/桩/数据库证据 | 预期可判定类别 |
+|---|---|---|---|---|
+| {{scenario_id}} | {{correlation_id}} | {{report_anchor}} | {{evidence_paths}} | {{triage_category_or_undetermined}} |

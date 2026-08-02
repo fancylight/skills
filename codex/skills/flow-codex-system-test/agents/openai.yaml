@@ -1,4 +1,4 @@
 interface:
   display_name: "Flow 系统测试执行"
-  short_description: "运行 glm-system-test runner 并收集证据"
-  default_prompt: "使用 manifest 对 Flow change 执行 glm-system-test 系统测试。"
+  short_description: "运行 system-test runner 并收集证据"
+  default_prompt: "使用 manifest 对 Flow change 执行系统测试。"

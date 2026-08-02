@@ -95,7 +95,7 @@
 
 | 检查项 | 说明 |
 |--------|------|
-| 单仓记录 | 每条 commit 记录绑定 **一个** spec + **一个** 服务/repo（如 `c1 @ worker-service`）；禁止一行多仓 |
+| 单仓记录 | 每条 commit 记录绑定 **一个** spec + **一个** 服务/repo（如 `c1 @ <business-service>`）；禁止一行多仓 |
 
 ---
 

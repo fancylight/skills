@@ -163,7 +163,7 @@ RuleDailyServiceImpl → LateEarlyCalculator → AttendanceDecideFacade
 **§3.2.4 接口 — 好**
 
 | 接口 | 服务 | Apifox | 变更 | 说明 |
-| GET /rule/companyTypeControl | worker-service | https://app.apifox.com/... | 🆕新增 | 累加型配置查询 |
+| GET /rule/companyTypeControl | <business-service> | https://app.apifox.com/... | 🆕新增 | 累加型配置查询 |
 
 **§3.2.4 — 坏**（完整 JSON 块）
 

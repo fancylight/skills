@@ -21,7 +21,7 @@
 在编排根 `.flow/config.yaml` 的 `services` 中按以下优先级查找：
 
 1. `type: system-test`（推荐）
-2. `name` 为 `system-test` 或 `glm-system-test`（兼容）
+2. `type` 为 `system-test`，服务名由项目配置决定
 3. `name` 以 `-system-test` 结尾
 
 记为 `service_name` / `service_path`（相对编排根；可绝对路径）。
@@ -58,4 +58,4 @@
 ## 之后
 
 继续写 `changes/<change_name>/` 下的 manifest / test-plan 等（见 `manifest-checklist.md`）。  
-task.md 服务章节标题与开发顺序括号内的服务名 = **config 中的 `service_name`**（勿写死 `glm-system-test`，除非 config 已是该名）。
+task.md 服务章节标题与开发顺序括号内的服务名 = **config 中 `type: system-test` 条目的 `name`**。

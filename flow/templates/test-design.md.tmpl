@@ -1,12 +1,23 @@
-# 集成测试设计 — {{change_name}}
+# 集成测试设计：{{change_name}}
 
-> 本文只记录验证策略与计划，不记录实际 PASS/FAIL、执行日期或 evidence 结果。
+> 本文只定义测试设计和配置契约；不得记录实际 PASS/FAIL、执行日期、耗时或 runner evidence。
+
+## 授权与配置契约
+
+- authorization ceiling：{{authorization_ceiling}}（默认 `design`，仅用户可提升）
+- configurationSource：{{configuration_source}}
+- requiredEndpoints：{{required_endpoints}}
+- connectivityProbe：{{connectivity_probe}}
+- ownership：{{configuration_owner}}
+
+`connectivityProbe` 只能对用户确认的来源执行一次最小只读连接或 metadata 检查；失败输出
+`[TEST_CONFIGURATION] BLOCKED` 并停止等待人工配置，不得修改配置或切换来源。
 
 ## TDD.1 测试目标与风险
 
 - 验收范围：{{acceptance_scope}}
-- 最高风险路径/边界：{{risks}}
-- 明确不测项：{{non_goals}}
+- 风险与边界：{{risks}}
+- 不测试项：{{non_goals}}
 
 ## TDD.2 SUT 与 revision
 
@@ -14,36 +25,19 @@
 |---|---|---|---|---|---|
 | {{sut_service}} | {{sut_branch}} | {{sut_commit}} | {{sut_module}} | {{sut_port}} | {{sut_config}} |
 
-## TDD.3–TDD.4 本地拓扑与真实/替身边界
+## TDD.3–TDD.4 拓扑与真实/替身边界
 
-| 调用方 → 依赖 | 真实/替身 | 地址/启动方式 | 请求匹配与响应/失败契约 | 理由 |
+| 调用方 → 依赖 | 真实/替身 | 地址/启动方式 | 请求匹配与响应契约 | 理由 |
 |---|---|---|---|---|
 | {{caller}} → {{dependency}} | {{boundary}} | {{runtime}} | {{stub_contract}} | {{reason}} |
 
-## TDD.5 鉴权与上下文
+## TDD.5–TDD.10
 
-{{auth_context}}
+记录鉴权上下文、fixture 的预留 ID/seed/cleanup、观测点、验收覆盖策略、SQL 计划和失败归因。每个 integration-Y 场景必须可映射到测试方法与核心断言；外部证据缺失只能登记 BLOCKED，不得自动修改 owning repo。
 
-## TDD.6 数据模型与夹具
+## Manifest 约束
 
-| 实体/状态 | 预留 ID | seed 顺序 | 幂等方式 | cleanup 范围 |
-|---|---|---|---|---|
-| {{entity}} | {{reserved_id}} | {{seed_order}} | {{idempotency}} | {{cleanup_scope}} |
-
-## TDD.7 可观测点
-
-| 义务 | HTTP/异步/文件/DB/MQ/缓存观测 | 无副作用验证 |
-|---|---|---|
-| {{obligation}} | {{observation}} | {{no_side_effect}} |
-
-## TDD.8 验收覆盖策略
-
-说明每条 AC 的 happy path、boundary、failure、regression 组合及可降至单元层的理由。
-
-## TDD.9 SQL 计划策略
-
-{{sql_plan_strategy_or_not_applicable}}
-
-## TDD.10 失败归因
-
-`doctor → health → fixture/schema → stub/Feign → 鉴权 → 业务断言`
+manifest 必须声明 `requiredEnvBySuite`、`wireMockContracts`、`fixtureSchema`、`requiredScenarioCount`、
+`expectedTestMethodCount`、`expectedReportClasses`、`runner.command`（token array）和 integration Y/N 映射。
+另声明 `failureObservability`：每个场景的稳定 ID、测试类/方法、关联字段、原始报告/日志/桩/数据库证据路径、可判定类别；
+证据不足时必须使用 `UNDETERMINED`。

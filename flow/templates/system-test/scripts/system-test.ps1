@@ -318,6 +318,7 @@ function Write-Summary([string]$Status, [string[]]$Suites, [hashtable]$Counts, [
   $manifestHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $manifestPath).Hash
   $testRevision = Get-GitRevision $TestRoot
   $businessRevisions = if ($Manifest.PSObject.Properties.Name -contains 'businessRevisions') { $Manifest.businessRevisions | ConvertTo-Json -Compress } else { 'not-declared' }
+  $summaryMessage = if ($Status -eq 'FAIL') { 'see evidence/current/failure-report.md' } else { 'none' }
   @"
 # System Test Result
 
@@ -336,8 +337,13 @@ function Write-Summary([string]$Status, [string[]]$Suites, [hashtable]$Counts, [
 - skipped: $($Counts.skipped)
 - retained_state: $retained
 - cleanup_command: $cleanup
-- message: $Message
+- message: $summaryMessage
 "@ | Set-Content -Encoding UTF8 $summary
+  $collector = Join-Path $PSScriptRoot 'collect-failure-evidence.ps1'
+  if (-not (Test-Path -LiteralPath $collector)) { throw "Failure evidence collector missing: $collector" }
+  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $collector -TestRoot $TestRoot -Change $Change -Status $Status -Suites $Suites `
+    -Message $Message -Passed $Counts.passed -Failed $Counts.failed -Skipped $Counts.skipped
+  if ($LASTEXITCODE -ne 0) { throw 'Failure evidence collection failed.' }
   Write-Host "[SYSTEM_TEST_RESULT] $Status"
   Write-Host "change_name: $Change"
   Write-Host "execution_mode: $ExecutionMode"

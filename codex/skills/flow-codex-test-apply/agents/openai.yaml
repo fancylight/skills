@@ -1,4 +1,4 @@
 interface:
   display_name: "Flow 集成测试编码"
-  short_description: "在 glm-system-test 编写 JUnit 与 fixtures"
+  short_description: "在 system-test 服务编写 JUnit 与 fixtures"
   default_prompt: "实现 manifest 与 test-plan 定义的集成测试代码。"

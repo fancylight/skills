@@ -1,4 +1,4 @@
 interface:
   display_name: "Flow 集成测试执行"
-  short_description: "运行 glm-system-test runner 并记录结果"
+  short_description: "运行 system-test runner 并记录结果"
   default_prompt: "执行业务 verify 与 test-design 完成后的 Flow 集成测试。"

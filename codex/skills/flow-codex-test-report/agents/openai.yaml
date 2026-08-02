@@ -1,4 +1,4 @@
 interface:
   display_name: "Flow 集成测试汇报"
   short_description: "更新 task.md 中的 st-api 完成状态"
-  default_prompt: "汇报 glm-system-test 集成测试代码完成情况。"
+  default_prompt: "汇报 system-test 集成测试代码完成情况。"

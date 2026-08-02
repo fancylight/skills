@@ -1,4 +1,4 @@
 interface:
   display_name: "Flow 集成测试接收"
   short_description: "加载 st-api spec 与 manifest 到执行 agent"
-  default_prompt: "接收 glm-system-test 集成测试任务。"
+  default_prompt: "接收 system-test 集成测试任务。"

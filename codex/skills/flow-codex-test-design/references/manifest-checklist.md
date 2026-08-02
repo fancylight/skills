@@ -1,24 +1,26 @@
-# 集成测试三产物协议
+# 集成测试设计产物清单
 
-`flow-codex-test-design` 必须产出 manifest、test-design、test-plan、IDS、seed 与 cleanup；缺任一项为
-`[TEST_DESIGN_RESULT] BLOCKED`。模板为安装后 core assets 中 `test-design.md.tmpl`、`test-plan.md.tmpl`。
+`flow-codex-test-design` 必须产出 manifest、test-design、test-plan、IDS、seed 与 cleanup。manifest 使用可解析 JSON
+（保留 `.yaml` 扩展名），并在 design 阶段记录 `stage: "design"`、用户授权的 `testAuthorization.ceiling: "design"`。
 
-## test-design.md：为什么这样测
+## 配置与范围
 
-完整覆盖 TDD.1–TDD.10：测试目标/风险、SUT revision、本地拓扑、真实/替身边界、鉴权上下文、数据模型/夹具、
-可观测点、验收覆盖策略、SQL 计划与失败归因。不得写实际执行结果或“复用既有约定”替代可执行内容。
+- 声明 `configurationSource`、`requiredEndpoints`、`connectivityProbe`、`ownership`。
+- 探针只允许对用户确认的来源执行一次最小只读检查；失败输出 `TEST_CONFIGURATION BLOCKED` 并停止。
+- `test-plan.md` 必须记录从根 config 动态解析的 system-test path。
+- fixture 仅使用 IDS 预留范围，seed/cleanup 幂等且可回收。
 
-## test-plan.md：测什么
+## 场景与运行契约
 
-每条概要设计验收有 AC ID 与 Y/N。每个 Y 至少一个场景，且给出场景 ID、必需性、类/方法、准备数据、步骤、
-响应、文件、数据/副作用、清理和 suite。required 场景不得 skip；“现网不变”必须有观测字段或明确集成 N。
+- `requiredEnvBySuite`、`wireMockContracts`、`fixtureSchema`、`requiredScenarioCount`、`expectedTestMethodCount`、
+  `expectedReportClasses`、`runner.command`（token array）和 integration Y/N 映射齐全。
+- `wireMockContracts.mappingFile` 相对 system-test 仓；`fixtureSchema` 声明 engine、表、列、唯一约束及 fixture 来源。
+- 外部证据缺失只能登记 `TEST_EXTERNAL_EVIDENCE BLOCKED`，不得自动修改 owning repo。
 
-## manifest.yaml：怎么跑
+## 失败可观测性
 
-仅记录从设计导出的 SUT working directory/revision、命令、端口、环境、dependencies、profiles、filter、seeds、
-cleanups 与 cleanup policy。filter 覆盖所有 required 类；seed/cleanup 仅使用 IDS 预留范围。
+- `failureObservability` 覆盖每个 required integration 场景：场景 ID、测试类/方法、关联字段、原始报告和日志/桩/数据库路径。
+- 预期类别仅为 `CONFIG_INFRA`、`TEST_HARNESS`、`DATA_SCHEMA_CONTRACT`、`SUT_BUSINESS` 或 `UNDETERMINED`。
+- 未映射、原始报告缺失或证据不足必须落入 `UNDETERMINED`；不得预判业务缺陷或记录 secret。
 
-## SQL 与任务
-
-数据访问风险场景列最终列表 SQL/count、代表性参数、只读 EXPLAIN 命令、阈值和 evidence 路径。根 task 的 READY
-仅表示产出完成；assign 只接受 `TEST_VERIFY_RESULT design PASS`。
+设计文件、manifest 与 SQL fixture 都必须通过 `validate-test-artifacts.ps1`，不得混入工具输出或实际执行结果。

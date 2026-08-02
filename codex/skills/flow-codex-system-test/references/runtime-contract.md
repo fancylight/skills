@@ -3,7 +3,7 @@
 命令均在 **集成测试仓** 根目录执行。测试仓路径从根 `.flow/config.yaml` 解析：
 
 1. `type: system-test` 的服务，或
-2. `name` 为 `system-test` / `glm-system-test`（兼容）
+2. `type` 为 `system-test`，实际服务名从同一 config 条目动态解析
 
 ```powershell
 .\scripts\system-test.ps1 doctor -Change <change> -EnvFile .env.local
@@ -26,6 +26,9 @@
 | Playwright | `.runtime/playwright-report/` |
 | JUnit | `backend-tests/target/surefire-reports/` |
 | 可提交摘要 | `changes/<change>/evidence/summary.md` |
+| 当前运行索引 | `changes/<change>/evidence/current/index.md` |
+| 失败归因报告 | `changes/<change>/evidence/current/failure-report.md`（仅 FAIL） |
+| 原始与关联证据 | `changes/<change>/evidence/current/{junit,logs,wiremock,db}/` |
 | 根镜像 | `.flow/changes/<change>/集成测试.md`（编排根） |
 | SQL 计划证据（按需） | `changes/<change>/evidence/sql-plan/`（最终列表 SQL、分页 count SQL、脱敏 EXPLAIN） |
 

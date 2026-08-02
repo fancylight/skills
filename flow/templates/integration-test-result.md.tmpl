@@ -1,6 +1,6 @@
 # 集成测试结果
 
-> 由 flow-codex-test 在 result verify PASS 后写入；记录运行事实，不改写测试设计基线。
+> 仅在 `flow-codex-test-verify result` PASS 后写入；runner PASS 不等同完整 Flow 完成。
 
 需求：{{requirement_name}}
 change：{{change_name}}
@@ -10,8 +10,12 @@ execution_mode：{{execution_mode}}
 ## 门禁与 revisions
 
 - 业务 verify：{{verify_status}}
+- 配置探针：{{configuration_probe_status}}
 - test verify implementation：{{implementation_verify_status}}
 - test verify result：{{result_verify_status}}
+- authorization ceiling：{{authorization_ceiling}}
+- review identity / round：{{review_identity}} / {{review_round}}
+- revision fingerprint：{{revision_fingerprint}}
 - manifest：{{manifest_path}}（hash：{{manifest_hash}}）
 - 测试仓 revision：{{test_revision}}
 - 业务仓 revisions：{{business_revisions}}

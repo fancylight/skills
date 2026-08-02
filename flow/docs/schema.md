@@ -409,6 +409,48 @@ updated: string             # 必填。YYYY-MM-DD
 `test-design.md` 必须说明 SUT revision、拓扑、真实/桩边界、数据/观测/覆盖/SQL/失败归因；
 `test-plan.md` 必须将概要设计 AC 映射到场景、方法、准备、步骤和断言。`manifest.yaml` 仅承载运行配置。
 
+### 11.1 授权与不可重置状态
+
+根 change 的集成测试状态必须记录在 system-test change 的 `manifest.yaml`（等价 YAML）中；测试设计、审核和
+执行流程不得为记录授权而修改根 `task.md` 或业务 progress：
+
+```yaml
+testAuthorization:
+  ceiling: design | implementation | execution | result
+  grantedBy: user
+  grantedAt: string
+reviewIdentity: "<change_name>/<spec_id>/<design_fingerprint>"
+reviewRejectRounds: integer
+capabilityFingerprint:
+  sandboxMode: string
+  approvalPolicy: string
+  dockerAvailable: boolean
+  networkAvailable: boolean
+```
+
+`ceiling` 默认 `design`，只能由用户明确要求提升。baseline、SUT revision、branch、executor 或 reviewer 改变会使当前
+验证失效，但不得清零 `reviewRejectRounds`。外部证据缺失以 `[TEST_EXTERNAL_EVIDENCE] BLOCKED` 记录 owning repo、anchor
+和 required assertion；当前测试 Flow 不得自动修改该仓。
+
+### 11.2 配置契约与 runner 前置
+
+`manifest.yaml` 在 design 时必须声明 `configurationSource`、`requiredEndpoints`、`connectivityProbe` 和 `ownership`；
+来源必须由用户确认，probe 只能为单次最小只读连接或 metadata 检查。失败输出 `[TEST_CONFIGURATION] BLOCKED` 与
+`STOP_AWAIT_HUMAN_CONFIGURATION`，不得自行修配置、切换来源或继续实现。
+
+manifest 还须记录 `requiredEnvBySuite`、`environmentContract`、`wireMockContracts`、`fixtureSchema`、
+`requiredScenarioCount`、`expectedTestMethodCount`、`expectedReportClasses`、`runner.command`（token array）、
+`integrationDecisions`、`excelAssertions` 和 `implementationVerification`。implementation PASS、execution 授权、配置契约
+及 probe 证据一致时，才可进入唯一 runner；runner PASS 不代表 result PASS 或 Flow 完成。
+
+### 11.3 失败归因证据
+
+manifest 必须声明 `failureObservability`，将 required 场景映射到稳定场景 ID、测试类/方法、关联字段、原始报告及日志/桩/数据库证据路径。
+runner 无论 PASS 或 FAIL 都生成 `evidence/current/index.md`；FAIL 还生成 `failure-report.md`，逐项记录分类、确定性、首个证据和建议动作。
+分类限于 `CONFIG_INFRA`、`TEST_HARNESS`、`DATA_SCHEMA_CONTRACT`、`SUT_BUSINESS`、`UNDETERMINED`。证据不足只能为
+`UNDETERMINED`；只有 confirmed 的 `SUT_BUSINESS` 可作为独立业务 Flow 输入。当前 revision 不得重跑，修复或诊断增强后必须
+形成新 revision 并重新经过 implementation verify。
+
 ## 12. feedback（线上反馈，独立于 change）
 
 由 `/flow:feedback` 或 `flow-codex-feedback` 懒创建，位于 `.flow/feedback/`。**与 `.flow/changes/`、`task.md`、OpenSpec spec 无关联**；禁止写入 task.md 或创建 spec 目录。

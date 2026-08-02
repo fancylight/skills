@@ -7,7 +7,7 @@
 | 文件 | 是否更新 |
 |------|----------|
 | `task.md` st-api 条目 | 是 |
-| `task.md` glm-system-test 服务头部 | 是 |
+| `task.md` system-test 服务头部 | 是 |
 | `task.md` 完成检查清单 | 勾选「集成测试代码完成」 |
 | `开发文档.md` | **否** |
 | `发版记录.md` | **否** |
@@ -20,4 +20,4 @@
 
 ## spec 条目
 
-位于 `## glm-system-test` 下，格式见 `task-md-maintenance.md` §2.7。
+位于 config 中 system-test 服务对应的 `## <service-name>` 下，格式见 `task-md-maintenance.md` §2.7。
