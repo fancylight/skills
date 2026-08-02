@@ -1,4 +1,4 @@
 interface:
   display_name: "Flow 设计"
-  short_description: "设计 Flow change 并验证 OpenSpec 就绪状态"
-  default_prompt: "设计这个 Flow change，并验证每个 OpenSpec 都可以 apply。"
+  short_description: "首次只创建领域模型并输出 DOMAIN_DRAFT，不生成方案产物"
+  default_prompt: "使用 $flow-codex-design 为这个 Flow change 开展首次领域发现，只输出 DOMAIN_DRAFT。"

@@ -327,9 +327,49 @@ updated: string             # 必填。YYYY-MM-DD
 
 ---
 
-## 9. 概要设计.md
+## 9. 领域模型与概要设计
 
-由 `/flow:design`（根模式）生成，位于 `.flow/changes/{change-name}/概要设计.md`。
+### 9.1 domain-model.md
+
+由 `flow-codex-design` 的根模式领域发现阶段创建，位于
+`.flow/changes/{change-name}/domain-model.md`。它记录本 change 的领域事实，而不是技术方案。
+
+首次设计动作只创建该产物并返回 `DOMAIN_DRAFT`。`DOMAIN_DRAFT` 不是 verifier PASS，不能作为
+创建 `概要设计.md`、OpenSpec、`task.md` 或发版产物的依据；后续 `DOMAIN_VERIFIED` 的验证行为由
+独立 domain verify 定义。
+
+必备结构：变更决策点、领域实体与关系、领域事实、表与字段语义、身份/唯一性/聚合/覆盖规则、
+状态与转换、输入/存储/输出转换、正例/边界/反例、证据索引、冲突与未决问题，以及 DOMAIN_DRAFT
+检查点。
+
+领域事实表至少包含：
+
+| 字段 | 要求 |
+|---|---|
+| `Fact ID` | 在一个 change 内稳定且唯一，格式推荐 `DF-<number>` |
+| 概念与精确定义 | 可据事实判断，不能只是名词解释 |
+| 生效条件 | 写明规则何时适用 |
+| 不生效条件/反例 | 写明规则何时不适用或禁止的泛化 |
+| 证据 | 只允许引用证据索引中的 `EV-<number>`；等级、来源和定位仅由证据索引定义，不得仅引用当前概要设计、实现设想或 agent 推断 |
+| 影响 Decision ID | 指向本 change 的实现决策点 |
+
+证据索引是 Evidence ID、等级、来源和定位的唯一权威。证据等级：E1（用户明确裁决、已批准需求、权威 KB）
+和 E2（当前代码、数据库约束、接口定义、稳定历史 change）可作为事实依据；E3（脱敏样例、日志、已有测试）
+只能辅助；E4（命名、注释、agent 推断）只能形成待确认问题，且不得进入事实表。影响实现的证据冲突必须保留为未决问题。
+
+`flow-codex-verify verify_mode=domain` 对该产物执行只读验证。它先运行领域 artifact validator，
+再独立抽查高风险事实的代码/schema/契约证据；无 ERROR 时输出 `DOMAIN_VERIFY_RESULT PASS`、
+`phase: DOMAIN_VERIFIED` 和 `domain_model_sha256`。该指纹是方案设计消费领域事实的前置条件；
+领域模型任何变更都会使旧结论失效。
+
+### 9.2 概要设计.md
+
+由 `/flow:design`（根模式）生成，位于 `.flow/changes/{change-name}/概要设计.md`。只有独立
+domain verify 已确认 `DOMAIN_VERIFIED` 后才可生成；概要设计消费 Fact ID，不得反向充当领域事实证据。
+
+概要设计必须有「领域事实引用」表。每个被方案消费的 Fact ID 都要登记影响 Decision ID、消费位置、
+正向要求和反例/禁止行为；业务规则、数据访问契约和验收项引用该 ID。子 OpenSpec 的 design 和
+requirements 必须传导同一 Fact ID、实现分支、正向要求、反例/禁止行为和单元测试责任。
 
 必须章节：
 - 背景
@@ -450,6 +490,52 @@ runner 无论 PASS 或 FAIL 都生成 `evidence/current/index.md`；FAIL 还生�
 分类限于 `CONFIG_INFRA`、`TEST_HARNESS`、`DATA_SCHEMA_CONTRACT`、`SUT_BUSINESS`、`UNDETERMINED`。证据不足只能为
 `UNDETERMINED`；只有 confirmed 的 `SUT_BUSINESS` 可作为独立业务 Flow 输入。当前 revision 不得重跑，修复或诊断增强后必须
 形成新 revision 并重新经过 implementation verify。
+
+### 11.4 automation-state.yaml（WP3 controller state）
+
+根 `.flow/changes/{change}/automation-state.yaml` 是集成测试 machine state 的唯一权威。首版由
+`flow-test-controller.ps1` 原子写入；它使用 JSON 兼容的 YAML 子集，不保存密码、token、完整连接串或其他 secret。
+
+```yaml
+schemaVersion: 1
+changeName: string
+phase: TEST_DESIGN_DRAFT | TEST_DESIGN_VERIFIED | TEST_IMPLEMENTING | TEST_IMPLEMENTED |
+  TEST_IMPLEMENTATION_VERIFIED | TEST_ENVIRONMENT_VERIFIED | TEST_EXECUTING |
+  TEST_EXECUTED_PASS | TEST_EXECUTED_FAIL | TEST_RESULT_VERIFIED | BLOCKED
+authorization:
+  maxPhase: design | implementation | execution | result
+repositories:
+  systemTest: canonical absolute path
+  sut: canonical absolute path
+revisions:
+  designRevision: immutable design revision captured at initialize
+  testBaseRevision: immutable test revision captured at initialize
+  testBaseline: compatibility alias for the initial test base revision
+  test: current accepted system-test implementation revision; updated only by accept-result
+  sut: immutable SUT revision
+  harness: immutable harness revision
+configurationFingerprint: string
+leases: array # implementation lease records implementationBaseRevision at issue time; accept scopes base -> proposed HEAD
+runs: array
+failureFingerprints: array[string]
+activeRun: object | null       # TEST_EXECUTING 的唯一已持久化 runner；启动前按 test revision 去重
+scopeVerification: object | null # trusted scope PASS and controller-computed implementation-base-to-proposed diff
+verifier: object | null
+history: array
+integrityHash: sha256
+```
+
+lease 对象必须绑定 agent、role、过期时间、canonical repository、authorized paths、allowed/forbidden capabilities；
+verifier 对象必须绑定 identity、mode、test/SUT/harness revision、configuration fingerprint 和报告 `summaryHash`；
+不得把 verifier summary 原文写入 state。
+所有写状态动作必须提交并校验当前 test/SUT/harness revision 与 configuration fingerprint；controller 同时读取
+canonical system-test/SUT Git HEAD，不能由省略参数或调用方报告绕过锁定。
+控制器拒绝非法 phase transition、revision 或 configuration fingerprint 漂移、非 canonical repository/path、
+过期或跨 agent lease、未授权 capability、旧 revision verifier、同一 test revision 的第二次 runner，以及重复
+failure fingerprint。runner 开始和 runner 结果是两个动作：前者先原子持久化 `TEST_EXECUTING`，后者只能消费
+该 activeRun 的完整 revision/configuration/evidence。
+state 的 `integrityHash` 用于检测手工篡改或半写入；每次成功替换后保留同 revision 的校验备份，主文件损坏时
+只恢复该最后有效副本；主文件与备份同时损坏则拒绝继续，绝不推断下一阶段。
 
 ## 12. feedback（线上反馈，独立于 change）
 

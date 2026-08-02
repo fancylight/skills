@@ -138,7 +138,8 @@ Get-ChildItem -LiteralPath $skillsDir -Recurse -File -Filter '*.md' -ErrorAction
     "test-design.md.tmpl",
     "test-plan.md.tmpl",
     "test-verify-checklist.md",
-    "integration-test-result.md.tmpl"
+    "integration-test-result.md.tmpl",
+    "domain-model.md.tmpl"
 ) | ForEach-Object {
     if (-not (Test-Path -LiteralPath (Join-Path $sharedTemplatesDir $_))) {
         $errors += "Missing integration-test template: $_"
@@ -158,7 +159,32 @@ Get-ChildItem -LiteralPath $skillsDir -Recurse -File -Filter '*.md' -ErrorAction
         }
     }
 }
-
+$domainArtifactValidator = Join-Path $scriptDir 'scripts\validate-domain-artifact.ps1'
+if (-not (Test-Path -LiteralPath $domainArtifactValidator)) {
+    $errors += "Missing domain artifact validator: $domainArtifactValidator"
+}
+else {
+    $parseErrors = $null
+    [void][System.Management.Automation.Language.Parser]::ParseFile($domainArtifactValidator, [ref]$null, [ref]$parseErrors)
+    if ($parseErrors.Count -gt 0) {
+        $errors += "PowerShell parse error in domain artifact validator: $domainArtifactValidator"
+    }
+}
+$flowTestController = Join-Path $scriptDir 'scripts\flow-test-controller.ps1'
+if (-not (Test-Path -LiteralPath $flowTestController)) {
+    $errors += "Missing flow test controller: $flowTestController"
+}
+else {
+    $parseErrors = $null
+    [void][System.Management.Automation.Language.Parser]::ParseFile($flowTestController, [ref]$null, [ref]$parseErrors)
+    if ($parseErrors.Count -gt 0) {
+        $errors += "PowerShell parse error in flow test controller: $flowTestController"
+    }
+}
+$domainReplayCases = Join-Path $scriptDir 'scripts\tests\fixtures\domain-replay\cases.json'
+if (-not (Test-Path -LiteralPath $domainReplayCases)) {
+    $errors += "Missing domain verifier replay case index: $domainReplayCases"
+}
 $failureCollector = Join-Path $sharedTemplatesDir 'system-test\scripts\collect-failure-evidence.ps1'
 if (-not (Test-Path -LiteralPath $failureCollector)) {
     $errors += "Missing system-test failure evidence collector: $failureCollector"
@@ -182,9 +208,10 @@ else {
     }
 }
 
-@('test-validate-test-artifacts.ps1', 'test-test-scope-guard.ps1', 'test-distributable-surface.ps1', 'test-collect-failure-evidence.ps1') | ForEach-Object {
+@('test-validate-test-artifacts.ps1', 'test-test-scope-guard.ps1', 'test-distributable-surface.ps1', 'test-collect-failure-evidence.ps1', 'test-validate-domain-artifact.ps1', 'test-design-domain-gate.ps1', 'test-domain-fact-propagation.ps1', 'test-domain-verifier-replay.ps1', 'test-flow-test-controller.ps1') | ForEach-Object {
     if (-not (Test-Path -LiteralPath (Join-Path $scriptDir "scripts\tests\$_"))) {
-        $errors += "Missing integration-test guard test script: $_"
+        $label = if ($_ -match '(?i)domain') { 'domain artifact' } elseif ($_ -match '(?i)flow-test-controller') { 'flow controller' } else { 'integration-test guard' }
+        $errors += "Missing $label test script: $_"
     }
 }
 
@@ -206,12 +233,16 @@ $workflowMarkers = @(
     @{ File = "flow-codex-system-test\SKILL.md"; Marker = "ceiling<execution" },
     @{ File = "flow-codex-core\references\checkpoints.md"; Marker = "MAX_REJECT_ROUNDS" },
     @{ File = "flow-codex-test-verify\SKILL.md"; Marker = "TEST_EVIDENCE_INCOMPLETE" },
-    @{ File = "flow-codex-archive\SKILL.md"; Marker = "verify_mode: result" }
+    @{ File = "flow-codex-archive\SKILL.md"; Marker = "verify_mode: result" },
+    @{ File = "flow-codex-design\SKILL.md"; Marker = "[FLOW_DOMAIN_RESULT] DOMAIN_DRAFT" },
+    @{ File = "flow-codex-verify\SKILL.md"; Marker = "verify_mode=domain" },
+    @{ File = "flow-codex-review\SKILL.md"; Marker = "DOMAIN_VERIFY_RESULT PASS" }
 )
 $workflowMarkers | ForEach-Object {
     $path = Join-Path $skillsDir $_.File
     if (-not (Test-Path -LiteralPath $path) -or (Get-Content -LiteralPath $path -Raw -Encoding utf8) -notmatch [regex]::Escape($_.Marker)) {
-        $errors += "Missing integration-test lifecycle marker '$($_.Marker)' in $($_.File)"
+        $label = if ($_.File -match '(?i)flow-codex-(design|verify|review)') { 'domain' } else { 'integration-test' }
+        $errors += "Missing $label lifecycle marker '$($_.Marker)' in $($_.File)"
     }
 }
 

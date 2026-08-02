@@ -4,7 +4,7 @@
 > **不是**跨服务 api.md 契约比对（Claude `flow:verify` / flow-verify 专责）。
 > skills 仓库维护者改本文件后须同步 verify/archive skill（见仓库根 MAINTENANCE.md）。
 
-本清单分六层：
+本清单分七层：
 
 - **§A 产物格式**（结构/格式，不判业务语义）
 - **§B 发布就绪**（完成度与 git 状态；仅全量 verify）
@@ -12,21 +12,59 @@
 - **§D 链路合规**（操作链路与设计/代码事实比对；仅 `verify_mode=design`）
 - **§E 设计文档一致性**（跨文档客观矛盾；仅 `verify_mode=design`）
 - **§F SQL 数据访问门禁**（设计契约在 design；EXPLAIN 证据在 release）
+- **§G 领域事实真实性**（领域模型与外部证据；仅 `verify_mode=domain`）
 
 | 调用模式 | 章节 |
 |----------|------|
 | 格式复验（默认轻量） | §A |
+| 领域事实 verify（`verify_mode=domain`） | §G |
 | 设计合规（`verify_mode=design`） | §A + §C + §D + §E + §F.1–§F.3 |
 | 全量 verify（test 前置） | §A + §B（**不**默认跑 §C/§D/§E/§F；assign 前单独跑 design 模式） |
 | 发布 verify（`verify_mode=release`） | §A + §B + §F |
 
-`flow-codex-test` 前须 **§A + §B 全量** verify 且无 ERROR。`flow-codex-assign` 前须 **§A + §C + §D + §E + §F.1–§F.3**（`verify_mode=design`）且无 ERROR。`flow-codex-archive` 前须 **§A + §B + §F** 发布 verify 且无 ERROR。
+`flow-codex-design` 在生成方案产物前须 **§G**（`verify_mode=domain`）无 ERROR。`flow-codex-test` 前须 **§A + §B 全量** verify 且无 ERROR。`flow-codex-assign` 前须 **§A + §C + §D + §E + §F.1–§F.3**（`verify_mode=design`）且无 ERROR。`flow-codex-archive` 前须 **§A + §B + §F** 发布 verify 且无 ERROR。
 
 ---
 
 ## 输出格式
 
 按项输出 `PASS` / `WARN` / `ERROR`。全量 verify 存在 **ERROR** 时不可进入 `flow-codex-test` 或 `flow-codex-archive`（WARN 需用户确认后可继续）。design 模式（§A+§C+§D+§E）存在 **ERROR** 时不可 `flow-codex-assign`。存在 WARN 时 verify 报告末尾须附 **编排人 WARN 确认清单**（见 `flow-codex-verify` skill）。
+
+---
+
+## §G 领域事实真实性（ERROR / WARN）
+
+**仅 `verify_mode=domain` 时执行。** 只读；不生成概要设计、OpenSpec、task 或任何方案产物。
+
+先对 `.flow/changes/{change-name}/domain-model.md` 运行
+`validate-domain-artifact.ps1`。脚本 ERROR 时直接输出对应的 `DV.1`、`DV.2`、`DV.3`、`DV.6` 或
+`DV.8` 并停止。脚本 PASS 后，verifier 必须独立抽查高风险事实，不能因表格互相一致而 PASS：
+
+> 确定性 validator 与 DV.4/DV.5/DV.6 语义审核是两个独立阶段。字符串替换、表格自洽或 validator PASS
+> 不能替代当前 schema/code/KB 的只读抽查；replay fixture 只能报告 `replay-contract-only`。
+
+| ID | 级别 | 检查项 |
+|---|---|---|
+| DV.1 | ERROR | 每个影响实现的 Decision ID 都有已登记 Fact ID 支撑，且 ID 映射有效 |
+| DV.2 | ERROR | 每条关键事实都有精确定义、生效条件和不生效条件/反例 |
+| DV.3 | ERROR | E1/E2 证据可定位，且不是概要设计、实现设想或 agent 推断的自引用 |
+| DV.4 | ERROR | 对表/字段语义抽查实际 schema、实体或读写代码；发现直接冲突即 ERROR |
+| DV.5 | ERROR | 对聚合、唯一、覆盖和状态规则抽查组成字段及生效/不生效分支 |
+| DV.6 | ERROR | 影响实现的证据冲突已由用户或权威来源裁决 |
+| DV.7 | WARN | 仅 E3 样例支撑的规则存在外推风险 |
+| DV.8 | ERROR | 未决问题会改变接口、数据或写入分支却仍声明可进入方案设计 |
+
+每个聚合/去重/覆盖规则至少抽查一处实际读写代码或数据库约束；每个条件字段至少抽查一个生效和一个不生效分支；每个状态规则至少抽查入口过滤与最终写入或拒绝位置；跨服务权威字段同时抽查 provider 与 consumer 契约。
+
+无 ERROR 时输出：
+
+```text
+[DOMAIN_VERIFY_RESULT] PASS
+phase: DOMAIN_VERIFIED
+domain_model_sha256: <validator 输出的 sha256>
+```
+
+该结论只允许同一 `domain_model_sha256` 进入方案设计；模型变更后必须重新执行 domain verify。
 
 ---
 

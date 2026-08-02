@@ -20,8 +20,8 @@ description: 根据 OpenSpec 设计对一个 Flow spec 实现执行独立只读�
 
 ## 审核
 
-1. 读取设计产物和变更文件（按 review_mode 选择 OpenSpec 或 test-plan/manifest）。
-2. 检查正确性、缺失的验收标准、回归风险、不安全行为和缺失测试。
+1. 读取设计产物和变更文件（按 review_mode 选择 OpenSpec 或 test-plan/manifest）。业务 spec 还读取根 `domain-model.md`、概要设计的「领域事实引用」及同一指纹的 `DOMAIN_VERIFY_RESULT PASS`。
+2. 检查正确性、缺失的验收标准、回归风险、不安全行为和缺失测试。业务 spec 消费 Fact ID 时，逐项建立 `Fact ID → 实现位置 → 单元测试` 映射；缺映射、弱化生效条件/反例或没有反例单测时 **REJECT**。
 3. 变更涉及列表、分页、报表 SQL 或 Mapper 的 JOIN / 选行 / 过滤时，读取根 `概要设计.md` 的「数据访问契约」和本 spec `design.md`：
    - 契约缺失、未传导到 spec，或未声明查询风险为「无」时 **REJECT**。
    - 逐项比对主表过滤、JOIN 等值键、基数、唯一性/索引依据与跨服务参考实现；偏离没有设计理由时 **REJECT**。

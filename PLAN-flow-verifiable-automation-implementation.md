@@ -159,10 +159,14 @@ ADR 至少裁决：
 ### 验证
 
 1. `domain-model.md.tmpl` 可生成完整 Markdown；
-2. 缺 Fact ID、条件、反例或证据的示例能被基础校验拒绝；
+2. WP1 只验证模板、schema、`DOMAIN_DRAFT` checkpoint 和安装路径；不提供领域事实自动 validator。
 3. `codex/install.ps1` dry-run/安装检查能找到新模板；
 4. `codex/validate.ps1` 无新增 ERROR；
 5. Claude 同步范围符合 WP0 ADR。
+
+缺 Fact ID、生效条件、不生效条件/反例或证据的自动拒绝，以及相关正反例夹具，明确属于
+WP2 的 domain artifact validator 和 `verify_mode=domain`；WP1 不得提前实现该 validator 或改变
+任何 verify 行为。
 
 ### 完成定义
 

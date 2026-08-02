@@ -1,0 +1,8 @@
+[
+  { "name": "conditional-field", "expected": { "DV.4": "PASS", "DV.5": "PASS", "DV.6": "PASS" }, "requiredEvidence": [ "schema.md", "code.md", "kb.md" ] },
+  { "name": "null-aggregation-key", "expected": { "DV.4": "PASS", "DV.5": "PASS", "DV.6": "PASS" }, "requiredEvidence": [ "schema.md", "code.md", "kb.md" ] },
+  { "name": "same-name-override", "expected": { "DV.4": "PASS", "DV.5": "PASS", "DV.6": "PASS" }, "requiredEvidence": [ "schema.md", "code.md", "kb.md" ] },
+  { "name": "state-range-mismatch", "expected": { "DV.4": "ERROR", "DV.5": "PASS", "DV.6": "PASS" }, "requiredEvidence": [ "schema.md", "code.md", "kb.md" ] },
+  { "name": "document-code-conflict", "expected": { "DV.4": "ERROR", "DV.5": "PASS", "DV.6": "ERROR" }, "requiredEvidence": [ "schema.md", "code.md", "kb.md" ] },
+  { "name": "kb-code-conflict", "expected": { "DV.4": "ERROR", "DV.5": "PASS", "DV.6": "ERROR" }, "requiredEvidence": [ "schema.md", "code.md", "kb.md" ] }
+]

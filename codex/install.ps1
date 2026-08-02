@@ -64,6 +64,14 @@ if (Test-Path -LiteralPath $sharedTemplatesDir) {
     Write-Output ""
     Write-Output "Installing shared templates from $sharedTemplatesDir..."
 
+    foreach ($requiredTemplate in @('domain-model.md.tmpl')) {
+        $requiredTemplatePath = Join-Path $sharedTemplatesDir $requiredTemplate
+        if (-not (Test-Path -LiteralPath $requiredTemplatePath)) {
+            throw "Required shared template not found: $requiredTemplatePath"
+        }
+        Write-Output "  [required] $requiredTemplate"
+    }
+
     New-Item -ItemType Directory -Force -Path $coreTemplatesDir -WhatIf:$WhatIf | Out-Null
 
     # Copy all top-level template files from shared source
@@ -118,7 +126,7 @@ if (Test-Path -LiteralPath $sharedTemplatesDir) {
 
     $guardScriptsDir = Join-Path $scriptDir 'scripts'
     New-Item -ItemType Directory -Force -Path $coreScriptsDir -WhatIf:$WhatIf | Out-Null
-    @('validate-test-artifacts.ps1', 'test-scope-guard.ps1') | ForEach-Object {
+    @('validate-test-artifacts.ps1', 'test-scope-guard.ps1', 'validate-domain-artifact.ps1', 'flow-test-controller.ps1') | ForEach-Object {
         $source = Join-Path $guardScriptsDir $_
         if (-not (Test-Path -LiteralPath $source)) { throw "Required guard script not found: $source" }
         Copy-Item -LiteralPath $source -Destination (Join-Path $coreScriptsDir $_) -Force -WhatIf:$WhatIf
