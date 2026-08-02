@@ -1,0 +1,20 @@
+schemaVersion: 1
+changeName: <change-id>
+sourceOfTruth: test-cases.yaml
+scenarios:
+  - id: <acceptance-id>-S1
+    acceptance: <acceptance-id>
+    required: true
+    suite: api
+    integration: Y
+    testClass: <system-test-class>
+    testMethod: <stable-test-method>
+    reportClass: <report-class>
+    filter: <acceptance-id>-S1
+    evidence: [junit, service-log]
+    externalEvidence: []
+    setup: <fixture-and-precondition>
+    action: <request-or-user-action>
+    assertions: [<core-assertion>]
+    cleanup: <idempotent-cleanup>
+    observability: [<correlation-field>, <report-anchor>]

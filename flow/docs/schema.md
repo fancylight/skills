@@ -537,6 +537,34 @@ failure fingerprint。runner 开始和 runner 结果是两个动作：前者先�
 state 的 `integrityHash` 用于检测手工篡改或半写入；每次成功替换后保留同 revision 的校验备份，主文件损坏时
 只恢复该最后有效副本；主文件与备份同时损坏则拒绝继续，绝不推断下一阶段。
 
+### 11.5 test-cases.yaml（WP4 canonical scenario source）
+
+`changes/{change}/test-cases.yaml` 是 system-test 场景的唯一可执行来源；`test-plan.md` 只能承载背景、边界和
+人工说明，不得维护第二份场景计数或可执行映射。文件使用 JSON-compatible YAML 子集，结构如下：
+
+```yaml
+schemaVersion: 1
+changeName: string
+sourceOfTruth: test-cases.yaml
+scenarios:
+  - id: AC-n-Sn
+    acceptance: AC-n
+    required: true | false
+    suite: api | ui | cdc | other
+    integration: Y | N
+    testClass: fully.qualified.ClassName
+    testMethod: stableMethodName
+    reportClass: report.class.Name
+    filter: stable-runner-filter
+    evidence: [junit, service-log]
+    externalEvidence: []
+```
+
+`id` 必须唯一且稳定；每个 Java 测试方法通过稳定 ID 注解绑定到一个场景，未知、重复、缺失或方法/类漂移均拒绝。
+manifest 的 `requiredScenarioCount`、`expectedTestMethodCount`、`expectedReportClasses`、runner filters、evidence
+映射和 `scenarioSourceSha256` 必须由该文件确定性生成或严格校验。required 场景删除前必须重新完成 design verify；
+`integration: N` 场景必须声明外部证据，证据路径不存在或 source hash 漂移均不得进入 implementation/result verify。
+
 ## 12. feedback（线上反馈，独立于 change）
 
 由 `/flow:feedback` 或 `flow-codex-feedback` 懒创建，位于 `.flow/feedback/`。**与 `.flow/changes/`、`task.md`、OpenSpec spec 无关联**；禁止写入 task.md 或创建 spec 目录。

@@ -13,6 +13,13 @@
 `connectivityProbe` 只能对用户确认的来源执行一次最小只读连接或 metadata 检查；失败输出
 `[TEST_CONFIGURATION] BLOCKED` 并停止等待人工配置，不得修改配置或切换来源。
 
+## 场景来源与派生物
+
+`changes/{{change_name}}/test-cases.yaml` 是场景、稳定 ID、required、测试方法、报告类、runner filter
+和证据契约的唯一可执行来源。`test-plan.md` 只保留解释性说明，不得维护第二份可执行场景计数或映射。
+manifest、runner filter、报告类、计数和 evidence index 必须由该文件确定性生成并记录源文件 hash；任何重复、缺失
+或漂移都必须在 design/implementation verify 中拒绝。
+
 ## TDD.1 测试目标与风险
 
 - 验收范围：{{acceptance_scope}}

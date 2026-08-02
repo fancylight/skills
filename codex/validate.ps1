@@ -138,6 +138,7 @@ Get-ChildItem -LiteralPath $skillsDir -Recurse -File -Filter '*.md' -ErrorAction
     "test-design.md.tmpl",
     "test-plan.md.tmpl",
     "test-verify-checklist.md",
+    "test-cases.yaml.tmpl",
     "integration-test-result.md.tmpl",
     "domain-model.md.tmpl"
 ) | ForEach-Object {
@@ -158,6 +159,15 @@ Get-ChildItem -LiteralPath $skillsDir -Recurse -File -Filter '*.md' -ErrorAction
             $errors += "PowerShell parse error in guard script: $scriptPath"
         }
     }
+}
+$testCasesValidator = Join-Path $scriptDir 'scripts\validate-test-cases.ps1'
+if (-not (Test-Path -LiteralPath $testCasesValidator)) {
+    $errors += "Missing canonical test-cases validator: $testCasesValidator"
+}
+else {
+    $parseErrors = $null
+    [void][System.Management.Automation.Language.Parser]::ParseFile($testCasesValidator, [ref]$null, [ref]$parseErrors)
+    if ($parseErrors.Count -gt 0) { $errors += "PowerShell parse error in test-cases validator: $testCasesValidator" }
 }
 $domainArtifactValidator = Join-Path $scriptDir 'scripts\validate-domain-artifact.ps1'
 if (-not (Test-Path -LiteralPath $domainArtifactValidator)) {
@@ -208,7 +218,7 @@ else {
     }
 }
 
-@('test-validate-test-artifacts.ps1', 'test-test-scope-guard.ps1', 'test-distributable-surface.ps1', 'test-collect-failure-evidence.ps1', 'test-validate-domain-artifact.ps1', 'test-design-domain-gate.ps1', 'test-domain-fact-propagation.ps1', 'test-domain-verifier-replay.ps1', 'test-flow-test-controller.ps1') | ForEach-Object {
+@('test-validate-test-artifacts.ps1', 'test-test-scope-guard.ps1', 'test-distributable-surface.ps1', 'test-collect-failure-evidence.ps1', 'test-validate-domain-artifact.ps1', 'test-design-domain-gate.ps1', 'test-domain-fact-propagation.ps1', 'test-domain-verifier-replay.ps1', 'test-flow-test-controller.ps1', 'test-validate-test-cases.ps1') | ForEach-Object {
     if (-not (Test-Path -LiteralPath (Join-Path $scriptDir "scripts\tests\$_"))) {
         $label = if ($_ -match '(?i)domain') { 'domain artifact' } elseif ($_ -match '(?i)flow-test-controller') { 'flow controller' } else { 'integration-test guard' }
         $errors += "Missing $label test script: $_"
@@ -219,6 +229,8 @@ $workflowMarkers = @(
     @{ File = "flow-codex-test-design\SKILL.md"; Marker = "TDD.1" },
     @{ File = "flow-codex-test-design\SKILL.md"; Marker = "authorization_ceiling" },
     @{ File = "flow-codex-test-design\SKILL.md"; Marker = "failureObservability" },
+    @{ File = "flow-codex-test-design\SKILL.md"; Marker = "test-cases.yaml" },
+    @{ File = "flow-codex-test-verify\SKILL.md"; Marker = "validate-test-cases.ps1" },
     @{ File = "flow-codex-test-verify\SKILL.md"; Marker = "validate-test-artifacts.ps1" },
     @{ File = "flow-codex-test-assign\SKILL.md"; Marker = "verify_mode: design" },
     @{ File = "flow-codex-test-assign\SKILL.md"; Marker = "ceiling" },

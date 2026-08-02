@@ -21,13 +21,19 @@ system-test change 的 manifest 读取。缺失、与用户授权不一致或由
 
 ## 检查
 
-1. `design`：先独立运行 `flow-codex-core/assets/scripts/validate-test-artifacts.ps1 -Mode design`；guard ERROR 必须列为 ERROR，绝不自动修复。
+1. `design`：先独立运行 `flow-codex-core/assets/scripts/validate-test-artifacts.ps1 -Mode design`，再运行
+   `validate-test-cases.ps1 -Mode design`；guard ERROR 必须列为 ERROR，绝不自动修复。确认
+   `test-cases.yaml` 是唯一可执行场景来源，test-plan 没有第二份计数/映射，稳定 ID 无重复/缺失，manifest 计数、
+   report class、filter、evidence 与 source hash 一致；删除 required 场景必须有新的 design verify。integration-N
+   场景必须包含外部证据契约。
    读取根概要设计验收、操作链路/数据访问契约、已提交 SUT revision、`test-design.md`、
    `test-plan.md`、manifest 与 fixtures。按 TD.1–TD.11 验证三产物职责、AC 场景映射、拓扑、真实/桩边界、
    夹具、SQL 计划、scoped-clean 基线与配置契约；仅允许对用户确认的来源执行一次最小只读探针，失败即
    `[TEST_CONFIGURATION] BLOCKED` / `STOP_AWAIT_HUMAN_CONFIGURATION`。
 2. `implementation`：读取设计 PASS、进度文件、review 结果、测试代码、静态实现校验记录与测试仓 Git 状态。
-   按 TI.1–TI.8 验证场景/断言落实、无必需 skip、外部桩一致、同一可恢复 revision 和 local-only waiver。
+   按 TI.1–TI.8 验证场景/断言落实、无必需 skip、外部桩一致、同一可恢复 revision 和 local-only waiver；运行
+   `validate-test-cases.ps1 -Mode implementation` 校验每个 Java 测试方法以稳定 ID 绑定且无未知、重复或漂移，
+   并重新核验 manifest/report/evidence 的 source hash。
 3. `result`：读取 implementation PASS、runner 原始报告、evidence、根 `集成测试.md`、manifest 与业务/测试 revision。
    按 TR.1–TR.8 验证计数、必需 suite、cleanup、SQL evidence 与结果记录一致。runner FAIL 时绝不输出 result PASS；
    必须验证 `evidence/current/index.md`、`failure-report.md`、原始报告、计数与场景/日志/桩关联。缺任一关键证据输出
