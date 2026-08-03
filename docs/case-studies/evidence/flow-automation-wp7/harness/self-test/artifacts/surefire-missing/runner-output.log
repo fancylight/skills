@@ -21,6 +21,6 @@ At <TEMP_ROOT>\flow harness-wp7-evidence\scripts\system-test.ps1:370 char:31
 + ... rts.Count -eq 0) { throw "Surefire raw reports missing: $reportDir" }
 +                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     + CategoryInfo          : OperationStopped: (Surefire raw re...urefire-reports:String) [], RuntimeException
-    + FullyQualifiedErrorId : Surefire raw reports missing: <TEMP_ROOT>\flow harness-wp7-evide 
+    + FullyQualifiedErrorId : Surefire raw reports missing: <TEMP_ROOT>\flow harness-wp7-evide
    nce\backend-tests\target\surefire-reports
  

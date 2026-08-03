@@ -386,7 +386,7 @@
                              {
                                  "scenarioId":  "surefire-missing",
                                  "path":  "self-test/artifacts/surefire-missing/runner-output.log",
-                                 "sha256":  "f2f17cbd490d48371f2fefd7181ae649684212bf942d08735d9fdb520e81b85c"
+                                 "sha256":  "7dbbd3fb66fd1ddbc240c74b5878d307837ce8ae6012c04298921b4d9f8976d1"
                              },
                              {
                                  "scenarioId":  "surefire-missing",
