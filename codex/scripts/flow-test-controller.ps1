@@ -163,18 +163,16 @@ function Assert-HarnessCertification([string]$Root, [string]$Path, [string]$Expe
     $canonicalRoot = Get-CanonicalPath $Root
     $canonicalPath = Get-CanonicalPath $Path
     if (-not (Test-PathWithin $canonicalPath $canonicalRoot) -or -not (Test-Path -LiteralPath $canonicalPath -PathType Leaf)) { Stop-Controller 'ERROR_HARNESS_UNCERTIFIED' 'harness certification must be inside the canonical harness root' }
-    $certification = Read-StructuredJson $canonicalPath 'harness certification'
-    if ($certification.schemaVersion -ne 1 -or $certification.result -ne 'PASS' -or $certification.harnessRevision -ne $ExpectedRevision -or @($certification.files).Count -eq 0) { Stop-Controller 'ERROR_HARNESS_UNCERTIFIED' 'harness certification is incomplete or bound to another revision' }
-    $seen = @{}
-    foreach ($file in @($certification.files)) {
-        $relative = ([string]$file.path).Replace('/', [IO.Path]::DirectorySeparatorChar)
-        if ([string]::IsNullOrWhiteSpace($relative) -or $seen.ContainsKey($relative)) { Stop-Controller 'ERROR_HARNESS_UNCERTIFIED' 'harness certification file list is invalid' }
-        $seen[$relative] = $true
-        $actualPath = Get-CanonicalPath (Join-Path $canonicalRoot $relative)
-        if (-not (Test-PathWithin $actualPath $canonicalRoot) -or -not (Test-Path -LiteralPath $actualPath -PathType Leaf)) { Stop-Controller 'ERROR_HARNESS_UNCERTIFIED' "certified harness file is missing: $relative" }
-        $actualHash = (Get-FileHash -LiteralPath $actualPath -Algorithm SHA256).Hash.ToLowerInvariant()
-        if ($actualHash -ne ([string]$file.sha256).ToLowerInvariant()) { Stop-Controller 'ERROR_HARNESS_UNCERTIFIED' "certified harness file changed: $relative" }
-    }
+    $canonicalVerifier = Get-CanonicalPath (Join-Path $canonicalRoot 'scripts\harness-certification.ps1')
+    if (-not (Test-PathWithin $canonicalVerifier $canonicalRoot) -or -not (Test-Path -LiteralPath $canonicalVerifier -PathType Leaf)) { Stop-Controller 'ERROR_HARNESS_UNCERTIFIED' 'formal harness certification verifier must be inside the canonical harness root' }
+    $verificationFailed = $false
+    try { $output = @(& $canonicalVerifier verify -HarnessRoot $canonicalRoot -CertificationPath $canonicalPath 2>&1) }
+    catch { $output = @($_); $verificationFailed = $true }
+    if ($verificationFailed -or $LASTEXITCODE -ne 0) { Stop-Controller 'ERROR_HARNESS_UNCERTIFIED' 'formal harness certification verification failed' }
+    $revisionLines = @($output | ForEach-Object { [string]$_ } | Where-Object { $_ -match '^harness_revision:\s*\S+\s*$' })
+    if ($revisionLines.Count -ne 1) { Stop-Controller 'ERROR_HARNESS_UNCERTIFIED' 'formal harness certification verifier did not emit exactly one harness revision' }
+    $verifiedRevision = ($revisionLines[0] -replace '^harness_revision:\s*', '').Trim()
+    if ($verifiedRevision -ne $ExpectedRevision) { Stop-Controller 'ERROR_HARNESS_UNCERTIFIED' 'formal harness certification revision differs from the expected harness revision' }
     return [pscustomobject]@{ root=$canonicalRoot; path=$canonicalPath; certificationHash=(Get-FileHash -LiteralPath $canonicalPath -Algorithm SHA256).Hash.ToLowerInvariant() }
 }
 function Add-History($State, [string]$From, [string]$To, [string]$ReasonText) {

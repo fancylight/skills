@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
   [Parameter(Position=0, Mandatory=$true)]
-  [ValidateSet('revision','verify','certify')]
+  [ValidateSet('revision','manifest','verify','certify')]
   [string]$Command,
   [string]$HarnessRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path,
   [string]$CertificationPath = '',
@@ -171,3 +171,4 @@ switch ($Command) {
     Assert-Certification
   }
 }
+exit 0
