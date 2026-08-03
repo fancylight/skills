@@ -540,12 +540,11 @@ state 的 `integrityHash` 用于检测手工篡改或半写入；每次成功替
 ### 11.5 test-cases.yaml（WP4 canonical scenario source）
 
 `changes/{change}/test-cases.yaml` 是 system-test 场景的唯一可执行来源；`test-plan.md` 只能承载背景、边界和
-人工说明，不得维护第二份场景计数或可执行映射。文件使用 JSON-compatible YAML 子集，结构如下：
+人工说明，不得维护第二份手写场景计数或可执行映射。文件使用固定 schema 的严格 YAML 子集；malformed YAML、
+未知字段、错误嵌套、字段类型错误或必填结构缺失均拒绝。结构如下：
 
 ```yaml
 schemaVersion: 1
-changeName: string
-sourceOfTruth: test-cases.yaml
 scenarios:
   - id: AC-n-Sn
     acceptance: AC-n
@@ -556,14 +555,36 @@ scenarios:
     testMethod: stableMethodName
     reportClass: report.class.Name
     filter: stable-runner-filter
-    evidence: [junit, service-log]
     externalEvidence: []
+    setup:
+      fixtures: [fixture-id]
+    action:
+      method: POST
+      path: /resource
+    assertions:
+      response: [success]
+      database: [row-created]
+      sideEffects: [none-unexpected]
+    cleanup: [fixture-id]
+    observability:
+      correlationField: X-Test-Scenario
+      allowedEvidence: [reports/junit.xml, logs/service.log]
 ```
 
-`id` 必须唯一且稳定；每个 Java 测试方法通过稳定 ID 注解绑定到一个场景，未知、重复、缺失或方法/类漂移均拒绝。
-manifest 的 `requiredScenarioCount`、`expectedTestMethodCount`、`expectedReportClasses`、runner filters、evidence
-映射和 `scenarioSourceSha256` 必须由该文件确定性生成或严格校验。required 场景删除前必须重新完成 design verify；
-`integration: N` 场景必须声明外部证据，证据路径不存在或 source hash 漂移均不得进入 implementation/result verify。
+`id` 必须唯一且稳定；`integration: Y` 必须声明 testClass/testMethod/reportClass/filter，并由 Java 测试方法通过稳定
+ID 注解绑定；`integration: N` 不得声明这些可执行字段，只能以 externalEvidence 证明覆盖。未知、重复、缺失或方法/类漂移均拒绝。
+manifest 以 `testCasesContract.path` 引用 `test-cases.generated.json`，不得在根重复维护场景派生字段。sidecar
+确定性承载 source hash/canonical revision、integration Y/N 全映射、required/expected method count、runner filters、
+report classes、evidence index 骨架和 failure observability；test-plan 只在
+`FLOW_TEST_CASES_GENERATED` 标记区显示生成镜像，区外人工说明按字节保留并绑定 outside hash。
+
+旧 manifest 迁移时保留环境、fixture、WireMock、runner 与授权配置，新增 `testCasesContract.path`，由 canonical
+source 生成 sidecar，并删除根层旧 count/filter/report/integration/evidence/failureObservability 派生字段。
+validator 对未迁移的旧字段明确报错并退回 design verify，不静默采用旧值。
+
+required 场景删除必须提供 controller state 完整性校验通过且 summaryHash 一致的结构化 design verifier PASS，
+绑定 previous/current revision、previous/current source hash 与 verifier identity；自由布尔开关、伪造或陈旧 report
+均拒绝。`integration` 只允许 `Y`/`N`；`N` 必须声明 externalEvidence。提供 EvidenceRoot 时，普通和外部证据都必须落地。
 
 ## 12. feedback（线上反馈，独立于 change）
 

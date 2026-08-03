@@ -17,7 +17,7 @@ if ($target.StartsWith($repo + [IO.Path]::DirectorySeparatorChar, [StringCompari
     $relative = $target.Substring($repo.Length + 1).Replace('\', '/')
 }
 $allowed = switch ($Stage) {
-    'design' { @('changes/*/test-design.md', 'changes/*/test-plan.md', 'changes/*/manifest.yaml', 'changes/*/fixtures/*') }
+    'design' { @('changes/*/test-design.md', 'changes/*/test-plan.md', 'changes/*/test-cases.yaml', 'changes/*/test-cases.generated.json', 'changes/*/manifest.yaml', 'changes/*/fixtures/*') }
     'apply' { @('changes/*/*', 'backend-tests/*', 'test-support/*', 'config/*', 'scripts/*', 'infra/*') }
     'execution' { @('changes/*/evidence/*', 'changes/*/fixtures/*', 'reports/*', '.runtime/*', 'backend-tests/target/*') }
     'result' { @('changes/*/evidence/*', 'changes/*/test-result.md') }

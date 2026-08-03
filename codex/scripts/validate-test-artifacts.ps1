@@ -6,7 +6,9 @@ param(
     [string]$ChangeName,
     [Parameter(Mandatory = $true)]
     [ValidateSet('design', 'implementation', 'result')]
-    [string]$Mode
+    [string]$Mode,
+    [Parameter(Mandatory = $true)]
+    [string]$CanonicalRevision
 )
 
 $ErrorActionPreference = 'Stop'
@@ -81,13 +83,15 @@ if (-not (Test-Path -LiteralPath $changeDir -PathType Container)) {
     $design = Join-Path $changeDir 'test-design.md'
     $plan = Join-Path $changeDir 'test-plan.md'
     $manifest = Join-Path $changeDir 'manifest.yaml'
+    $testCases = Join-Path $changeDir 'test-cases.yaml'
+    $derivedContract = Join-Path $changeDir 'test-cases.generated.json'
     $fixtures = Join-Path $changeDir 'fixtures'
     $idsFiles = @(Get-ChildItem -LiteralPath $fixtures -File -ErrorAction SilentlyContinue | Where-Object { $_.Name -match '(?i)ids?' })
     $seedFiles = @(Get-ChildItem -LiteralPath $fixtures -File -Filter '*.sql' -ErrorAction SilentlyContinue | Where-Object { $_.Name -match '(?i)seed' })
     $cleanupFiles = @(Get-ChildItem -LiteralPath $fixtures -File -Filter '*.sql' -ErrorAction SilentlyContinue | Where-Object { $_.Name -match '(?i)clean' })
 
     if ($Mode -eq 'design') {
-        @(@($design, 'test-design'), @($plan, 'test-plan'), @($manifest, 'manifest')) | ForEach-Object {
+        @(@($design, 'test-design'), @($plan, 'test-plan'), @($manifest, 'manifest'), @($testCases, 'test-cases'), @($derivedContract, 'test-cases generated contract')) | ForEach-Object {
             [void](Require-Path $_[0] $_[1])
         }
         if ($idsFiles.Count -eq 0) { Add-Error "Missing IDS fixture under $fixtures" }
@@ -124,8 +128,8 @@ if (-not (Test-Path -LiteralPath $changeDir -PathType Container)) {
                         Add-Error "Manifest must declare ${_}: $manifest"
                     }
                 }
-                if ($null -eq $manifestValue.failureObservability) {
-                    Add-Error "Manifest must declare failureObservability: $manifest"
+                if ($null -eq $manifestValue.testCasesContract -or [string]::IsNullOrWhiteSpace([string]$manifestValue.testCasesContract.path)) {
+                    Add-Error "Manifest must declare testCasesContract.path: $manifest"
                 }
                 $text = Get-Content -LiteralPath $manifest -Raw -Encoding utf8
                 if ($text -match '(?i)\b(implementation|result)\s*(PASS|READY)\b') { Add-Error "Manifest contains later-stage result: $manifest" }
@@ -138,6 +142,22 @@ if (-not (Test-Path -LiteralPath $changeDir -PathType Container)) {
             } elseif ($planText -notmatch [regex]::Escape([IO.Path]::GetFileName($repo))) {
                 Add-Error "test-plan system-test path does not identify the verified repo '$([IO.Path]::GetFileName($repo))': $plan"
             }
+        }
+    }
+
+    if ((Test-Path -LiteralPath $testCases -PathType Leaf) -and (Test-Path -LiteralPath $derivedContract -PathType Leaf) -and
+        (Test-Path -LiteralPath $manifest -PathType Leaf) -and (Test-Path -LiteralPath $plan -PathType Leaf)) {
+        $validator = Join-Path $PSScriptRoot 'validate-test-cases.ps1'
+        if (-not (Test-Path -LiteralPath $validator -PathType Leaf)) { Add-Error "Missing canonical test-cases validator: $validator" }
+        else {
+            $validatorParameters = @{
+                TestCasesPath=$testCases; Mode=$Mode; CanonicalRevision=$CanonicalRevision; ManifestPath=$manifest
+                DerivedContractPath=$derivedContract; TestPlanPath=$plan
+            }
+            if ($Mode -in @('implementation','result')) { $validatorParameters.JavaSourceRoot = Join-Path $repo 'backend-tests\src\test' }
+            if ($Mode -eq 'result') { $validatorParameters.EvidenceRoot = Join-Path $changeDir 'evidence\current' }
+            $validatorOutput = @(& $validator @validatorParameters 2>&1)
+            if ($LASTEXITCODE -ne 0) { Add-Error "Canonical test-cases validation failed: $($validatorOutput -join ' | ')" }
         }
     }
 }

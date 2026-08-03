@@ -1,6 +1,4 @@
 schemaVersion: 1
-changeName: <change-id>
-sourceOfTruth: test-cases.yaml
 scenarios:
   - id: <acceptance-id>-S1
     acceptance: <acceptance-id>
@@ -11,10 +9,17 @@ scenarios:
     testMethod: <stable-test-method>
     reportClass: <report-class>
     filter: <acceptance-id>-S1
-    evidence: [junit, service-log]
     externalEvidence: []
-    setup: <fixture-and-precondition>
-    action: <request-or-user-action>
-    assertions: [<core-assertion>]
-    cleanup: <idempotent-cleanup>
-    observability: [<correlation-field>, <report-anchor>]
+    setup:
+      fixtures: [<fixture-id>]
+    action:
+      method: POST
+      path: /<resource-path>
+    assertions:
+      response: [<response-assertion>]
+      database: [<database-assertion>]
+      sideEffects: [<side-effect-assertion>]
+    cleanup: [<fixture-id>]
+    observability:
+      correlationField: X-Test-Scenario
+      allowedEvidence: [reports/<report-file>, logs/<service-log>]

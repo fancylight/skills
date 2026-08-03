@@ -17,8 +17,9 @@
 
 `changes/{{change_name}}/test-cases.yaml` 是场景、稳定 ID、required、测试方法、报告类、runner filter
 和证据契约的唯一可执行来源。`test-plan.md` 只保留解释性说明，不得维护第二份可执行场景计数或映射。
-manifest、runner filter、报告类、计数和 evidence index 必须由该文件确定性生成并记录源文件 hash；任何重复、缺失
-或漂移都必须在 design/implementation verify 中拒绝。
+manifest 必须以 `testCasesContract.path` 引用 `test-cases.generated.json`；该 sidecar、test-plan 受控 generated 区、
+runner filter、报告类、计数、integration Y/N、evidence index 和 failure observability 必须由 canonical source
+确定性生成并绑定同一 test revision/source hash。任何重复、缺失或漂移都必须在 design/implementation verify 中拒绝。
 
 ## TDD.1 测试目标与风险
 
@@ -44,7 +45,7 @@ manifest、runner filter、报告类、计数和 evidence index 必须由该文�
 
 ## Manifest 约束
 
-manifest 必须声明 `requiredEnvBySuite`、`wireMockContracts`、`fixtureSchema`、`requiredScenarioCount`、
-`expectedTestMethodCount`、`expectedReportClasses`、`runner.command`（token array）和 integration Y/N 映射。
-另声明 `failureObservability`：每个场景的稳定 ID、测试类/方法、关联字段、原始报告/日志/桩/数据库证据路径、可判定类别；
-证据不足时必须使用 `UNDETERMINED`。
+manifest 必须声明 `requiredEnvBySuite`、`wireMockContracts`、`fixtureSchema`、`runner.command`（token array）和
+`testCasesContract.path`。场景派生字段不得在 manifest 根重复维护；由 sidecar 声明 count、report class、filter、
+integration Y/N、evidence index 与 `failureObservability`。每个场景绑定稳定 ID、测试类/方法、关联字段、
+原始报告/日志/桩/数据库证据路径；证据不足时必须使用 `UNDETERMINED`。

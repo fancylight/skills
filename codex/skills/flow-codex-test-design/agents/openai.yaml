@@ -1,4 +1,4 @@
 interface:
   display_name: "Flow 集成测试设计"
-  short_description: "verify 通过后产出 system-test manifest 与 test-plan"
-  default_prompt: "为已完成业务 specs 的 Flow change 设计 system-test 集成测试产物。"
+  short_description: "以 test-cases 为唯一场景源设计 system-test 产物"
+  default_prompt: "使用 $flow-codex-test-design 为已完成业务 specs 的 Flow change 设计 canonical test-cases、派生 sidecar 与 system-test 产物。"

@@ -168,6 +168,25 @@ else {
     $parseErrors = $null
     [void][System.Management.Automation.Language.Parser]::ParseFile($testCasesValidator, [ref]$null, [ref]$parseErrors)
     if ($parseErrors.Count -gt 0) { $errors += "PowerShell parse error in test-cases validator: $testCasesValidator" }
+    $testCasesValidatorContent = Get-Content -LiteralPath $testCasesValidator -Raw -Encoding utf8
+    @('testCasesContract', 'failureObservability', 'ControllerStatePath', 'TrustedVerifierIdentity', 'FLOW_TEST_CASES_GENERATED') | ForEach-Object {
+        if ($testCasesValidatorContent -notmatch [regex]::Escape($_)) { $errors += "Canonical test-cases validator lacks required contract marker: $_" }
+    }
+    if ($testCasesValidatorContent -match 'DesignVerifyPassed|\.\{0,500\}') { $errors += 'Canonical test-cases validator retains an unsafe bypass or fixed Java binding window' }
+}
+$testCasesTemplate = Join-Path $sharedTemplatesDir 'test-cases.yaml.tmpl'
+if (Test-Path -LiteralPath $testCasesTemplate) {
+    $testCasesTemplateContent = Get-Content -LiteralPath $testCasesTemplate -Raw -Encoding utf8
+    @('setup:', 'action:', 'method:', 'path:', 'assertions:', 'response:', 'database:', 'sideEffects:', 'observability:', 'correlationField:', 'allowedEvidence:') | ForEach-Object {
+        if ($testCasesTemplateContent -notmatch [regex]::Escape($_)) { $errors += "test-cases template lacks structured marker: $_" }
+    }
+}
+$testPlanTemplate = Join-Path $sharedTemplatesDir 'test-plan.md.tmpl'
+if (Test-Path -LiteralPath $testPlanTemplate) {
+    $testPlanTemplateContent = Get-Content -LiteralPath $testPlanTemplate -Raw -Encoding utf8
+    if ($testPlanTemplateContent -notmatch 'FLOW_TEST_CASES_GENERATED:START' -or $testPlanTemplateContent -notmatch 'FLOW_TEST_CASES_GENERATED:END') {
+        $errors += 'test-plan template lacks the controlled generated region'
+    }
 }
 $domainArtifactValidator = Join-Path $scriptDir 'scripts\validate-domain-artifact.ps1'
 if (-not (Test-Path -LiteralPath $domainArtifactValidator)) {

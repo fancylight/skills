@@ -13,8 +13,10 @@
 - **TD.7 ERROR**：设计产物含工具输出、实际执行结果、耗时或事后 evidence。
 - **TD.8 ERROR**：缺少场景/方法关联、原始报告与日志/桩/数据库证据路径，或缺少 `UNDETERMINED` 边界。
 - **TD.9 ERROR**：`test-cases.yaml` 缺失、重复/缺失稳定 ID，或 test-plan 维护第二份可执行场景计数/映射。
-- **TD.10 ERROR**：manifest 未由 canonical source 确定性生成，或 count、report class、filter、evidence 与 source hash 漂移。
-- **TD.11 ERROR**：删除 required 场景未重新获得 design verify；integration-N 场景缺外部证据契约。
+- **TD.10 ERROR**：manifest 未引用唯一 generated sidecar，或 Y/N、count、report class、filter、evidence、failureObservability 与 source revision/hash 漂移。
+- **TD.11 ERROR**：删除 required 场景缺 controller state 绑定的结构化 design verifier PASS；自由开关、伪造/陈旧 report、revision/hash/identity 不一致均拒绝。
+- **TD.12 ERROR**：`test-cases.yaml` malformed、含未知字段/错误嵌套/错误类型/缺结构，或 integration 非 Y/N、N 缺 externalEvidence。
+- **TD.13 ERROR**：test-plan generated 区漂移、区外人工说明 hash 漂移，或生成器改写 generated 标记区外字节。
 
 ## implementation
 
@@ -25,7 +27,7 @@
 - **TI.5 ERROR**：review identity 被变更重置，第三次 REJECT 后未停止，或 stale agent 被恢复。
 - **TI.6 ERROR**：场景 ID、测试方法、manifest filter、WireMock 契约与失败可观测性映射不一致，或记录敏感配置。
 - **TI.7 ERROR**：Java 测试方法未以稳定场景 ID 绑定、重复绑定、绑定未知 ID，或方法/类与 canonical source 不一致。
-- **TI.8 ERROR**：manifest、报告类/计数、filter 或 evidence index 不是由同一 source hash 派生，或存在陈旧证据。
+- **TI.8 ERROR**：sidecar、报告类/计数、Y/N、filter、evidence index 或 failureObservability 不是由同一 revision/source hash 派生，或普通/外部证据陈旧。
 
 ## result
 
