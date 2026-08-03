@@ -152,6 +152,7 @@ $files = @(Get-HarnessFiles)
 $revision = Get-HarnessRevision $files
 switch ($Command) {
   'revision' { Write-Output $revision }
+  'manifest' { [ordered]@{ harnessRevision=$revision; files=$files } | ConvertTo-Json -Depth 6 }
   'verify' { Assert-Certification }
   'certify' {
     if ([string]::IsNullOrWhiteSpace($SelfTestReport)) { throw 'A harness self-test report is required for certification.' }

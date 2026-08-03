@@ -19,6 +19,17 @@ foreach ($path in @($runner,$adapter,$certifier)) {
   if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Harness self-test dependency missing: $path" }
 }
 if (-not (Get-Command $RuntimeExecutable -ErrorAction SilentlyContinue)) { throw "Harness self-test runtime not found: $RuntimeExecutable" }
+function Test-PathWithin([string]$Child, [string]$Parent) {
+  $childPath = [IO.Path]::GetFullPath($Child)
+  $parentPath = [IO.Path]::GetFullPath($Parent).TrimEnd('\','/')
+  return $childPath.StartsWith($parentPath + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)
+}
+function Get-StringHash([string]$Value) {
+  $sha = [Security.Cryptography.SHA256]::Create()
+  try { return -join ($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($Value)) | ForEach-Object { $_.ToString('x2') }) }
+  finally { $sha.Dispose() }
+}
+if (-not (Test-PathWithin $HarnessRoot ([IO.Path]::GetTempPath())) -or (Test-Path -LiteralPath (Join-Path $HarnessRoot '.git'))) { throw 'Harness self-test must be invoked only for an isolated temporary harness copy.' }
 
 function Write-Utf8([string]$Path, [string]$Value) {
   $directory = Split-Path -Parent $Path
@@ -66,10 +77,14 @@ if (Test-Path -LiteralPath $ArtifactRoot) { Remove-Item -LiteralPath $ArtifactRo
 [void](New-Item -ItemType Directory -Path $ArtifactRoot -Force)
 Write-Utf8 (Join-Path $HarnessRoot '.env.local') "HARNESS_SELF_TEST=true`n"
 $revision = (& $certifier revision -HarnessRoot $HarnessRoot | Select-Object -Last 1).Trim()
+$isolationToken = -join ((1..32 | ForEach-Object { '{0:x2}' -f (Get-Random -Minimum 0 -Maximum 256) }))
+$isolationMarker = Join-Path $HarnessRoot '.harness-self-test-isolation.json'
+Write-Utf8 $isolationMarker (([ordered]@{ schemaVersion=1; harnessRoot=[IO.Path]::GetFullPath($HarnessRoot); harnessRevision=$revision; tokenSha256=(Get-StringHash $isolationToken); issuedBy='invoke-harness-self-test.ps1' }) | ConvertTo-Json -Compress)
 $scenarios = @()
 
+try {
 foreach ($definition in $definitions) {
-  $change = 'harness-self-test-' + $definition.id
+  $change = '__flow_internal_harness_self_test__-' + $definition.id
   Remove-ScenarioRuntime $change
   $changeRoot = Join-Path $HarnessRoot "changes\$change"
   [void](New-Item -ItemType Directory -Path $changeRoot -Force)
@@ -90,7 +105,7 @@ foreach ($definition in $definitions) {
   $arguments = @(
     '-NoProfile','-ExecutionPolicy','Bypass','-File',$runner,'run','-Change',$change,'-Suite','api',
     '-ExecutionMode','standalone','-EnvFile','.env.local','-HarnessSelfTest','-HarnessAdapterPath',$adapter,
-    '-HarnessSelfTestScenario',$definition.id,'-StructuredResultPath',$structuredResult
+    '-HarnessSelfTestScenario',$definition.id,'-HarnessSelfTestToken',$isolationToken,'-StructuredResultPath',$structuredResult
   )
   $oldPreference = $ErrorActionPreference
   $ErrorActionPreference = 'Continue'
@@ -143,6 +158,9 @@ foreach ($definition in $definitions) {
   Remove-ScenarioRuntime $change
   if (Test-Path -LiteralPath $working) { Remove-Item -LiteralPath $working -Recurse -Force }
 }
+} finally {
+  if (Test-Path -LiteralPath $isolationMarker) { Remove-Item -LiteralPath $isolationMarker -Force }
+}
 
 $report = [ordered]@{
   schemaVersion=2
@@ -156,3 +174,4 @@ Write-Utf8 $ReportPath ($report | ConvertTo-Json -Depth 10)
 Write-Output "[HARNESS_SELF_TEST] $($report.result)"
 Write-Output "report: $ReportPath"
 if ($report.result -ne 'PASS') { exit 1 }
+exit 0

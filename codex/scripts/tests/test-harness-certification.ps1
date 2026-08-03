@@ -14,6 +14,12 @@ function Assert-Rejected([scriptblock]$Action, [string]$Pattern, [string]$Label)
   if (-not $rejected) { throw "negative case was not rejected: $Label" }
 }
 
+function New-IsolationMarker([string]$HarnessRoot, [string]$Token, [string]$Revision) {
+  $bytes = [Text.Encoding]::UTF8.GetBytes($Token); $sha = [Security.Cryptography.SHA256]::Create()
+  try { $tokenHash = -join ($sha.ComputeHash($bytes) | ForEach-Object { $_.ToString('x2') }) } finally { $sha.Dispose() }
+  @{ schemaVersion=1; harnessRoot=[IO.Path]::GetFullPath($HarnessRoot); harnessRevision=$Revision; tokenSha256=$tokenHash } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $HarnessRoot '.harness-self-test-isolation.json') -Encoding utf8
+}
+
 function Copy-Baseline([string]$Name) {
   $destination = Join-Path ([IO.Path]::GetTempPath()) ("flow harness-$Name-" + [guid]::NewGuid().ToString('N'))
   Copy-Item -LiteralPath $root -Destination $destination -Recurse
@@ -84,6 +90,20 @@ try {
   try { $bypassOutput = @(& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $runner run -Change 'missing' -HarnessAdapterPath $adapter 2>&1); $bypassExit = $LASTEXITCODE }
   finally { $ErrorActionPreference = $oldPreference }
   if ($bypassExit -eq 0 -or ($bypassOutput -join "`n") -notmatch 'explicit harness self-test mode') { throw 'runner accepted adapter injection outside self-test mode' }
+
+  # The production runner accepts self-test only from the isolated wrapper contract.
+  $token = 'boundary-token'; $revision = (& $certifier revision -HarnessRoot $root | Select-Object -Last 1).Trim(); $reservedChange = '__flow_internal_harness_self_test__-normal-run'
+  Assert-Rejected { & $runner run -Change 'business-change' -Suite api -HarnessSelfTest -HarnessAdapterPath $adapter -HarnessSelfTestScenario normal-run -HarnessSelfTestToken $token } 'reserved internal change name' 'business change cannot enter self-test mode'
+  Assert-Rejected { & $runner run -Change $reservedChange -Suite api -ExecutionMode orchestrated -HarnessSelfTest -HarnessAdapterPath $adapter -HarnessSelfTestScenario normal-run -HarnessSelfTestToken $token } 'orchestrated mode cannot' 'orchestrated self-test'
+  New-IsolationMarker $root $token $revision
+  $alternateAdapter = Join-Path $root 'self-test\alternate-adapter.ps1'; Copy-Item -LiteralPath $adapter -Destination $alternateAdapter
+  Assert-Rejected { & $runner run -Change $reservedChange -Suite api -HarnessSelfTest -HarnessAdapterPath $alternateAdapter -HarnessSelfTestScenario normal-run -HarnessSelfTestToken $token } 'exact canonical' 'non-canonical adapter'
+  Assert-Rejected { & $runner run -Change $reservedChange -Suite api -HarnessSelfTest -HarnessAdapterPath $adapter -HarnessSelfTestScenario normal-run } 'token is missing or invalid' 'missing isolation token'
+  Add-Content -LiteralPath $adapter -Value '# adapter mutation'
+  Assert-Rejected { & $runner run -Change $reservedChange -Suite api -HarnessSelfTest -HarnessAdapterPath $adapter -HarnessSelfTestScenario normal-run -HarnessSelfTestToken $token } 'not bound to the current harness revision' 'modified adapter'
+  Remove-Item -LiteralPath (Join-Path $root '.harness-self-test-isolation.json') -Force
+  $formalRunner = Join-Path $source 'scripts\system-test.ps1'; $formalAdapter = Join-Path $source 'self-test\harness-self-test-adapter.ps1'
+  Assert-Rejected { & $formalRunner run -Change $reservedChange -Suite api -HarnessSelfTest -HarnessAdapterPath $formalAdapter -HarnessSelfTestScenario normal-run -HarnessSelfTestToken $token } 'isolated temporary harness copy' 'formal harness workspace'
 
   Write-Output 'harness certification tests passed'
 }

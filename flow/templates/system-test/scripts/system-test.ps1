@@ -14,6 +14,7 @@ param(
   [string]$HarnessCertificationPath = '',
   [string]$HarnessAdapterPath = '',
   [string]$HarnessSelfTestScenario = '',
+  [string]$HarnessSelfTestToken = '',
   [string]$StructuredResultPath = '',
   [switch]$HarnessSelfTest
 )
@@ -42,12 +43,31 @@ function Test-PathWithin([string]$Child, [string]$Parent) {
   return $childPath.StartsWith($parentPath + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)
 }
 
+function Get-StringHash([string]$Value) {
+  $sha = [Security.Cryptography.SHA256]::Create()
+  try { return -join ($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($Value)) | ForEach-Object { $_.ToString('x2') }) }
+  finally { $sha.Dispose() }
+}
+
 if ($HarnessSelfTest) {
-  $selfTestRoot = Join-Path $TestRoot 'self-test'
-  if ([string]::IsNullOrWhiteSpace($HarnessSelfTestScenario) -or [string]::IsNullOrWhiteSpace($HarnessAdapterPath) -or -not (Test-PathWithin $HarnessAdapterPath $selfTestRoot) -or -not (Test-Path -LiteralPath $HarnessAdapterPath -PathType Leaf)) {
-    throw '[TEST_HARNESS] self-test requires a named scenario and a controlled adapter under self-test/'
-  }
-} elseif (-not [string]::IsNullOrWhiteSpace($HarnessAdapterPath) -or -not [string]::IsNullOrWhiteSpace($HarnessSelfTestScenario)) {
+  $expectedChange = '__flow_internal_harness_self_test__-' + $HarnessSelfTestScenario
+  if ($ExecutionMode -ne 'standalone') { throw '[TEST_HARNESS] orchestrated mode cannot enable harness self-test' }
+  if ([string]::IsNullOrWhiteSpace($HarnessSelfTestScenario) -or $Change -ne $expectedChange) { throw '[TEST_HARNESS] self-test requires its reserved internal change name' }
+  $canonicalAdapter = [IO.Path]::GetFullPath((Join-Path $TestRoot 'self-test\harness-self-test-adapter.ps1'))
+  $actualAdapter = if ([string]::IsNullOrWhiteSpace($HarnessAdapterPath)) { '' } else { [IO.Path]::GetFullPath($HarnessAdapterPath) }
+  if ($actualAdapter -ne $canonicalAdapter -or -not (Test-Path -LiteralPath $canonicalAdapter -PathType Leaf)) { throw '[TEST_HARNESS] self-test adapter must be the exact canonical built-in adapter' }
+  $tempRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\','/')
+  $markerPath = Join-Path $TestRoot '.harness-self-test-isolation.json'
+  if (-not (Test-PathWithin $TestRoot $tempRoot) -or (Test-Path -LiteralPath (Join-Path $TestRoot '.git')) -or -not (Test-Path -LiteralPath $markerPath -PathType Leaf)) { throw '[TEST_HARNESS] self-test must run only in an isolated temporary harness copy' }
+  try { $marker = Get-Content -LiteralPath $markerPath -Raw -Encoding UTF8 | ConvertFrom-Json } catch { throw '[TEST_HARNESS] self-test isolation marker is invalid' }
+  if ($marker.schemaVersion -ne 1 -or $marker.harnessRoot -ne [IO.Path]::GetFullPath($TestRoot) -or [string]::IsNullOrWhiteSpace($HarnessSelfTestToken) -or $marker.tokenSha256 -ne (Get-StringHash $HarnessSelfTestToken)) { throw '[TEST_HARNESS] self-test isolation token is missing or invalid' }
+  $manifestOutput = @(& $HarnessCertifier manifest -HarnessRoot $TestRoot 2>&1)
+  if ($LASTEXITCODE -ne 0) { throw '[TEST_HARNESS] controlled harness manifest is unavailable' }
+  try { $manifest = ($manifestOutput -join "`n") | ConvertFrom-Json } catch { throw '[TEST_HARNESS] controlled harness manifest is invalid' }
+  $adapterRecord = @($manifest.files | Where-Object { $_.path -eq 'self-test/harness-self-test-adapter.ps1' })
+  if ($adapterRecord.Count -ne 1 -or $manifest.harnessRevision -ne $marker.harnessRevision -or (Get-FileHash -LiteralPath $canonicalAdapter -Algorithm SHA256).Hash.ToLowerInvariant() -ne [string]$adapterRecord[0].sha256) { throw '[TEST_HARNESS] self-test adapter is not bound to the current harness revision' }
+  if (-not [string]::IsNullOrWhiteSpace($HarnessCertificationPath)) { throw '[TEST_HARNESS] self-test cannot accept a business harness certification' }
+} elseif (-not [string]::IsNullOrWhiteSpace($HarnessAdapterPath) -or -not [string]::IsNullOrWhiteSpace($HarnessSelfTestScenario) -or -not [string]::IsNullOrWhiteSpace($HarnessSelfTestToken)) {
   throw '[TEST_HARNESS] adapter injection is allowed only in explicit harness self-test mode'
 }
 
