@@ -328,12 +328,12 @@ function Reset-ApiReports {
   }
 }
 
-function Write-Summary([string]$Status, [string[]]$Suites, [hashtable]$Counts, [string]$Message='') {
+function Write-Summary([string]$Status, [string[]]$Suites, [hashtable]$Counts, [string]$Message='', [bool]$CleanupFailed=$false) {
   $evidenceDir = Join-Path $TestRoot "changes\$Change\evidence"
   New-Item -ItemType Directory -Force $evidenceDir | Out-Null
   $summary = Join-Path $evidenceDir 'summary.md'
-  $retained = 'false'
-  $cleanup = 'none'
+  $retained = if ($CleanupFailed) { 'true' } else { 'false' }
+  $cleanup = if ($CleanupFailed) { ".\scripts\system-test.ps1 cleanup -Change $Change" } else { 'none' }
   $manifestPath = Join-Path $TestRoot "changes\$Change\manifest.yaml"
   $manifestHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $manifestPath).Hash
   $testRevision = Get-GitRevision $TestRoot
@@ -453,12 +453,13 @@ switch ($Command) {
       Write-Summary 'PASS' $suites $counts
     } catch {
       $message = $_.Exception.Message
+      $cleanupFailed = $false
       if ($suites -contains 'api') {
         try { $counts = Get-ApiCounts } catch { $counts.failed = 1; $counts.raw = 'missing' }
       } else { $counts.failed = 1 }
-      try { Invoke-ReliableCleanup $manifest } catch { $message = "$message; $($_.Exception.Message)" }
+      try { Invoke-ReliableCleanup $manifest } catch { $cleanupFailed = $true; $message = "$message; $($_.Exception.Message)" }
       $status = if ($message -match '^\[TEST_CONFIGURATION\] BLOCKED') { 'BLOCKED' } else { 'FAIL' }
-      Write-Summary $status $suites $counts $message
+      Write-Summary $status $suites $counts $message $cleanupFailed
       throw
     }
   }

@@ -25,7 +25,7 @@ try {
   catch { $rejected = $_.Exception.Message -match 'stale|mismatch' }
   if (-not $rejected) { throw 'changed harness did not invalidate certification' }
   $runner = Get-Content -LiteralPath (Join-Path $source 'scripts\system-test.ps1') -Raw -Encoding UTF8
-  foreach ($marker in @('STOP_AWAIT_HUMAN_CONFIGURATION','ownership -eq ''human''','Invoke-ReliableCleanup','Assert-HarnessCertification')) {
+  foreach ($marker in @('STOP_AWAIT_HUMAN_CONFIGURATION','ownership -eq ''human''','Invoke-ReliableCleanup','Assert-HarnessCertification','$CleanupFailed')) {
     if (-not $runner.Contains($marker)) { throw "runner routing marker missing: $marker" }
   }
   Write-Output 'harness certification tests passed'
