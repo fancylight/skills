@@ -238,7 +238,8 @@ else {
 }
 $harnessCertifier = Join-Path $sharedTemplatesDir 'system-test\scripts\harness-certification.ps1'
 $harnessSelfTest = Join-Path $sharedTemplatesDir 'system-test\self-test\invoke-harness-self-test.ps1'
-foreach ($harnessFile in @($harnessCertifier, $harnessSelfTest)) {
+$harnessSelfTestAdapter = Join-Path $sharedTemplatesDir 'system-test\self-test\harness-self-test-adapter.ps1'
+foreach ($harnessFile in @($harnessCertifier, $harnessSelfTest, $harnessSelfTestAdapter)) {
     if (-not (Test-Path -LiteralPath $harnessFile)) { $errors += "Missing harness certification component: $harnessFile"; continue }
     $parseErrors = $null
     [void][System.Management.Automation.Language.Parser]::ParseFile($harnessFile, [ref]$null, [ref]$parseErrors)

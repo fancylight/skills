@@ -1,33 +1,98 @@
 $ErrorActionPreference = 'Stop'
-$source = Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) 'flow\templates\system-test'
-if (-not (Test-Path -LiteralPath $source)) {
-  $source = Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))) 'flow\templates\system-test'
+$repoRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
+$source = Join-Path $repoRoot 'flow\templates\system-test'
+$root = Join-Path ([IO.Path]::GetTempPath()) ('flow harness-' + [guid]::NewGuid().ToString('N'))
+
+function Write-Utf8([string]$Path, [string]$Value) {
+  [IO.File]::WriteAllText($Path, $Value, [Text.UTF8Encoding]::new($false))
 }
-$root = Join-Path ([IO.Path]::GetTempPath()) ('flow-harness-' + [guid]::NewGuid().ToString('N'))
+
+function Assert-Rejected([scriptblock]$Action, [string]$Pattern, [string]$Label) {
+  $rejected = $false
+  try { & $Action | Out-Null }
+  catch { $rejected = $_.Exception.Message -match $Pattern }
+  if (-not $rejected) { throw "negative case was not rejected: $Label" }
+}
+
+function Copy-Baseline([string]$Name) {
+  $destination = Join-Path ([IO.Path]::GetTempPath()) ("flow harness-$Name-" + [guid]::NewGuid().ToString('N'))
+  Copy-Item -LiteralPath $root -Destination $destination -Recurse
+  return $destination
+}
+
+$mutationRoots = [System.Collections.Generic.List[string]]::new()
 try {
   Copy-Item -LiteralPath $source -Destination $root -Recurse
   $selfTest = Join-Path $root 'self-test\invoke-harness-self-test.ps1'
   $certifier = Join-Path $root 'scripts\harness-certification.ps1'
   $report = Join-Path $root 'self-test\result.json'
   $certification = Join-Path $root 'self-test\certification.json'
-  & $selfTest -HarnessRoot $root -ReportPath $report
+
+  & $selfTest -HarnessRoot $root -ReportPath $report -RuntimeExecutable 'powershell.exe'
   $selfTestResult = Get-Content -LiteralPath $report -Raw -Encoding UTF8 | ConvertFrom-Json
-  $required = @('normal-run','sut-startup-failure','mysql-unavailable','postgres-unavailable','redis-unavailable','wiremock-unmatched','maven-arguments','surefire-missing','seed-failure','cleanup-failure','utf8-log','interrupted-run','evidence-missing')
+  if ($selfTestResult.schemaVersion -ne 2 -or $selfTestResult.result -ne 'PASS') { throw 'executable harness self-test did not pass' }
+  $required = @('normal-run','sut-startup-failure','mysql-unavailable','postgres-unavailable','redis-unavailable','wiremock-unmatched','seed-failure','cleanup-failure','maven-arguments','maven-execution-failure','surefire-missing','utf8-log','interrupted-run','evidence-missing')
   foreach ($id in $required) {
     $case = @($selfTestResult.scenarios | Where-Object { $_.id -eq $id })
-    if ($case.Count -ne 1 -or $case[0].result -ne 'PASS' -or [string]::IsNullOrWhiteSpace([string]$case[0].evidence)) { throw "missing structured self-test result: $id" }
+    if ($case.Count -ne 1 -or $case[0].result -ne 'PASS' -or [string]::IsNullOrWhiteSpace([string]$case[0].phase) -or [string]::IsNullOrWhiteSpace([string]$case[0].classification)) { throw "missing executable self-test result: $id" }
+    foreach ($property in @('rawEvidencePath','runnerOutputPath')) {
+      $path = Join-Path $root ([string]$case[0].$property)
+      if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "self-test evidence missing: $id $property" }
+    }
   }
+  $cleanupCase = @($selfTestResult.scenarios | Where-Object { $_.id -eq 'cleanup-failure' })[0]
+  if ($cleanupCase.cleanup.succeeded -or -not $cleanupCase.cleanup.retainedState) { throw 'cleanup failure retention was not observed' }
+  $mavenArguments = Join-Path $root 'self-test\artifacts\maven-arguments\runtime\raw\maven-arguments.json'
+  if (-not (Test-Path -LiteralPath $mavenArguments -PathType Leaf)) { throw 'Maven argument evidence was not produced by the runner adapter' }
+  $utf8Log = Join-Path $root 'self-test\artifacts\utf8-log\runtime\logs\utf8.log'
+  if ((Get-Content -LiteralPath $utf8Log -Raw -Encoding UTF8).Length -lt 4) { throw 'UTF-8 evidence was not preserved' }
+  $surefireIndex = Get-Content -LiteralPath (Join-Path $root 'self-test\artifacts\surefire-missing\evidence\current\index.md') -Raw -Encoding UTF8
+  if ($surefireIndex -notmatch 'junit: unavailable') { throw 'missing Surefire report was not observed' }
+
   & $certifier certify -HarnessRoot $root -CertificationPath $certification -SelfTestReport $report -HarnessVersion 'test'
   & $certifier verify -HarnessRoot $root -CertificationPath $certification
-  Add-Content -LiteralPath (Join-Path $root 'scripts\system-test.ps1') -Value '# mutation invalidates certification'
-  $rejected = $false
-  try { & $certifier verify -HarnessRoot $root -CertificationPath $certification | Out-Null }
-  catch { $rejected = $_.Exception.Message -match 'stale|mismatch' }
-  if (-not $rejected) { throw 'changed harness did not invalidate certification' }
-  $runner = Get-Content -LiteralPath (Join-Path $source 'scripts\system-test.ps1') -Raw -Encoding UTF8
-  foreach ($marker in @('STOP_AWAIT_HUMAN_CONFIGURATION','ownership -eq ''human''','Invoke-ReliableCleanup','Assert-HarnessCertification','$CleanupFailed')) {
-    if (-not $runner.Contains($marker)) { throw "runner routing marker missing: $marker" }
-  }
+
+  $evidenceMutation = Copy-Baseline 'evidence-mutation'; $mutationRoots.Add($evidenceMutation)
+  $evidenceCertifier = Join-Path $evidenceMutation 'scripts\harness-certification.ps1'
+  $evidenceCertification = Join-Path $evidenceMutation 'self-test\certification.json'
+  $certificationJson = Get-Content -LiteralPath $evidenceCertification -Raw -Encoding UTF8 | ConvertFrom-Json
+  $evidencePath = Join-Path $evidenceMutation ([string]$certificationJson.scenarioEvidence[0].path)
+  Remove-Item -LiteralPath $evidencePath -Force
+  Assert-Rejected { & $evidenceCertifier verify -HarnessRoot $evidenceMutation -CertificationPath $evidenceCertification } 'missing|inventory' 'deleted raw evidence'
+
+  $classificationMutation = Copy-Baseline 'classification-mutation'; $mutationRoots.Add($classificationMutation)
+  $classificationReportPath = Join-Path $classificationMutation 'self-test\result.json'
+  $classificationReport = Get-Content -LiteralPath $classificationReportPath -Raw -Encoding UTF8 | ConvertFrom-Json
+  @($classificationReport.scenarios | Where-Object { $_.id -eq 'mysql-unavailable' })[0].classification = 'TEST_HARNESS'
+  Write-Utf8 $classificationReportPath ($classificationReport | ConvertTo-Json -Depth 10)
+  Assert-Rejected { & (Join-Path $classificationMutation 'scripts\harness-certification.ps1') certify -HarnessRoot $classificationMutation -CertificationPath (Join-Path $classificationMutation 'self-test\mutated-certification.json') -SelfTestReport $classificationReportPath } 'expectation' 'classification drift'
+
+  $runnerBypass = Copy-Baseline 'runner-bypass'; $mutationRoots.Add($runnerBypass)
+  $structuredPath = Join-Path $runnerBypass 'self-test\artifacts\normal-run\structured-result.json'
+  $structured = Get-Content -LiteralPath $structuredPath -Raw -Encoding UTF8 | ConvertFrom-Json
+  $structured.phase = 'FORGED'
+  Write-Utf8 $structuredPath ($structured | ConvertTo-Json -Depth 8)
+  Assert-Rejected { & (Join-Path $runnerBypass 'scripts\harness-certification.ps1') certify -HarnessRoot $runnerBypass -CertificationPath (Join-Path $runnerBypass 'self-test\forged-certification.json') -SelfTestReport (Join-Path $runnerBypass 'self-test\result.json') } 'not bound' 'runner bypass'
+
+  $staleMutation = Copy-Baseline 'stale-mutation'; $mutationRoots.Add($staleMutation)
+  Add-Content -LiteralPath (Join-Path $staleMutation 'scripts\system-test.ps1') -Value '# mutation invalidates certification'
+  Assert-Rejected { & (Join-Path $staleMutation 'scripts\harness-certification.ps1') verify -HarnessRoot $staleMutation -CertificationPath (Join-Path $staleMutation 'self-test\certification.json') } 'stale|mismatch' 'stale certification'
+
+  $runner = Join-Path $root 'scripts\system-test.ps1'
+  $adapter = Join-Path $root 'self-test\harness-self-test-adapter.ps1'
+  $oldPreference = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+  try { $bypassOutput = @(& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $runner run -Change 'missing' -HarnessAdapterPath $adapter 2>&1); $bypassExit = $LASTEXITCODE }
+  finally { $ErrorActionPreference = $oldPreference }
+  if ($bypassExit -eq 0 -or ($bypassOutput -join "`n") -notmatch 'explicit harness self-test mode') { throw 'runner accepted adapter injection outside self-test mode' }
+
   Write-Output 'harness certification tests passed'
 }
-finally { Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue }
+finally {
+  foreach ($path in @($mutationRoots) + @($root)) {
+    if (-not [string]::IsNullOrWhiteSpace($path) -and (Test-Path -LiteralPath $path)) {
+      $resolved = [IO.Path]::GetFullPath($path)
+      $temp = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\')
+      if ($resolved.StartsWith($temp + '\', [StringComparison]::OrdinalIgnoreCase)) { Remove-Item -LiteralPath $resolved -Recurse -Force }
+    }
+  }
+}

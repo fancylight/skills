@@ -11,7 +11,11 @@ param(
   [string]$ExecutionMode = 'standalone',
   [string]$EnvFile = '.env.local',
   [string]$OrchRoot = '',
-  [string]$HarnessCertificationPath = ''
+  [string]$HarnessCertificationPath = '',
+  [string]$HarnessAdapterPath = '',
+  [string]$HarnessSelfTestScenario = '',
+  [string]$StructuredResultPath = '',
+  [switch]$HarnessSelfTest
 )
 
 $ErrorActionPreference = 'Stop'
@@ -31,6 +35,35 @@ $SeedMarker = Join-Path $RuntimeDir 'data-seeded'
 $FixtureMainClass = 'com.flow.systemtest.FixtureTool'
 $ComposeFile = Join-Path $TestRoot 'infra\compose\system-test.yml'
 $HarnessCertifier = Join-Path $PSScriptRoot 'harness-certification.ps1'
+
+function Test-PathWithin([string]$Child, [string]$Parent) {
+  $childPath = [IO.Path]::GetFullPath($Child)
+  $parentPath = [IO.Path]::GetFullPath($Parent).TrimEnd('\','/')
+  return $childPath.StartsWith($parentPath + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)
+}
+
+if ($HarnessSelfTest) {
+  $selfTestRoot = Join-Path $TestRoot 'self-test'
+  if ([string]::IsNullOrWhiteSpace($HarnessSelfTestScenario) -or [string]::IsNullOrWhiteSpace($HarnessAdapterPath) -or -not (Test-PathWithin $HarnessAdapterPath $selfTestRoot) -or -not (Test-Path -LiteralPath $HarnessAdapterPath -PathType Leaf)) {
+    throw '[TEST_HARNESS] self-test requires a named scenario and a controlled adapter under self-test/'
+  }
+} elseif (-not [string]::IsNullOrWhiteSpace($HarnessAdapterPath) -or -not [string]::IsNullOrWhiteSpace($HarnessSelfTestScenario)) {
+  throw '[TEST_HARNESS] adapter injection is allowed only in explicit harness self-test mode'
+}
+
+function Invoke-HarnessAdapter([string]$Operation, $Payload = $null) {
+  if ([string]::IsNullOrWhiteSpace($HarnessAdapterPath)) { return $null }
+  $payloadJson = if ($null -eq $Payload) { '{}' } else { $Payload | ConvertTo-Json -Depth 8 -Compress }
+  $payloadBase64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($payloadJson))
+  $output = @(& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $HarnessAdapterPath -Operation $Operation -Scenario $HarnessSelfTestScenario -TestRoot $TestRoot -Change $Change -RuntimeDir $RuntimeDir -PayloadBase64 $payloadBase64 2>&1)
+  $exitCode = $LASTEXITCODE
+  if ($exitCode -ne 0) {
+    $message = ($output | ForEach-Object { [string]$_ } | Where-Object { $_ } | Select-Object -Last 1)
+    if ([string]::IsNullOrWhiteSpace($message)) { $message = "[TEST_HARNESS] adapter operation failed: $Operation" }
+    throw $message
+  }
+  return $output
+}
 
 function Assert-HarnessCertification {
   if (-not (Test-Path -LiteralPath $HarnessCertifier -PathType Leaf)) { throw '[TEST_HARNESS] certification verifier is missing' }
@@ -81,6 +114,11 @@ function Invoke-Doctor($Manifest, [string[]]$Suites) {
       $errors.Add('requested EnvFile differs from the manifest configuration source')
     }
     if (@($Manifest.configuration.requiredEndpoints).Count -eq 0 -or $null -eq $Manifest.configuration.probes) { $errors.Add('configuration requiredEndpoints and probes are required') }
+  }
+  if (-not [string]::IsNullOrWhiteSpace($HarnessAdapterPath)) {
+    Invoke-HarnessAdapter 'doctor' @{ suites=$Suites; ownership=[string]$Manifest.configuration.ownership } | Out-Null
+    Write-Host "doctor passed through controlled harness adapter (orchRoot=$OrchRoot)"
+    return
   }
   foreach ($tool in @('java.exe','mvn.cmd')) {
     if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) { $errors.Add("tool not found: $tool") }
@@ -182,6 +220,10 @@ function Start-ManagedServices($Manifest, [string[]]$Suites) {
 }
 
 function Invoke-Up($Manifest, [string[]]$Suites) {
+  if (-not [string]::IsNullOrWhiteSpace($HarnessAdapterPath)) {
+    Invoke-HarnessAdapter 'up' @{ suites=$Suites } | Out-Null
+    return
+  }
   Start-Compose @($Manifest.composeProfiles)
   Start-ManagedServices $Manifest $Suites
 }
@@ -206,6 +248,10 @@ function Invoke-Data([string]$RelativeOrAbsoluteSql, [string]$Database = '') {
 
 function Invoke-Seeds($Manifest) {
   if (-not $Manifest.data) { return }
+  if (-not [string]::IsNullOrWhiteSpace($HarnessAdapterPath)) {
+    Invoke-HarnessAdapter 'seed' $Manifest.data | Out-Null
+    return
+  }
   if ($Manifest.data.PSObject.Properties.Name -contains 'seeds' -and $Manifest.data.seeds) {
     foreach ($item in @($Manifest.data.seeds)) {
       if ($item -is [string]) {
@@ -224,6 +270,10 @@ function Invoke-Seeds($Manifest) {
 }
 
 function Invoke-WireMockReload() {
+  if (-not [string]::IsNullOrWhiteSpace($HarnessAdapterPath)) {
+    Invoke-HarnessAdapter 'wiremock-reload' @{} | Out-Null
+    return
+  }
   $base = $env:WIREMOCK_ADMIN_BASE
   if ([string]::IsNullOrWhiteSpace($base)) {
     $wm = $env:WIREMOCK_BASE_URL
@@ -247,6 +297,10 @@ function Invoke-WireMockReload() {
 
 function Invoke-CleanupData($Manifest) {
   if (-not $Manifest.data) { return }
+  if (-not [string]::IsNullOrWhiteSpace($HarnessAdapterPath)) {
+    Invoke-HarnessAdapter 'cleanup' $Manifest.data | Out-Null
+    return
+  }
   if ($Manifest.data.PSObject.Properties.Name -contains 'cleanups' -and $Manifest.data.cleanups) {
     foreach ($item in @($Manifest.data.cleanups)) {
       if ($item -is [string]) {
@@ -288,8 +342,12 @@ function Invoke-Suite([string]$Name, $Manifest) {
     } else {
       Write-Host 'api suite: no apiTestFilter; running all backend-tests'
     }
-    & mvn.cmd @mvnArgs
-    if ($LASTEXITCODE -ne 0) { throw 'api suite failed' }
+    if (-not [string]::IsNullOrWhiteSpace($HarnessAdapterPath)) {
+      Invoke-HarnessAdapter 'suite' @{ name=$Name; arguments=$mvnArgs } | Out-Null
+    } else {
+      & mvn.cmd @mvnArgs
+      if ($LASTEXITCODE -ne 0) { throw '[TEST_HARNESS] Maven API suite failed' }
+    }
   } elseif ($Name -eq 'cdc') {
     $cdc = Join-Path $TestRoot 'scripts\cdc-smoke.ps1'
     if (-not (Test-Path $cdc)) { throw 'scripts/cdc-smoke.ps1 missing; cannot run cdc suite' }
@@ -328,6 +386,22 @@ function Reset-ApiReports {
   }
 }
 
+function Assert-RequiredEvidence($Manifest) {
+  foreach ($relativePath in @($Manifest.requiredEvidence)) {
+    $path = Join-Path $TestRoot (Expand-Value ([string]$relativePath))
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "[TEST_HARNESS] required raw evidence missing: $relativePath" }
+  }
+}
+
+function Get-FailureClassification([string]$Message, [string]$Status) {
+  if ($Status -eq 'PASS') { return 'NONE' }
+  if ($Message -match '^\[TEST_CONFIGURATION\]') { return 'CONFIG_INFRA' }
+  if ($Message -match '^\[FIXTURE_ASSERTION\]') { return 'FIXTURE_ASSERTION' }
+  if ($Message -match '^\[SUT_BUSINESS\]') { return 'SUT_BUSINESS' }
+  if ($Message -match '^\[DATA_SCHEMA_CONTRACT\]') { return 'DATA_SCHEMA_CONTRACT' }
+  return 'TEST_HARNESS'
+}
+
 function Write-Summary([string]$Status, [string[]]$Suites, [hashtable]$Counts, [string]$Message='', [bool]$CleanupFailed=$false) {
   $evidenceDir = Join-Path $TestRoot "changes\$Change\evidence"
   New-Item -ItemType Directory -Force $evidenceDir | Out-Null
@@ -339,6 +413,7 @@ function Write-Summary([string]$Status, [string[]]$Suites, [hashtable]$Counts, [
   $testRevision = Get-GitRevision $TestRoot
   $businessRevisions = if ($Manifest.PSObject.Properties.Name -contains 'businessRevisions') { $Manifest.businessRevisions | ConvertTo-Json -Compress } else { 'not-declared' }
   $summaryMessage = if ($Status -eq 'FAIL') { 'see evidence/current/failure-report.md' } else { 'none' }
+  $classification = Get-FailureClassification $Message $Status
   @"
 # System Test Result
 
@@ -355,14 +430,17 @@ function Write-Summary([string]$Status, [string[]]$Suites, [hashtable]$Counts, [
 - passed: $($Counts.passed)
 - failed: $($Counts.failed)
 - skipped: $($Counts.skipped)
+- classification: $classification
 - retained_state: $retained
 - cleanup_command: $cleanup
 - message: $summaryMessage
 "@ | Set-Content -Encoding UTF8 $summary
   $collector = Join-Path $PSScriptRoot 'collect-failure-evidence.ps1'
   if (-not (Test-Path -LiteralPath $collector)) { throw "Failure evidence collector missing: $collector" }
-  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $collector -TestRoot $TestRoot -Change $Change -Status $Status -Suites $Suites `
-    -Message $Message -Passed $Counts.passed -Failed $Counts.failed -Skipped $Counts.skipped
+  $collectorArguments = @('-NoProfile','-ExecutionPolicy','Bypass','-File',$collector,'-TestRoot',$TestRoot,'-Change',$Change,'-Status',$Status,'-Suites') + @($Suites)
+  if (-not [string]::IsNullOrEmpty($Message)) { $collectorArguments += '-Message', $Message }
+  $collectorArguments += '-Passed', $Counts.passed, '-Failed', $Counts.failed, '-Skipped', $Counts.skipped
+  & powershell.exe @collectorArguments
   if ($LASTEXITCODE -ne 0) { throw 'Failure evidence collection failed.' }
   Write-Host "[SYSTEM_TEST_RESULT] $Status"
   Write-Host "change_name: $Change"
@@ -375,6 +453,20 @@ function Write-Summary([string]$Status, [string[]]$Suites, [hashtable]$Counts, [
   Write-Host "evidence: $summary"
   Write-Host "retained_state: $retained"
   Write-Host "cleanup_command: $cleanup"
+  Write-Host "classification: $classification"
+  $indexPath = Join-Path $evidenceDir 'current\index.md'
+  if (-not [string]::IsNullOrWhiteSpace($StructuredResultPath)) {
+    $resultDirectory = Split-Path -Parent $StructuredResultPath
+    if (-not (Test-Path -LiteralPath $resultDirectory)) { [void](New-Item -ItemType Directory -Path $resultDirectory -Force) }
+    $phase = if ($Status -eq 'PASS') { 'RUNNER_COMPLETED' } elseif ($Status -eq 'BLOCKED') { 'RUNNER_BLOCKED' } else { 'RUNNER_FAILED' }
+    $structured = [ordered]@{
+      schemaVersion=1; scenario=$HarnessSelfTestScenario; status=$Status; exitCode=$(if ($Status -eq 'PASS') { 0 } else { 1 })
+      phase=$phase; classification=$classification; rawEvidencePath=$indexPath
+      cleanup=[ordered]@{ attempted=$true; succeeded=(-not $CleanupFailed); retainedState=$CleanupFailed; command=$cleanup }
+      counts=[ordered]@{ passed=$Counts.passed; failed=$Counts.failed; skipped=$Counts.skipped; raw=$Counts.raw }
+    }
+    [IO.File]::WriteAllText($StructuredResultPath, ($structured | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new($false))
+  }
 }
 
 function Invoke-ReliableCleanup($Manifest) {
@@ -432,7 +524,7 @@ switch ($Command) {
     $suites = $requestedSuites
     $counts = @{ passed = 0; failed = 0; skipped = 0; raw = 'not-applicable' }
     try {
-      Assert-HarnessCertification
+      if (-not $HarnessSelfTest) { Assert-HarnessCertification }
       if ($suites.Count -eq 1 -and $suites[0] -eq 'cdc') {
         Invoke-Suite 'cdc' $manifest
       } else {
@@ -448,6 +540,7 @@ switch ($Command) {
         foreach ($name in $suites) { Invoke-Suite $name $manifest }
         if ($suites -contains 'api') { $counts = Get-ApiCounts }
         else { $counts.passed = $suites.Count }
+        Assert-RequiredEvidence $manifest
         Invoke-ReliableCleanup $manifest
       }
       Write-Summary 'PASS' $suites $counts
