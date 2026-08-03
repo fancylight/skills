@@ -2,6 +2,13 @@ $ErrorActionPreference = 'Stop'
 $controller = Join-Path (Split-Path -Parent $PSScriptRoot) 'flow-test-controller.ps1'
 $root = Join-Path ([IO.Path]::GetTempPath()) ('flow-controller-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $root -Force | Out-Null
+$harnessRoot = Join-Path $root 'harness'
+New-Item -ItemType Directory -Path $harnessRoot -Force | Out-Null
+$harnessFile = Join-Path $harnessRoot 'runner.ps1'
+Set-Content -LiteralPath $harnessFile -Value 'Write-Output harness' -Encoding utf8
+$harnessCertification = Join-Path $harnessRoot 'certification.json'
+$harnessFileHash = (Get-FileHash -LiteralPath $harnessFile -Algorithm SHA256).Hash.ToLowerInvariant()
+@{ schemaVersion=1; result='PASS'; harnessRevision='harness-a'; files=@(@{ path='runner.ps1'; sha256=$harnessFileHash }) } | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $harnessCertification -Encoding utf8
 
 function Invoke-Git([string]$Repository, [string[]]$Arguments) {
     $output = @(& git -C $Repository @Arguments 2>&1)
@@ -64,7 +71,7 @@ function New-LeasedCase([string]$Name, [string]$ChangeName = 'sample-change', [s
     $fixture = New-GitFixture $repo $ChangeName; $sutFixture = New-GitFixture $sut ($Name + '-sut')
     $designReport = Join-Path $root ('design-' + [guid]::NewGuid().ToString('N') + '.json')
     Write-VerifierReport $designReport 'design' 'verifier-a' $fixture.design $sutFixture.design 'harness-a' 'config-a'
-    Assert-Controller { & $controller initialize -StatePath $state -ChangeName $ChangeName -SystemTestRepo $repo -SutRepo $sut -TestBaselineRevision $fixture.baseline -TestRevision $fixture.design -SutRevision $sutFixture.design -HarnessRevision harness-a -ConfigurationFingerprint config-a -Authorization $Authorization }
+    Assert-Controller { & $controller initialize -StatePath $state -ChangeName $ChangeName -SystemTestRepo $repo -SutRepo $sut -TestBaselineRevision $fixture.baseline -TestRevision $fixture.design -SutRevision $sutFixture.design -HarnessRevision harness-a -HarnessRoot $harnessRoot -HarnessCertificationPath $harnessCertification -ConfigurationFingerprint config-a -Authorization $Authorization }
     Assert-Controller { & $controller record-verifier -StatePath $state -VerifyMode design -TestRevision $fixture.design -SutRevision $sutFixture.design -HarnessRevision harness-a -ConfigurationFingerprint config-a -ReportPath $designReport -VerifierId verifier-a }
     if ($Authorization -eq 'design') {
         Assert-Controller { & $controller issue-lease -StatePath $state -TestRevision $fixture.design -SutRevision $sutFixture.design -HarnessRevision harness-a -ConfigurationFingerprint config-a -Role test-implementer -AgentId agent-a } $false 'ERROR_AUTHORIZATION' "$Name-authorization-ceiling"
@@ -81,7 +88,7 @@ try {
 
     # Real lifecycle: design commit -> initialize -> lease -> implementation commit -> accept.
     Write-VerifierReport $designReport 'design' 'verifier-a' $fixture.design $sutRevision $harness $config
-    Assert-Controller { & $controller initialize -StatePath $state -ChangeName sample-change -SystemTestRepo $system -SutRepo $sut -TestBaselineRevision $fixture.baseline -TestRevision $fixture.design -SutRevision $sutRevision -HarnessRevision $harness -ConfigurationFingerprint $config -Authorization result }
+    Assert-Controller { & $controller initialize -StatePath $state -ChangeName sample-change -SystemTestRepo $system -SutRepo $sut -TestBaselineRevision $fixture.baseline -TestRevision $fixture.design -SutRevision $sutRevision -HarnessRevision $harness -HarnessRoot $harnessRoot -HarnessCertificationPath $harnessCertification -ConfigurationFingerprint $config -Authorization result }
     $initialized = Get-Content $state -Raw | ConvertFrom-Json
     if ($initialized.revisions.designRevision -ne $fixture.design -or $initialized.revisions.testBaseRevision -ne $fixture.design) { throw 'initialize did not lock design/test base revision' }
     Assert-Controller { & $controller record-verifier -StatePath $state -VerifyMode design -TestRevision $fixture.design -SutRevision $sutRevision -HarnessRevision $harness -ConfigurationFingerprint $config -ReportPath $designReport -VerifierId verifier-a }
@@ -113,6 +120,12 @@ try {
     if ((Get-Content $state -Raw) -match 'verification passed|password|token|connectionstring') { throw 'unsafe verifier data entered state' }
     Assert-Controller { & $controller start-run -StatePath $state -TestRevision $implementationRevision -SutRevision $sutRevision -HarnessRevision $harness -ConfigurationFingerprint $config } $false 'ERROR_RUN_DUPLICATE' 'duplicate-run-after-result'
     Assert-Controller { & $controller start-run -StatePath $state -TestRevision $implementationRevision -SutRevision $sutRevision -HarnessRevision $harness -ConfigurationFingerprint wrong-config } $false 'ERROR_CONFIGURATION_DRIFT' 'runner-configuration-drift'
+    Set-Content -LiteralPath $harnessFile -Value 'Write-Output changed' -Encoding utf8
+    Assert-Controller { & $controller start-run -StatePath $state -TestRevision $implementationRevision -SutRevision $sutRevision -HarnessRevision $harness -ConfigurationFingerprint $config } $false 'ERROR_HARNESS_UNCERTIFIED' 'stale-harness-certification'
+    Set-Content -LiteralPath $harnessFile -Value 'Write-Output harness' -Encoding utf8
+
+    $uncertifiedState = Join-Path $root 'uncertified-state.json'
+    Assert-Controller { & $controller initialize -StatePath $uncertifiedState -ChangeName uncertified -SystemTestRepo $system -SutRepo $sut -TestBaselineRevision $fixture.baseline -TestRevision $implementationRevision -SutRevision $sutRevision -HarnessRevision unknown-harness -HarnessRoot $harnessRoot -HarnessCertificationPath $harnessCertification -ConfigurationFingerprint $config -Authorization result } $false 'ERROR_HARNESS_UNCERTIFIED' 'uncertified-harness-revision'
 
     # Authorization and revision-lock negatives.
     $ceiling = New-LeasedCase 'ceiling' 'ceiling-change' 'design'
@@ -164,7 +177,7 @@ try {
     $sutDrift = New-LeasedCase 'sut-drift'; Set-Content (Join-Path $sutDrift.sut 'drift.txt') 'drift' -Encoding utf8; Invoke-Git $sutDrift.sut @('add', '.') | Out-Null; Invoke-Git $sutDrift.sut @('commit', '--quiet', '-m', 'sut drift') | Out-Null
     Assert-Controller { & $controller issue-lease -StatePath $sutDrift.state -TestRevision $sutDrift.fixture.design -SutRevision $sutDrift.sutRevision -HarnessRevision $sutDrift.harness -ConfigurationFingerprint $sutDrift.config -Role test-implementer -AgentId agent-a } $false 'ERROR_REVISION_DRIFT' 'sut-head-drift'
 
-    $secretRepo = Join-Path $root 'secret-system'; $secretSut = Join-Path $root 'secret-sut'; $secretFixture = New-GitFixture $secretRepo 'safe-change'; $secretSutFixture = New-GitFixture $secretSut 'safe-sut-change'; $secretState = Join-Path $root 'secret-state.json'; $secretReport = Join-Path $root 'verifier-input.json'; Write-VerifierReport $secretReport 'design' 'verifier-a' $secretFixture.design $secretSutFixture.design $harness $config 'password=must-not-enter-state'; Assert-Controller { & $controller initialize -StatePath $secretState -ChangeName safe-change -SystemTestRepo $secretRepo -SutRepo $secretSut -TestBaselineRevision $secretFixture.baseline -TestRevision $secretFixture.design -SutRevision $secretSutFixture.design -HarnessRevision $harness -ConfigurationFingerprint $config -Authorization result }; Assert-Controller { & $controller record-verifier -StatePath $secretState -VerifyMode design -TestRevision $secretFixture.design -SutRevision $secretSutFixture.design -HarnessRevision $harness -ConfigurationFingerprint $config -ReportPath $secretReport -VerifierId verifier-a } $false 'ERROR_SECRET_INPUT' 'secret-summary'
+    $secretRepo = Join-Path $root 'secret-system'; $secretSut = Join-Path $root 'secret-sut'; $secretFixture = New-GitFixture $secretRepo 'safe-change'; $secretSutFixture = New-GitFixture $secretSut 'safe-sut-change'; $secretState = Join-Path $root 'secret-state.json'; $secretReport = Join-Path $root 'verifier-input.json'; Write-VerifierReport $secretReport 'design' 'verifier-a' $secretFixture.design $secretSutFixture.design $harness $config 'password=must-not-enter-state'; Assert-Controller { & $controller initialize -StatePath $secretState -ChangeName safe-change -SystemTestRepo $secretRepo -SutRepo $secretSut -TestBaselineRevision $secretFixture.baseline -TestRevision $secretFixture.design -SutRevision $secretSutFixture.design -HarnessRevision $harness -HarnessRoot $harnessRoot -HarnessCertificationPath $harnessCertification -ConfigurationFingerprint $config -Authorization result }; Assert-Controller { & $controller record-verifier -StatePath $secretState -VerifyMode design -TestRevision $secretFixture.design -SutRevision $secretSutFixture.design -HarnessRevision $harness -ConfigurationFingerprint $config -ReportPath $secretReport -VerifierId verifier-a } $false 'ERROR_SECRET_INPUT' 'secret-summary'
     $secretText = Get-Content $secretState -Raw; if ($secretText -match '(?i)password|token|connectionstring') { throw 'secret appeared in state' }
 
     $expired = New-LeasedCase 'expired' 'expired-change' 'result' -1; $expiredLease = (Get-Content $expired.state -Raw | ConvertFrom-Json).leases[0]

@@ -236,8 +236,16 @@ else {
         $errors += "PowerShell parse error in system-test runner: $systemTestRunner"
     }
 }
+$harnessCertifier = Join-Path $sharedTemplatesDir 'system-test\scripts\harness-certification.ps1'
+$harnessSelfTest = Join-Path $sharedTemplatesDir 'system-test\self-test\invoke-harness-self-test.ps1'
+foreach ($harnessFile in @($harnessCertifier, $harnessSelfTest)) {
+    if (-not (Test-Path -LiteralPath $harnessFile)) { $errors += "Missing harness certification component: $harnessFile"; continue }
+    $parseErrors = $null
+    [void][System.Management.Automation.Language.Parser]::ParseFile($harnessFile, [ref]$null, [ref]$parseErrors)
+    if ($parseErrors.Count -gt 0) { $errors += "PowerShell parse error in harness certification component: $harnessFile" }
+}
 
-@('test-validate-test-artifacts.ps1', 'test-test-scope-guard.ps1', 'test-distributable-surface.ps1', 'test-collect-failure-evidence.ps1', 'test-validate-domain-artifact.ps1', 'test-design-domain-gate.ps1', 'test-domain-fact-propagation.ps1', 'test-domain-verifier-replay.ps1', 'test-flow-test-controller.ps1', 'test-validate-test-cases.ps1') | ForEach-Object {
+@('test-validate-test-artifacts.ps1', 'test-test-scope-guard.ps1', 'test-distributable-surface.ps1', 'test-collect-failure-evidence.ps1', 'test-validate-domain-artifact.ps1', 'test-design-domain-gate.ps1', 'test-domain-fact-propagation.ps1', 'test-domain-verifier-replay.ps1', 'test-flow-test-controller.ps1', 'test-validate-test-cases.ps1', 'test-harness-certification.ps1') | ForEach-Object {
     if (-not (Test-Path -LiteralPath (Join-Path $scriptDir "scripts\tests\$_"))) {
         $label = if ($_ -match '(?i)domain') { 'domain artifact' } elseif ($_ -match '(?i)flow-test-controller') { 'flow controller' } else { 'integration-test guard' }
         $errors += "Missing $label test script: $_"

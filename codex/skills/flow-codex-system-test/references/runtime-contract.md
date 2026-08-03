@@ -5,11 +5,15 @@
 1. `type: system-test` 的服务，或
 2. `type` 为 `system-test`，实际服务名从同一 config 条目动态解析
 
+业务 suite 只能使用已认证 harness。平台维护者先运行 `self-test/invoke-harness-self-test.ps1`，再用 `scripts/harness-certification.ps1 certify` 生成绑定受控文件哈希和 harness version 的认证；runner 每次执行前用 `verify` 复核，任一 harness 文件变化都会使旧认证失效。不得在业务 change 中临时修改 runner 或伪造认证。
+
 ```powershell
 .\scripts\system-test.ps1 doctor -Change <change> -EnvFile .env.local
 .\scripts\system-test.ps1 run -Change <change> -Suite <suite> -ExecutionMode <orchestrated|standalone> -EnvFile .env.local
 .\scripts\system-test.ps1 cleanup -Change <change> -EnvFile .env.local
 ```
+
+manifest 的 `configuration.source` 是唯一配置来源，`configuration.ownership` 只能是 `human` 或 `harness`。人工配置探针失败只输出 `[TEST_CONFIGURATION] BLOCKED` 与 `STOP_AWAIT_HUMAN_CONFIGURATION`；平台配置失败路由到独立 harness 修复，不猜测密码、不扫描或切换配置来源。PASS、FAIL、BLOCKED 都执行 cleanup 并保留原始报告索引。
 
 可选 `-OrchRoot` 或环境变量 `FLOW_ORCH_ROOT`（默认测试仓父目录 = Flow 编排根）。
 

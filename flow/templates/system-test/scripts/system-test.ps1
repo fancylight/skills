@@ -10,7 +10,8 @@ param(
   [ValidateSet('orchestrated','standalone')]
   [string]$ExecutionMode = 'standalone',
   [string]$EnvFile = '.env.local',
-  [string]$OrchRoot = ''
+  [string]$OrchRoot = '',
+  [string]$HarnessCertificationPath = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -29,6 +30,14 @@ $StateFile = Join-Path $RuntimeDir 'state.json'
 $SeedMarker = Join-Path $RuntimeDir 'data-seeded'
 $FixtureMainClass = 'com.flow.systemtest.FixtureTool'
 $ComposeFile = Join-Path $TestRoot 'infra\compose\system-test.yml'
+$HarnessCertifier = Join-Path $PSScriptRoot 'harness-certification.ps1'
+
+function Assert-HarnessCertification {
+  if (-not (Test-Path -LiteralPath $HarnessCertifier -PathType Leaf)) { throw '[TEST_HARNESS] certification verifier is missing' }
+  $path = if ([string]::IsNullOrWhiteSpace($HarnessCertificationPath)) { Join-Path $TestRoot 'self-test\harness-certification.json' } else { $HarnessCertificationPath }
+  & $HarnessCertifier verify -HarnessRoot $TestRoot -CertificationPath $path | Out-Null
+  if ($LASTEXITCODE -ne 0) { throw '[TEST_HARNESS] harness revision is not certified' }
+}
 
 function Import-DotEnv([string]$Path) {
   if (-not (Test-Path $Path)) { return }
@@ -64,6 +73,15 @@ function Test-Http([string]$Url) {
 
 function Invoke-Doctor($Manifest, [string[]]$Suites) {
   $errors = New-Object System.Collections.Generic.List[string]
+  if (-not $Manifest.configuration -or [string]::IsNullOrWhiteSpace([string]$Manifest.configuration.source) -or [string]::IsNullOrWhiteSpace([string]$Manifest.configuration.ownership)) {
+    $errors.Add('manifest configuration source and ownership are required')
+  } else {
+    if ([string]$Manifest.configuration.ownership -notin @('human','harness')) { $errors.Add('configuration ownership must be human or harness') }
+    if ([IO.Path]::GetFullPath((Join-Path $TestRoot $EnvFile)) -ne [IO.Path]::GetFullPath((Join-Path $TestRoot ([string]$Manifest.configuration.source)))) {
+      $errors.Add('requested EnvFile differs from the manifest configuration source')
+    }
+    if (@($Manifest.configuration.requiredEndpoints).Count -eq 0 -or $null -eq $Manifest.configuration.probes) { $errors.Add('configuration requiredEndpoints and probes are required') }
+  }
   foreach ($tool in @('java.exe','mvn.cmd')) {
     if (-not (Get-Command $tool -ErrorAction SilentlyContinue)) { $errors.Add("tool not found: $tool") }
   }
@@ -105,7 +123,9 @@ function Invoke-Doctor($Manifest, [string[]]$Suites) {
   }
   if ($errors.Count -gt 0) {
     $errors | ForEach-Object { Write-Host "BLOCKER: $_" -ForegroundColor Red }
-    throw "doctor failed with $($errors.Count) blocker(s)"
+    $ownership = if ($Manifest.configuration -and $Manifest.configuration.ownership) { [string]$Manifest.configuration.ownership } else { 'human' }
+    if ($ownership -eq 'human') { throw "[TEST_CONFIGURATION] BLOCKED; STOP_AWAIT_HUMAN_CONFIGURATION; doctor failed with $($errors.Count) blocker(s)" }
+    throw "[TEST_HARNESS] platform-owned configuration failed with $($errors.Count) blocker(s)"
   }
   Write-Host "doctor passed: environment ready (orchRoot=$OrchRoot)"
 }
@@ -312,8 +332,8 @@ function Write-Summary([string]$Status, [string[]]$Suites, [hashtable]$Counts, [
   $evidenceDir = Join-Path $TestRoot "changes\$Change\evidence"
   New-Item -ItemType Directory -Force $evidenceDir | Out-Null
   $summary = Join-Path $evidenceDir 'summary.md'
-  $retained = if ($Status -eq 'PASS') { 'false' } else { 'true' }
-  $cleanup = if ($Status -eq 'PASS') { 'none' } else { ".\scripts\system-test.ps1 cleanup -Change $Change" }
+  $retained = 'false'
+  $cleanup = 'none'
   $manifestPath = Join-Path $TestRoot "changes\$Change\manifest.yaml"
   $manifestHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $manifestPath).Hash
   $testRevision = Get-GitRevision $TestRoot
@@ -357,6 +377,15 @@ function Write-Summary([string]$Status, [string[]]$Suites, [hashtable]$Counts, [
   Write-Host "cleanup_command: $cleanup"
 }
 
+function Invoke-ReliableCleanup($Manifest) {
+  $errors = @()
+  try {
+    if (Test-Path $SeedMarker) { Invoke-CleanupData $Manifest; Remove-Item $SeedMarker -Force }
+  } catch { $errors += $_.Exception.Message }
+  try { Invoke-Down } catch { $errors += $_.Exception.Message }
+  if ($errors.Count -gt 0) { throw "[TEST_HARNESS] cleanup failed: $($errors -join '; ')" }
+}
+
 function Invoke-Down {
   if (Test-Path $StateFile) {
     $state = Get-Content $StateFile -Raw | ConvertFrom-Json
@@ -373,8 +402,16 @@ function Invoke-Down {
   }
 }
 
-Import-DotEnv (Join-Path $TestRoot $EnvFile)
 $manifest = Get-Manifest
+if (-not $manifest.configuration -or [string]::IsNullOrWhiteSpace([string]$manifest.configuration.source)) {
+  throw '[TEST_CONFIGURATION] BLOCKED; STOP_AWAIT_HUMAN_CONFIGURATION; manifest configuration source is missing'
+}
+$declaredConfigurationSource = [IO.Path]::GetFullPath((Join-Path $TestRoot ([string]$manifest.configuration.source)))
+$requestedConfigurationSource = [IO.Path]::GetFullPath((Join-Path $TestRoot $EnvFile))
+if ($declaredConfigurationSource -ne $requestedConfigurationSource) {
+  throw '[TEST_CONFIGURATION] BLOCKED; STOP_AWAIT_HUMAN_CONFIGURATION; requested configuration source differs from manifest'
+}
+Import-DotEnv $declaredConfigurationSource
 $requestedSuites = if ($Suite -eq 'all') {
   if ($manifest.defaultSuites) { @($manifest.defaultSuites) } else { @('api') }
 } else { @($Suite) }
@@ -395,6 +432,7 @@ switch ($Command) {
     $suites = $requestedSuites
     $counts = @{ passed = 0; failed = 0; skipped = 0; raw = 'not-applicable' }
     try {
+      Assert-HarnessCertification
       if ($suites.Count -eq 1 -and $suites[0] -eq 'cdc') {
         Invoke-Suite 'cdc' $manifest
       } else {
@@ -410,16 +448,17 @@ switch ($Command) {
         foreach ($name in $suites) { Invoke-Suite $name $manifest }
         if ($suites -contains 'api') { $counts = Get-ApiCounts }
         else { $counts.passed = $suites.Count }
-        if (Test-Path $SeedMarker) { Invoke-CleanupData $manifest; Remove-Item $SeedMarker -Force }
-        Invoke-Down
+        Invoke-ReliableCleanup $manifest
       }
       Write-Summary 'PASS' $suites $counts
     } catch {
+      $message = $_.Exception.Message
       if ($suites -contains 'api') {
         try { $counts = Get-ApiCounts } catch { $counts.failed = 1; $counts.raw = 'missing' }
       } else { $counts.failed = 1 }
-      Write-Summary 'FAIL' $suites $counts $_.Exception.Message
-      Write-Warning "failure state retained; cleanup with: .\scripts\system-test.ps1 cleanup -Change $Change"
+      try { Invoke-ReliableCleanup $manifest } catch { $message = "$message; $($_.Exception.Message)" }
+      $status = if ($message -match '^\[TEST_CONFIGURATION\] BLOCKED') { 'BLOCKED' } else { 'FAIL' }
+      Write-Summary $status $suites $counts $message
       throw
     }
   }

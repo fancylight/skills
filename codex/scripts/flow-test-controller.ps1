@@ -12,6 +12,8 @@ param(
     [string]$ProposedTestRevision,
     [string]$SutRevision,
     [string]$HarnessRevision,
+    [string]$HarnessRoot,
+    [string]$HarnessCertificationPath,
     [string]$ConfigurationFingerprint,
     [ValidateSet('design', 'implementation', 'execution', 'result')] [string]$Authorization = 'design',
     [ValidateSet('test-implementer', 'verifier', 'runner')] [string]$Role,
@@ -156,6 +158,25 @@ function Get-StringHash([string]$Value) {
     $bytes = [Text.Encoding]::UTF8.GetBytes($Value)
     $sha = [Security.Cryptography.SHA256]::Create(); try { return (-join ($sha.ComputeHash($bytes) | ForEach-Object { $_.ToString('x2') })) } finally { $sha.Dispose() }
 }
+function Assert-HarnessCertification([string]$Root, [string]$Path, [string]$ExpectedRevision) {
+    if ([string]::IsNullOrWhiteSpace($Root) -or [string]::IsNullOrWhiteSpace($Path)) { Stop-Controller 'ERROR_HARNESS_UNCERTIFIED' 'harness root and certification are required' }
+    $canonicalRoot = Get-CanonicalPath $Root
+    $canonicalPath = Get-CanonicalPath $Path
+    if (-not (Test-PathWithin $canonicalPath $canonicalRoot) -or -not (Test-Path -LiteralPath $canonicalPath -PathType Leaf)) { Stop-Controller 'ERROR_HARNESS_UNCERTIFIED' 'harness certification must be inside the canonical harness root' }
+    $certification = Read-StructuredJson $canonicalPath 'harness certification'
+    if ($certification.schemaVersion -ne 1 -or $certification.result -ne 'PASS' -or $certification.harnessRevision -ne $ExpectedRevision -or @($certification.files).Count -eq 0) { Stop-Controller 'ERROR_HARNESS_UNCERTIFIED' 'harness certification is incomplete or bound to another revision' }
+    $seen = @{}
+    foreach ($file in @($certification.files)) {
+        $relative = ([string]$file.path).Replace('/', [IO.Path]::DirectorySeparatorChar)
+        if ([string]::IsNullOrWhiteSpace($relative) -or $seen.ContainsKey($relative)) { Stop-Controller 'ERROR_HARNESS_UNCERTIFIED' 'harness certification file list is invalid' }
+        $seen[$relative] = $true
+        $actualPath = Get-CanonicalPath (Join-Path $canonicalRoot $relative)
+        if (-not (Test-PathWithin $actualPath $canonicalRoot) -or -not (Test-Path -LiteralPath $actualPath -PathType Leaf)) { Stop-Controller 'ERROR_HARNESS_UNCERTIFIED' "certified harness file is missing: $relative" }
+        $actualHash = (Get-FileHash -LiteralPath $actualPath -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($actualHash -ne ([string]$file.sha256).ToLowerInvariant()) { Stop-Controller 'ERROR_HARNESS_UNCERTIFIED' "certified harness file changed: $relative" }
+    }
+    return [pscustomobject]@{ root=$canonicalRoot; path=$canonicalPath; certificationHash=(Get-FileHash -LiteralPath $canonicalPath -Algorithm SHA256).Hash.ToLowerInvariant() }
+}
 function Add-History($State, [string]$From, [string]$To, [string]$ReasonText) {
     $State.history += [pscustomobject]@{ at = [DateTime]::UtcNow.ToString('o'); from = $From; to = $To; reason = $ReasonText }
 }
@@ -192,18 +213,19 @@ function Get-Fingerprint($State) {
 }
 
 if ($Command -eq 'initialize') {
-    if ([string]::IsNullOrWhiteSpace($ChangeName) -or [string]::IsNullOrWhiteSpace($SystemTestRepo) -or [string]::IsNullOrWhiteSpace($SutRepo) -or [string]::IsNullOrWhiteSpace($TestBaselineRevision) -or [string]::IsNullOrWhiteSpace($TestRevision) -or [string]::IsNullOrWhiteSpace($SutRevision) -or [string]::IsNullOrWhiteSpace($HarnessRevision) -or [string]::IsNullOrWhiteSpace($ConfigurationFingerprint)) { Stop-Controller 'ERROR_INPUT' 'initialize requires change, repositories, baseline/current revisions, and configuration fingerprint' }
+    if ([string]::IsNullOrWhiteSpace($ChangeName) -or [string]::IsNullOrWhiteSpace($SystemTestRepo) -or [string]::IsNullOrWhiteSpace($SutRepo) -or [string]::IsNullOrWhiteSpace($TestBaselineRevision) -or [string]::IsNullOrWhiteSpace($TestRevision) -or [string]::IsNullOrWhiteSpace($SutRevision) -or [string]::IsNullOrWhiteSpace($HarnessRevision) -or [string]::IsNullOrWhiteSpace($ConfigurationFingerprint)) { Stop-Controller 'ERROR_INPUT' 'initialize requires change, repositories, baseline/current revisions, harness certification, and configuration fingerprint' }
     if ((Test-SensitiveContent $ChangeName) -or (Test-SensitiveContent $ConfigurationFingerprint)) { Stop-Controller 'ERROR_SECRET_INPUT' 'initialize input contains sensitive material' }
     if (Test-Path -LiteralPath $StatePath) { Stop-Controller 'ERROR_STATE_EXISTS' 'refusing to overwrite existing state' }
     $systemRepo = Get-CanonicalGitRepo $SystemTestRepo; $sut = Get-CanonicalGitRepo $SutRepo
     $systemHead = Get-GitHead $systemRepo; $sutHead = Get-GitHead $sut
     if ($systemHead -ne $TestRevision) { Stop-Controller 'ERROR_REVISION_DRIFT' 'test revision must equal canonical system-test HEAD' }
     if ($sutHead -ne $SutRevision) { Stop-Controller 'ERROR_REVISION_DRIFT' 'SUT revision must equal canonical SUT HEAD' }
+    $harnessCertification = Assert-HarnessCertification $HarnessRoot $HarnessCertificationPath $HarnessRevision
     $baselineCommit = Resolve-GitRevision $systemRepo $TestBaselineRevision
     $state = [pscustomobject]@{
         schemaVersion = 1; changeName = $ChangeName; phase = 'TEST_DESIGN_DRAFT'; authorization = [pscustomobject]@{ maxPhase = $Authorization }
         repositories = [pscustomobject]@{ systemTest = $systemRepo; sut = $sut }; revisions = [pscustomobject]@{ designRevision = $TestRevision; testBaseRevision = $TestRevision; testBaseline = $baselineCommit; test = $TestRevision; sut = $SutRevision; harness = $HarnessRevision }
-        configurationFingerprint = $ConfigurationFingerprint; leases = @(); runs = @(); failureFingerprints = @(); activeRun = $null; scopeVerification = $null; verifier = $null
+        configurationFingerprint = $ConfigurationFingerprint; harnessCertification = $harnessCertification; leases = @(); runs = @(); failureFingerprints = @(); activeRun = $null; scopeVerification = $null; verifier = $null
         history = @(); createdAt = [DateTime]::UtcNow.ToString('o'); updatedAt = [DateTime]::UtcNow.ToString('o'); integrityHash = ''
     }
     Require-Ceiling $state 'design'; Add-History $state '' 'TEST_DESIGN_DRAFT' 'initialize'; Write-State $state; Write-Output '[FLOW_CONTROLLER] PASS'; Write-Output 'phase: TEST_DESIGN_DRAFT'; exit 0
@@ -288,6 +310,7 @@ switch ($Command) {
     }
     'start-run' {
         Require-Ceiling $state 'execution'
+        [void](Assert-HarnessCertification $state.harnessCertification.root $state.harnessCertification.path $state.revisions.harness)
         if ([string]::IsNullOrWhiteSpace($TestRevision) -or [string]::IsNullOrWhiteSpace($SutRevision) -or [string]::IsNullOrWhiteSpace($HarnessRevision) -or [string]::IsNullOrWhiteSpace($ConfigurationFingerprint) -or $TestRevision -ne $state.revisions.test -or $SutRevision -ne $state.revisions.sut -or $HarnessRevision -ne $state.revisions.harness -or $ConfigurationFingerprint -ne $state.configurationFingerprint) { Stop-Controller 'ERROR_REVISION_DRIFT' 'runner start must bind current test, SUT, harness, and configuration revisions' }
         if ($null -ne $state.activeRun -or @($state.runs | Where-Object { $_.testRevision -eq $state.revisions.test }).Count -gt 0) { Stop-Controller 'ERROR_RUN_DUPLICATE' 'runner already started for this test revision' }
         if ($state.phase -ne 'TEST_ENVIRONMENT_VERIFIED') { Stop-Controller 'ERROR_TRANSITION' "runner start phase is $($state.phase)" }

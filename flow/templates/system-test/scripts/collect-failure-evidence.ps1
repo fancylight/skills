@@ -2,7 +2,7 @@
 param(
   [Parameter(Mandatory=$true)] [string]$TestRoot,
   [Parameter(Mandatory=$true)] [string]$Change,
-  [Parameter(Mandatory=$true)] [ValidateSet('PASS','FAIL')] [string]$Status,
+  [Parameter(Mandatory=$true)] [ValidateSet('PASS','FAIL','BLOCKED')] [string]$Status,
   [string[]]$Suites = @(),
   [string]$Message = '',
   [int]$Passed = 0,
@@ -74,7 +74,7 @@ $failures = if ($junit.Count -gt 0) { Get-JunitFailures $manifest $reportDir } e
 $failureCount = @($failures).Count
 $rawStatus = if ($junit.Count -gt 0) { 'available' } else { 'unavailable' }
 $safeMessage = ConvertTo-SafeEvidenceText $Message
-$failureRef = if ($Status -eq 'FAIL') { 'failure-report.md' } else { 'none' }
+$failureRef = if ($Status -in @('FAIL','BLOCKED')) { 'failure-report.md' } else { 'none' }
 
 $index = @(
   '# System Test Evidence Index',
@@ -91,7 +91,7 @@ $index = @(
 ) -join "`n"
 Set-Content -LiteralPath (Join-Path $current 'index.md') -Value $index -Encoding UTF8
 
-if ($Status -eq 'FAIL') {
+if ($Status -in @('FAIL','BLOCKED')) {
   $rows = if ($failureCount -gt 0) {
     @($failures | ForEach-Object { "| $($_.scenario) | $($_.method) | $($_.category) | $($_.certainty) | $($_.evidence) | $(($_.message -replace '\|', '\\|')) |" })
   } else {

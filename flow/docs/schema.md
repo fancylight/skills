@@ -496,6 +496,8 @@ runner 无论 PASS 或 FAIL 都生成 `evidence/current/index.md`；FAIL 还生�
 根 `.flow/changes/{change}/automation-state.yaml` 是集成测试 machine state 的唯一权威。首版由
 `flow-test-controller.ps1` 原子写入；它使用 JSON 兼容的 YAML 子集，不保存密码、token、完整连接串或其他 secret。
 
+Harness 认证产物为结构化 JSON，至少包含 `schemaVersion`、`result=PASS`、`harnessVersion`、`harnessRevision`、`selfTestReportHash` 和受控 `files[]`（`path`、`sha256`）。controller 初始化与 runner 启动都必须验证认证绑定的实际文件；文件、revision 或 version 漂移后旧认证立即失效。配置契约的 `source` 是唯一来源，`ownership=human` 失败时状态只能进入 BLOCKED，`ownership=harness` 才能路由到独立平台修复。
+
 ```yaml
 schemaVersion: 1
 changeName: string
