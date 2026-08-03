@@ -68,7 +68,7 @@
                       "exitCode":  0,
                       "result":  "PASS",
                       "log":  "test-artifacts.log",
-                      "logHash":  "9e5a7b755a94986d651fb6871571d501bd4a0afd8211dddee2d16a3ace068424"
+                      "logHash":  "9e27e33f659e2153a4bd8b37452b6814bda54efdd9b69699b4bba98906b97dd3"
                   },
                   {
                       "id":  "controller",
@@ -90,7 +90,7 @@
                       "exitCode":  0,
                       "result":  "PASS",
                       "log":  "harness.log",
-                      "logHash":  "5c65eb53956d87317a51c31ebca9bd46c49cb074804ee34e3bf28dc7ed18ee51"
+                      "logHash":  "e79b0328219a1c8d93c53e7b5c33939f6044b54de4b642aa91327b903942cfc6"
                   },
                   {
                       "id":  "skill-contract",
@@ -112,7 +112,7 @@
                       "exitCode":  0,
                       "result":  "PASS",
                       "log":  "scope-guard.log",
-                      "logHash":  "00d9b18f8a6e3884d1a11faa6ab1339fb03de04e1e7bba66fff15086e017c4af"
+                      "logHash":  "8f54c89a842d048640383ae71ecec80fc34c67f40cceed1070ee49343f22122e"
                   },
                   {
                       "id":  "distributable-surface",
@@ -134,7 +134,7 @@
                       "exitCode":  0,
                       "result":  "PASS",
                       "log":  "failure-evidence.log",
-                      "logHash":  "8104893d32047bf4f1f033bef0e66328c535306bf04875ba6987208dad65a5cd"
+                      "logHash":  "b4f7fd5ab3a2e1d85341b36d47c4b1081140a546593759d49e09ebe914a3561c"
                   }
               ]
 }

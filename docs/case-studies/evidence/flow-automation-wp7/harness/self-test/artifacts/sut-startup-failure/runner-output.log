@@ -1,6 +1,6 @@
-doctor passed through controlled harness adapter (orchRoot=C:\Users\chenk-u\AppData\Local\Temp)
+doctor passed through controlled harness adapter (orchRoot=<TEMP_ROOT>)
 [TEST_EVIDENCE_INDEX] PASS
-path: C:\Users\chenk-u\AppData\Local\Temp\flow harness-wp7-evidence\changes\harness-self-test-sut-startup-failure\evidence\current
+path: <TEMP_ROOT>\flow harness-wp7-evidence\changes\harness-self-test-sut-startup-failure\evidence\current
 junit: available
 [SYSTEM_TEST_RESULT] FAIL
 change_name: harness-self-test-sut-startup-failure
@@ -10,12 +10,12 @@ suites: api
 passed: 1
 failed: 0
 skipped: 0
-evidence: C:\Users\chenk-u\AppData\Local\Temp\flow harness-wp7-evidence\changes\harness-self-test-sut-startup-failure\evidence\summary.md
+evidence: <TEMP_ROOT>\flow harness-wp7-evidence\changes\harness-self-test-sut-startup-failure\evidence\summary.md
 retained_state: false
 cleanup_command: none
 classification: TEST_HARNESS
 [TEST_HARNESS] SUT startup failed
-At C:\Users\chenk-u\AppData\Local\Temp\flow harness-wp7-evidence\scripts\system-test.ps1:63 char:5
+At <TEMP_ROOT>\flow harness-wp7-evidence\scripts\system-test.ps1:63 char:5
 +     throw $message
 +     ~~~~~~~~~~~~~~
     + CategoryInfo          : OperationStopped: ([TEST_HARNESS] SUT startup failed:String) [], RuntimeException

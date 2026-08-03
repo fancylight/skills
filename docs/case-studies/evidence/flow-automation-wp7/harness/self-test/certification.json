@@ -41,12 +41,12 @@
                              {
                                  "scenarioId":  "normal-run",
                                  "path":  "self-test/artifacts/normal-run/evidence/summary.md",
-                                 "sha256":  "f8f3b78c40bc34d00faeb199aabc088e809e29e05e2a4bf3e2a442386d6d84aa"
+                                 "sha256":  "eb594d3b60059a79437d6272a835d717921aca843dd78a6fbf20399c14730436"
                              },
                              {
                                  "scenarioId":  "normal-run",
                                  "path":  "self-test/artifacts/normal-run/runner-output.log",
-                                 "sha256":  "e1e11c0935851bbaf51cbbfcbe510be63df87495151124226dcbe5d3a0aab99d"
+                                 "sha256":  "3a21b2b3e74b6146ffbc4972966101eb8b887ba568f6eed84133d49051c9b6ee"
                              },
                              {
                                  "scenarioId":  "normal-run",
@@ -56,7 +56,7 @@
                              {
                                  "scenarioId":  "normal-run",
                                  "path":  "self-test/artifacts/normal-run/structured-result.json",
-                                 "sha256":  "517997c6f9195c0ecc46e647cea9d83730a4078bf9d0058696b5ca88b80cd9d0"
+                                 "sha256":  "ef97980a2e800f2b1ca0729c0534135be4faf728da9796638f5f60c7c8d63c48"
                              },
                              {
                                  "scenarioId":  "sut-startup-failure",
@@ -81,12 +81,12 @@
                              {
                                  "scenarioId":  "sut-startup-failure",
                                  "path":  "self-test/artifacts/sut-startup-failure/evidence/summary.md",
-                                 "sha256":  "0eefd875ac316c1075df280b85837326ceb22bf2b6050309b04ad17cdb8f1109"
+                                 "sha256":  "66ea90f4d907e1a3b2a0e5117f545c83e7efe000b65c17e85f39330ba6f5b222"
                              },
                              {
                                  "scenarioId":  "sut-startup-failure",
                                  "path":  "self-test/artifacts/sut-startup-failure/runner-output.log",
-                                 "sha256":  "02fe160e493f0339e6b4dbc66648944525e309c257de4607380a5dc71346b1e7"
+                                 "sha256":  "89b217a029bcf03ceea9a4746d3d1fabad7a44e625816e070d834972da186b09"
                              },
                              {
                                  "scenarioId":  "sut-startup-failure",
@@ -96,7 +96,7 @@
                              {
                                  "scenarioId":  "sut-startup-failure",
                                  "path":  "self-test/artifacts/sut-startup-failure/structured-result.json",
-                                 "sha256":  "861c6e73b30d684ffac5fd65a4f1e6a66e00ca9c39936adc17d3aed38b155c03"
+                                 "sha256":  "a40adeff4b73e3b356a0c0b48bbf50cae9026be20a1d42d90c20bd21fdbf4f8c"
                              },
                              {
                                  "scenarioId":  "mysql-unavailable",
@@ -116,17 +116,17 @@
                              {
                                  "scenarioId":  "mysql-unavailable",
                                  "path":  "self-test/artifacts/mysql-unavailable/evidence/summary.md",
-                                 "sha256":  "d45913bd40bc8d693b973b74d580ba2716b8e6c0496a3e9a3f2388e6805442ee"
+                                 "sha256":  "55f2dadcb9b8a9f6ce2dd8cd989372fb7594063b40fd14df04ca4f54796d62fe"
                              },
                              {
                                  "scenarioId":  "mysql-unavailable",
                                  "path":  "self-test/artifacts/mysql-unavailable/runner-output.log",
-                                 "sha256":  "9690a76eab18ff9c13449bb96fb32e61dafb2c9eef3e135be11cfc63fcb73903"
+                                 "sha256":  "c9d1aed346877194ac6123c1205823ed3a28eddcbb3d376080740dd332941217"
                              },
                              {
                                  "scenarioId":  "mysql-unavailable",
                                  "path":  "self-test/artifacts/mysql-unavailable/structured-result.json",
-                                 "sha256":  "6e315ee9cbec1fb6a65185310190b28e6c563c14f287b11847fd06eca8d3d1b3"
+                                 "sha256":  "21955b700c2d0da1e95109d38ee696e7e3464d77666173154c0ccb0e23f6340b"
                              },
                              {
                                  "scenarioId":  "postgres-unavailable",
@@ -146,17 +146,17 @@
                              {
                                  "scenarioId":  "postgres-unavailable",
                                  "path":  "self-test/artifacts/postgres-unavailable/evidence/summary.md",
-                                 "sha256":  "a4d5d7a31a7aa138e4731b34ac547a37706e7b56c6123103b04df4698601dda3"
+                                 "sha256":  "ece108aa98ec5e1b2b2b62c95a32fbf3a74580bb07ef638f468de947f7ca74c4"
                              },
                              {
                                  "scenarioId":  "postgres-unavailable",
                                  "path":  "self-test/artifacts/postgres-unavailable/runner-output.log",
-                                 "sha256":  "a1532c0293997895614bb92daf73760795af9a413375d0cac50898125f5b1bfb"
+                                 "sha256":  "40f5f32f01dc88e4fdc55a58464f8811e140bd2cd0d334d7555babeb5d73bde6"
                              },
                              {
                                  "scenarioId":  "postgres-unavailable",
                                  "path":  "self-test/artifacts/postgres-unavailable/structured-result.json",
-                                 "sha256":  "940d96b7ea47c47e6552dc20ff1bc22f2deb51c8e07aa50c38e241b902a86cf2"
+                                 "sha256":  "8467edbd59ba499a5a6b856533c7e6462b6f7f7ef2d8ac3de28ec3e92be42577"
                              },
                              {
                                  "scenarioId":  "redis-unavailable",
@@ -176,17 +176,17 @@
                              {
                                  "scenarioId":  "redis-unavailable",
                                  "path":  "self-test/artifacts/redis-unavailable/evidence/summary.md",
-                                 "sha256":  "16f3b23d85190a279d0ad1df799b1c1a000b54c4248c29edc1706c75a5dd29ab"
+                                 "sha256":  "96d51306e59df206bca5d04d3a68b19bb62175e57a2fa7203550d01043fa53d1"
                              },
                              {
                                  "scenarioId":  "redis-unavailable",
                                  "path":  "self-test/artifacts/redis-unavailable/runner-output.log",
-                                 "sha256":  "128555db0754b462bb37a73815b63a30bcc8199954b3e2148a67ca4a824fd41b"
+                                 "sha256":  "54523f2a258b99d3f778cc62e2ce14e493d66e1bbb3a8f516937814d5f05249e"
                              },
                              {
                                  "scenarioId":  "redis-unavailable",
                                  "path":  "self-test/artifacts/redis-unavailable/structured-result.json",
-                                 "sha256":  "32b8463446f3e23ea5b8adb8fbb5304dee5093bc1be5eca527573204c49c8ffc"
+                                 "sha256":  "2d4c0a4a231f7ca1405473e76337c4b19285def138949f20acc3c57c0de34a42"
                              },
                              {
                                  "scenarioId":  "wiremock-unmatched",
@@ -211,7 +211,7 @@
                              {
                                  "scenarioId":  "wiremock-unmatched",
                                  "path":  "self-test/artifacts/wiremock-unmatched/runner-output.log",
-                                 "sha256":  "eb0937ddff9a2561a89af36c447cb1f37e5e8f47443ba021babc003602bf000e"
+                                 "sha256":  "fadcd86e1f29a04d86f213447dff9b1d4849c8322bd7fc59e9b60fee41119a05"
                              },
                              {
                                  "scenarioId":  "wiremock-unmatched",
@@ -221,7 +221,7 @@
                              {
                                  "scenarioId":  "wiremock-unmatched",
                                  "path":  "self-test/artifacts/wiremock-unmatched/structured-result.json",
-                                 "sha256":  "621f0ed888aec8fe8109bfdf2ab7fe2ecdb2f79267c31979f7aa196a0f62e13c"
+                                 "sha256":  "61695104edfd34cf8b5e02841344a93073c68b088397c6750393e13c61a6ba0b"
                              },
                              {
                                  "scenarioId":  "seed-failure",
@@ -246,7 +246,7 @@
                              {
                                  "scenarioId":  "seed-failure",
                                  "path":  "self-test/artifacts/seed-failure/runner-output.log",
-                                 "sha256":  "fec5a8caa03bb073725f2b0232732fc6a114f34502a864d632a6b04451760846"
+                                 "sha256":  "bc32788848406238bc9131a6bf637302dba8eb34f2b27daf738197774f9fd312"
                              },
                              {
                                  "scenarioId":  "seed-failure",
@@ -256,7 +256,7 @@
                              {
                                  "scenarioId":  "seed-failure",
                                  "path":  "self-test/artifacts/seed-failure/structured-result.json",
-                                 "sha256":  "ec98c4c58ead08d55e79eb5c0f10f721712687e6df33a7ef93fb8139a68ddb4b"
+                                 "sha256":  "b54b63b0bdd67a8287c9bde42672323658b26c481f6a9ea8bd2013baf31f5314"
                              },
                              {
                                  "scenarioId":  "cleanup-failure",
@@ -281,12 +281,12 @@
                              {
                                  "scenarioId":  "cleanup-failure",
                                  "path":  "self-test/artifacts/cleanup-failure/evidence/summary.md",
-                                 "sha256":  "5b5088f3f498f3d1442840c01a6a2bd12328fd88f769940aa29c60803cddc640"
+                                 "sha256":  "210a8faafcfe45a5d363d03f370f0e647d6e327736ca8d2a1ac14314f3915dcc"
                              },
                              {
                                  "scenarioId":  "cleanup-failure",
                                  "path":  "self-test/artifacts/cleanup-failure/runner-output.log",
-                                 "sha256":  "fae5cf639b23eb0cff5ba4a764ed1fc27bc29c979a749b14c6cfb82333f2b461"
+                                 "sha256":  "b9dee813a61e7bf94613781bed39476df27607069bfc5aa9e1b42cd9975f03c6"
                              },
                              {
                                  "scenarioId":  "cleanup-failure",
@@ -306,7 +306,7 @@
                              {
                                  "scenarioId":  "cleanup-failure",
                                  "path":  "self-test/artifacts/cleanup-failure/structured-result.json",
-                                 "sha256":  "52ac60a9fbc406ad3ba8711c0e90b2eb2639691d659c14fe12c3483ce2c7d39f"
+                                 "sha256":  "b0a894c07e698ae852dd9caf1c9c6ece3166ae473eb9f8236e3b0041075f7e9b"
                              },
                              {
                                  "scenarioId":  "maven-arguments",
@@ -321,17 +321,17 @@
                              {
                                  "scenarioId":  "maven-arguments",
                                  "path":  "self-test/artifacts/maven-arguments/evidence/summary.md",
-                                 "sha256":  "15685d9ec6f2d842861e3f767a335217bc161820c65fd05b785edfc550af5fbe"
+                                 "sha256":  "9d8805527a25c45fddf600a49b56fd7570bb88a84524d60097c19fbdaffdba40"
                              },
                              {
                                  "scenarioId":  "maven-arguments",
                                  "path":  "self-test/artifacts/maven-arguments/runner-output.log",
-                                 "sha256":  "0c638d29159e17f2ca84e448994808958dafb8bfdb703bdafc7f9e46f8219818"
+                                 "sha256":  "7df00ac86af521eb18dc23b5b118dea61dc1279eaf96232662cb5057dddd9390"
                              },
                              {
                                  "scenarioId":  "maven-arguments",
                                  "path":  "self-test/artifacts/maven-arguments/runtime/raw/maven-arguments.json",
-                                 "sha256":  "d385f99f8bf5098cd7f8e7b9dd33578e9413ac7f254b3c6991e98d43a889ed67"
+                                 "sha256":  "469a51cd4b7aa7a2f08d196f291d28c198ae555debc35fa61e209440d02c995d"
                              },
                              {
                                  "scenarioId":  "maven-arguments",
@@ -341,7 +341,7 @@
                              {
                                  "scenarioId":  "maven-arguments",
                                  "path":  "self-test/artifacts/maven-arguments/structured-result.json",
-                                 "sha256":  "d8b5d3d459c0b2326c276d63d30c7f8f635b3b2f88139f806139ef34b94f3497"
+                                 "sha256":  "6fa8e2f5aa85b25340c0ff6197ba86aecf25bd8fc9849c58d933997b4e191f40"
                              },
                              {
                                  "scenarioId":  "maven-execution-failure",
@@ -361,17 +361,17 @@
                              {
                                  "scenarioId":  "maven-execution-failure",
                                  "path":  "self-test/artifacts/maven-execution-failure/runner-output.log",
-                                 "sha256":  "06d1b7f565fe56d2592347834f05a02f4f8d01987351f7e9bfa21ef9afc55191"
+                                 "sha256":  "6dbee103698d3f4efad9f770831446196d612c042494059aaa3706703d974797"
                              },
                              {
                                  "scenarioId":  "maven-execution-failure",
                                  "path":  "self-test/artifacts/maven-execution-failure/structured-result.json",
-                                 "sha256":  "bad4b535958214c68d1e8c8ba1be062cf6e1fe059ff1bc0ab712f20418187a13"
+                                 "sha256":  "1ddbab6e50c56418d9510545557bf50c09cba807f4c8d78c5ac74c95189e67bd"
                              },
                              {
                                  "scenarioId":  "surefire-missing",
                                  "path":  "self-test/artifacts/surefire-missing/evidence/current/failure-report.md",
-                                 "sha256":  "2544e52e42d80be2dca59909ff3d0f3f22f1835fa53aa41841065f10069afdf7"
+                                 "sha256":  "40fb2987fa1cd347ea9cfb9c227678a86d8f92c607c72293d78d1e8eeb935845"
                              },
                              {
                                  "scenarioId":  "surefire-missing",
@@ -386,7 +386,7 @@
                              {
                                  "scenarioId":  "surefire-missing",
                                  "path":  "self-test/artifacts/surefire-missing/runner-output.log",
-                                 "sha256":  "088a239e77e8490b0bbf2aef5a9f4f2a2c70714bb5ecde773e9e070228c7f04a"
+                                 "sha256":  "f2f17cbd490d48371f2fefd7181ae649684212bf942d08735d9fdb520e81b85c"
                              },
                              {
                                  "scenarioId":  "surefire-missing",
@@ -396,7 +396,7 @@
                              {
                                  "scenarioId":  "surefire-missing",
                                  "path":  "self-test/artifacts/surefire-missing/structured-result.json",
-                                 "sha256":  "75491927bdb1c6c8edc4a8454ee2735e7672f4b88b57ee38840b54d73ac9366e"
+                                 "sha256":  "f4135e0464145270e317140f5ce7a781acd0cd81bf02785ce2af00eb5fdc32d0"
                              },
                              {
                                  "scenarioId":  "utf8-log",
@@ -416,12 +416,12 @@
                              {
                                  "scenarioId":  "utf8-log",
                                  "path":  "self-test/artifacts/utf8-log/evidence/summary.md",
-                                 "sha256":  "7c9f43bf0b97a2f5da50cbc4a937379add1dc12f5cf66cb3ef87dd98c899282d"
+                                 "sha256":  "843ecb7f13f971d75e2e83e802c2812774cd085ac32f99e2d6f2723d222dc00f"
                              },
                              {
                                  "scenarioId":  "utf8-log",
                                  "path":  "self-test/artifacts/utf8-log/runner-output.log",
-                                 "sha256":  "200e6ae3337ef05b761d02b84e770cb9778eada65070342d895ccf1bdce20f82"
+                                 "sha256":  "f7d16c42188d2a7270a67fc879c83f2985d8b5c99e24ba32f0db89cf108c76ac"
                              },
                              {
                                  "scenarioId":  "utf8-log",
@@ -436,7 +436,7 @@
                              {
                                  "scenarioId":  "utf8-log",
                                  "path":  "self-test/artifacts/utf8-log/structured-result.json",
-                                 "sha256":  "ff7acc78b788b68fd84d187d34b9364aff94b54ec636db0779dcee3f8a279a0f"
+                                 "sha256":  "6555daaac8467e9fb3e2218f0906f476da65b793f678327ae66e8ea2ee4d914e"
                              },
                              {
                                  "scenarioId":  "interrupted-run",
@@ -461,7 +461,7 @@
                              {
                                  "scenarioId":  "interrupted-run",
                                  "path":  "self-test/artifacts/interrupted-run/runner-output.log",
-                                 "sha256":  "1d1a4862f9cd7d7f12d4569db829a8d9bf90193b38fa893254a9d2daf38b6c4f"
+                                 "sha256":  "85ea28ab5cff19ce55c410eb336b05ecd3b9e1769ad89cdbe2936b6092112b6d"
                              },
                              {
                                  "scenarioId":  "interrupted-run",
@@ -471,7 +471,7 @@
                              {
                                  "scenarioId":  "interrupted-run",
                                  "path":  "self-test/artifacts/interrupted-run/structured-result.json",
-                                 "sha256":  "bde79e420bb71cc3cf1e791097084c56eddbb5a3c3629a56eb0f6218ad569368"
+                                 "sha256":  "bea2b68fc76fcabd9d1515330e0c205f68afb04947f7154b27ff7bd247a51313"
                              },
                              {
                                  "scenarioId":  "evidence-missing",
@@ -491,18 +491,19 @@
                              {
                                  "scenarioId":  "evidence-missing",
                                  "path":  "self-test/artifacts/evidence-missing/evidence/summary.md",
-                                 "sha256":  "dc6d1715da90f394fe12fbe2c1555b7e51ada8e25010cde21a75a2c5279101fb"
+                                 "sha256":  "15ab8b6a2ffc5f6d230aea969a3ad40360bf2a1615286b162a32a293083a2054"
                              },
                              {
                                  "scenarioId":  "evidence-missing",
                                  "path":  "self-test/artifacts/evidence-missing/runner-output.log",
-                                 "sha256":  "3b04ad98997e5c5c7a52d68bd29b3762975c81889caa92245baccd70b396a54e"
+                                 "sha256":  "3963a083d2e7d6bfd9f79d728ddc828f3faba37831918c90cfc284b96174fa52"
                              },
                              {
                                  "scenarioId":  "evidence-missing",
                                  "path":  "self-test/artifacts/evidence-missing/structured-result.json",
-                                 "sha256":  "b3409ee7a292a0c55eecf1205893d8b2a13ee3e3fa0dc73569234f4a49fbe37e"
+                                 "sha256":  "1f395df16861f02f3b8e336071968dde213cc8f68fc40a3d4972df612dde67ea"
                              }
                          ],
-    "certifiedAt":  "2026-08-03T03:37:57.7375798Z"
+    "certifiedAt":  "2026-08-03T03:37:57.7375798Z",
+    "evidenceNormalized":  true
 }

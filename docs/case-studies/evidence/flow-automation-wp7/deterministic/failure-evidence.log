@@ -1,4 +1,4 @@
 [TEST_EVIDENCE_INDEX] PASS
-path: C:\Users\chenk-u\AppData\Local\Temp\flow-failure-evidence-8d881551ee3f4dffb1226787ac3e8c12\changes\sample\evidence\current
+path: <TEMP_ROOT>\flow-failure-evidence-8d881551ee3f4dffb1226787ac3e8c12\changes\sample\evidence\current
 junit: available
 collect-failure-evidence generated indexed, redacted failure evidence.

@@ -1,7 +1,7 @@
-doctor passed through controlled harness adapter (orchRoot=C:\Users\chenk-u\AppData\Local\Temp)
+doctor passed through controlled harness adapter (orchRoot=<TEMP_ROOT>)
 api suite filtered by apiTestFilter: *Test
 [TEST_EVIDENCE_INDEX] PASS
-path: C:\Users\chenk-u\AppData\Local\Temp\flow harness-wp7-evidence\changes\harness-self-test-interrupted-run\evidence\current
+path: <TEMP_ROOT>\flow harness-wp7-evidence\changes\harness-self-test-interrupted-run\evidence\current
 junit: unavailable
 [SYSTEM_TEST_RESULT] FAIL
 change_name: harness-self-test-interrupted-run
@@ -11,12 +11,12 @@ suites: api
 passed: 0
 failed: 1
 skipped: 0
-evidence: C:\Users\chenk-u\AppData\Local\Temp\flow harness-wp7-evidence\changes\harness-self-test-interrupted-run\evidence\summary.md
+evidence: <TEMP_ROOT>\flow harness-wp7-evidence\changes\harness-self-test-interrupted-run\evidence\summary.md
 retained_state: false
 cleanup_command: none
 classification: TEST_HARNESS
 [TEST_HARNESS] runner interrupted
-At C:\Users\chenk-u\AppData\Local\Temp\flow harness-wp7-evidence\scripts\system-test.ps1:63 char:5
+At <TEMP_ROOT>\flow harness-wp7-evidence\scripts\system-test.ps1:63 char:5
 +     throw $message
 +     ~~~~~~~~~~~~~~
     + CategoryInfo          : OperationStopped: ([TEST_HARNESS] runner interrupted:String) [], RuntimeException

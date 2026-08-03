@@ -1,4 +1,4 @@
-﻿# System Test Result
+# System Test Result
 
 - status: BLOCKED
 - change_name: harness-self-test-redis-unavailable
@@ -9,7 +9,7 @@
 - manifest_hash: 8894D031713C8FFA41FE61C75CAD8C4A13B6347D1538F1BE0EA06E850E30BA6A
 - test_revision: unavailable
 - business_revisions: not-declared
-- raw_reports: C:\Users\chenk-u\AppData\Local\Temp\flow harness-wp7-evidence\backend-tests\target\surefire-reports
+- raw_reports: <TEMP_ROOT>\flow harness-wp7-evidence\backend-tests\target\surefire-reports
 - passed: 1
 - failed: 0
 - skipped: 0

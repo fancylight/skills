@@ -8,7 +8,7 @@
 [FLOW_AUTOMATION_RESULT] BLOCKED_FOR_CONTROLLED_ROLLOUT
 ```
 
-WP5 executable harness 与 WP6 controller contract 的源码门禁已通过；WP7 仍不能启用真实需求自动化。阻断项是 PowerShell 7 不可用、三个真实 shadow 与旧流程动作不一致，以及真实 forward runner 候选不满足 canonical Git revision 与 harness certification 前置条件。权威环境记录见 `evidence/flow-automation-wp7/environment-gates.json`。
+WP5 executable harness 与 WP6 controller contract 的源码门禁已通过；WP7 仍不能启用真实需求自动化。阻断项是 PowerShell 7 不可用、三个真实 shadow 与旧流程动作不一致，以及真实 forward runner 候选不满足 canonical Git revision 与 harness certification 前置条件。源码修复后，以下 controlled harness PASS 只属于旧 revision，已明确标记为需重新验证，不能复用为当前 revision 的 rollout 结论。权威环境记录见 `evidence/flow-automation-wp7/environment-gates.json`。
 
 ## 隔离与证据约束
 

@@ -5,7 +5,7 @@
     "exitCode":  1,
     "phase":  "RUNNER_FAILED",
     "classification":  "FIXTURE_ASSERTION",
-    "rawEvidencePath":  "C:\\Users\\chenk-u\\AppData\\Local\\Temp\\flow harness-wp7-evidence\\changes\\harness-self-test-seed-failure\\evidence\\current\\index.md",
+    "rawEvidencePath":  "<TEMP_ROOT>\\flow harness-wp7-evidence\\changes\\harness-self-test-seed-failure\\evidence\\current\\index.md",
     "cleanup":  {
                     "attempted":  true,
                     "succeeded":  true,

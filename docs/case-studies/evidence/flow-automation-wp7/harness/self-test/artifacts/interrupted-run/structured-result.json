@@ -5,7 +5,7 @@
     "exitCode":  1,
     "phase":  "RUNNER_FAILED",
     "classification":  "TEST_HARNESS",
-    "rawEvidencePath":  "C:\\Users\\chenk-u\\AppData\\Local\\Temp\\flow harness-wp7-evidence\\changes\\harness-self-test-interrupted-run\\evidence\\current\\index.md",
+    "rawEvidencePath":  "<TEMP_ROOT>\\flow harness-wp7-evidence\\changes\\harness-self-test-interrupted-run\\evidence\\current\\index.md",
     "cleanup":  {
                     "attempted":  true,
                     "succeeded":  true,

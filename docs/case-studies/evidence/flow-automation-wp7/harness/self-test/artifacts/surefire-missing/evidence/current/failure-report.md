@@ -1,9 +1,9 @@
-﻿# Integration Test Failure Triage
+# Integration Test Failure Triage
 
 - revisions and manifest hash: see ../summary.md
 - JUnit executed: unavailable
 - passed / failed / skipped: 0 / 1 / 0
-- first runner error: Surefire raw reports missing: C:\Users\chenk-u\AppData\Local\Temp\flow harness-wp7-evidence\backend-tests\target\surefire-reports
+- first runner error: Surefire raw reports missing: <TEMP_ROOT>\flow harness-wp7-evidence\backend-tests\target\surefire-reports
 
 ## Failures
 

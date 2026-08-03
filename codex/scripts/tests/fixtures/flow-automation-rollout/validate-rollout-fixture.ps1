@@ -31,6 +31,7 @@ foreach ($property in $cases.batchA.PSObject.Properties) {
 }
 $gates = Get-Content -LiteralPath (Join-Path $repoRoot 'docs\case-studies\evidence\flow-automation-wp7\environment-gates.json') -Raw -Encoding UTF8 | ConvertFrom-Json
 if ($gates.rolloutResult -ne 'BLOCKED_FOR_CONTROLLED_ROLLOUT' -or $gates.realForwardRunner.runnerExecuted -or $gates.powerShell7.available) { throw 'environment gate report does not preserve the real rollout blockers' }
+if (-not $gates.controlledHarnessForward.revalidationRequired -or $gates.controlledHarnessForward.sourceRevisionStatus -ne 'STALE_REQUIRES_REVALIDATION') { throw 'WP7 must mark the previous harness revision as requiring revalidation' }
 $goalEvidence = Get-Content -LiteralPath (Join-Path $repoRoot 'docs\case-studies\evidence\flow-automation-wp7\goal-faults.json') -Raw -Encoding UTF8 | ConvertFrom-Json
 if ($goalEvidence.result -ne 'PASS' -or @($goalEvidence.observations).Count -lt 9) { throw 'isolated goal fault execution evidence is incomplete' }
 $shadowEvidence = Get-Content -LiteralPath (Join-Path $repoRoot 'docs\case-studies\evidence\flow-automation-wp7\shadow\report.json') -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -54,4 +55,6 @@ foreach ($item in @($certification.scenarioEvidence)) {
 if ([string]::IsNullOrWhiteSpace([string]$cases.rollback)) { throw 'rollback description is required' }
 $raw = Get-Content -LiteralPath $path -Raw -Encoding UTF8
 if ($raw -match '(?i)([A-Z]:\\|/Users/|[A-Z]{2,}-\d{4,}|"(?:change|service|project)Name"\s*:)') { throw 'rollout fixture leaked a real locator or case identifier' }
+$evidenceRaw = Get-ChildItem -LiteralPath $evidenceRoot -File -Recurse | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw -Encoding UTF8 }
+if (($evidenceRaw -join "`n") -match '(?i)[A-Z]:\\Users\\[^\\]+\\AppData\\Local\\Temp') { throw 'rollout evidence leaked an absolute temporary path' }
 Write-Output 'flow automation rollout fixture validated'

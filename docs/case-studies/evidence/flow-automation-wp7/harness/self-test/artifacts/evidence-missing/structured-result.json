@@ -5,7 +5,7 @@
     "exitCode":  1,
     "phase":  "RUNNER_FAILED",
     "classification":  "TEST_HARNESS",
-    "rawEvidencePath":  "C:\\Users\\chenk-u\\AppData\\Local\\Temp\\flow harness-wp7-evidence\\changes\\harness-self-test-evidence-missing\\evidence\\current\\index.md",
+    "rawEvidencePath":  "<TEMP_ROOT>\\flow harness-wp7-evidence\\changes\\harness-self-test-evidence-missing\\evidence\\current\\index.md",
     "cleanup":  {
                     "attempted":  true,
                     "succeeded":  true,
@@ -16,6 +16,6 @@
                    "passed":  1,
                    "failed":  0,
                    "skipped":  0,
-                   "raw":  "C:\\Users\\chenk-u\\AppData\\Local\\Temp\\flow harness-wp7-evidence\\backend-tests\\target\\surefire-reports"
+                   "raw":  "<TEMP_ROOT>\\flow harness-wp7-evidence\\backend-tests\\target\\surefire-reports"
                }
 }
