@@ -1,0 +1,26 @@
+doctor passed through controlled harness adapter (orchRoot=C:\Users\chenk-u\AppData\Local\Temp)
+api suite filtered by apiTestFilter: *Test
+[TEST_EVIDENCE_INDEX] PASS
+path: C:\Users\chenk-u\AppData\Local\Temp\flow harness-wp7-evidence\changes\harness-self-test-surefire-missing\evidence\current
+junit: unavailable
+[SYSTEM_TEST_RESULT] FAIL
+change_name: harness-self-test-surefire-missing
+execution_mode: standalone
+flow_completed: false
+suites: api
+passed: 0
+failed: 1
+skipped: 0
+evidence: C:\Users\chenk-u\AppData\Local\Temp\flow harness-wp7-evidence\changes\harness-self-test-surefire-missing\evidence\summary.md
+retained_state: false
+cleanup_command: none
+classification: TEST_HARNESS
+Surefire raw reports missing: C:\Users\chenk-u\AppData\Local\Temp\flow harness-wp7-evidence\backend-tests\target\surefi
+re-reports
+At C:\Users\chenk-u\AppData\Local\Temp\flow harness-wp7-evidence\scripts\system-test.ps1:370 char:31
++ ... rts.Count -eq 0) { throw "Surefire raw reports missing: $reportDir" }
++                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (Surefire raw re...urefire-reports:String) [], RuntimeException
+    + FullyQualifiedErrorId : Surefire raw reports missing: C:\Users\chenk-u\AppData\Local\Temp\flow harness-wp7-evide 
+   nce\backend-tests\target\surefire-reports
+ 

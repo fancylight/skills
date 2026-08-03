@@ -1,0 +1,2 @@
+[DOMAIN_REPLAY_RESULT] PASS
+semantic_verification: replay-contract-only (agent semantic review remains separate)

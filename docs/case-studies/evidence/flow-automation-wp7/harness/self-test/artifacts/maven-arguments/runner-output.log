@@ -1,0 +1,17 @@
+doctor passed through controlled harness adapter (orchRoot=C:\Users\chenk-u\AppData\Local\Temp)
+api suite filtered by apiTestFilter: *Test
+[TEST_EVIDENCE_INDEX] PASS
+path: C:\Users\chenk-u\AppData\Local\Temp\flow harness-wp7-evidence\changes\harness-self-test-maven-arguments\evidence\current
+junit: available
+[SYSTEM_TEST_RESULT] PASS
+change_name: harness-self-test-maven-arguments
+execution_mode: standalone
+flow_completed: false
+suites: api
+passed: 1
+failed: 0
+skipped: 0
+evidence: C:\Users\chenk-u\AppData\Local\Temp\flow harness-wp7-evidence\changes\harness-self-test-maven-arguments\evidence\summary.md
+retained_state: false
+cleanup_command: none
+classification: NONE

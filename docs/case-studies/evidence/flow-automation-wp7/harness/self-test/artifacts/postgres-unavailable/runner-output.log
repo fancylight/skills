@@ -1,0 +1,22 @@
+[TEST_EVIDENCE_INDEX] PASS
+path: C:\Users\chenk-u\AppData\Local\Temp\flow harness-wp7-evidence\changes\harness-self-test-postgres-unavailable\evidence\current
+junit: available
+[SYSTEM_TEST_RESULT] BLOCKED
+change_name: harness-self-test-postgres-unavailable
+execution_mode: standalone
+flow_completed: false
+suites: api
+passed: 1
+failed: 0
+skipped: 0
+evidence: C:\Users\chenk-u\AppData\Local\Temp\flow harness-wp7-evidence\changes\harness-self-test-postgres-unavailable\evidence\summary.md
+retained_state: false
+cleanup_command: none
+classification: CONFIG_INFRA
+[TEST_CONFIGURATION] BLOCKED; STOP_AWAIT_HUMAN_CONFIGURATION; PostgreSQL unavailable
+At C:\Users\chenk-u\AppData\Local\Temp\flow harness-wp7-evidence\scripts\system-test.ps1:63 char:5
++     throw $message
++     ~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: ([TEST_CONFIGURA...SQL unavailable:String) [], RuntimeException
+    + FullyQualifiedErrorId : [TEST_CONFIGURATION] BLOCKED; STOP_AWAIT_HUMAN_CONFIGURATION; PostgreSQL unavailable
+ 

@@ -1,0 +1,59 @@
+[FLOW_GUARD] PASS
+stage: design
+action: write
+command_kind: none
+[FLOW_GUARD] PASS
+stage: design
+action: write
+command_kind: none
+[FLOW_GUARD] PASS
+stage: design
+action: write
+command_kind: none
+[FLOW_GUARD] BLOCKED_SCOPE_VIOLATION
+repo: C:\Users\chenk-u\AppData\Local\Temp\flow-system-test
+path: C:\Users\chenk-u\AppData\Local\Temp\flow-system-test\backend-tests\src\test\java\ExampleTest.java
+authorized_repo: C:\Users\chenk-u\AppData\Local\Temp\flow-system-test
+authorized_paths: changes/*/test-design.md, changes/*/test-plan.md, changes/*/test-cases.yaml, changes/*/test-cases.generated.json, changes/*/manifest.yaml, changes/*/fixtures/*
+command_kind: none
+[FLOW_GUARD] BLOCKED_SCOPE_VIOLATION
+repo: C:\Users\chenk-u\AppData\Local\Temp\flow-system-test
+path: C:\Users\chenk-u\AppData\Local\Temp\flow-system-test
+authorized_repo: C:\Users\chenk-u\AppData\Local\Temp\flow-system-test
+authorized_paths: changes/*/test-design.md, changes/*/test-plan.md, changes/*/test-cases.yaml, changes/*/test-cases.generated.json, changes/*/manifest.yaml, changes/*/fixtures/*
+command_kind: docker
+[FLOW_GUARD] PASS
+stage: apply
+action: test
+command_kind: static
+[FLOW_GUARD] BLOCKED_SCOPE_VIOLATION
+repo: C:\Users\chenk-u\AppData\Local\Temp\flow-system-test
+path: C:\Users\chenk-u\AppData\Local\Temp\flow-system-test
+authorized_repo: C:\Users\chenk-u\AppData\Local\Temp\flow-system-test
+authorized_paths: changes/*/*, backend-tests/*, test-support/*, config/*, scripts/*, infra/*
+command_kind: api
+[FLOW_GUARD] PASS
+stage: review
+action: read
+command_kind: none
+[FLOW_GUARD] BLOCKED_SCOPE_VIOLATION
+repo: C:\Users\chenk-u\AppData\Local\Temp\flow-system-test
+path: C:\Users\chenk-u\AppData\Local\Temp\flow-system-test\changes\example\test-plan.md
+authorized_repo: C:\Users\chenk-u\AppData\Local\Temp\flow-system-test
+authorized_paths: 
+command_kind: none
+[FLOW_GUARD] BLOCKED_SCOPE_VIOLATION
+repo: C:\Users\chenk-u\AppData\Local\Temp\flow-system-test
+path: C:\Users\chenk-u\AppData\Local\Temp\business-service\src\main\java\BusinessService.java
+authorized_repo: C:\Users\chenk-u\AppData\Local\Temp\flow-system-test
+authorized_paths: changes/*/*, backend-tests/*, test-support/*, config/*, scripts/*, infra/*
+command_kind: none
+[FLOW_GUARD] PASS
+stage: execution
+action: write
+command_kind: none
+[FLOW_GUARD] PASS
+stage: execution
+action: test
+command_kind: runner
+test-scope-guard allowed system-test design path and blocked business-repository write.

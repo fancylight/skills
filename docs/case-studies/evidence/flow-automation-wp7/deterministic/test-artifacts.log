@@ -1,0 +1,16 @@
+[TEST_ARTIFACT_GUARD] PASS
+mode: design
+change_name: valid
+[TEST_ARTIFACT_GUARD] ERROR
+- Tool-output wrapper in C:\Users\chenk-u\AppData\Local\Temp\flow-artifact-guard-21cad705cf844f1489e7571299a55e08\changes\invalid\fixtures\cleanup.sql ((?m)^Exit code:)
+- Tool-output wrapper in C:\Users\chenk-u\AppData\Local\Temp\flow-artifact-guard-21cad705cf844f1489e7571299a55e08\changes\invalid\fixtures\cleanup.sql ((?m)^Exit code:)
+- Executable DDL is forbidden in fixture: C:\Users\chenk-u\AppData\Local\Temp\flow-artifact-guard-21cad705cf844f1489e7571299a55e08\changes\invalid\fixtures\cleanup.sql
+[TEST_ARTIFACT_GUARD] ERROR
+- Cleanup DELETE lacks a scoped WHERE predicate: C:\Users\chenk-u\AppData\Local\Temp\flow-artifact-guard-21cad705cf844f1489e7571299a55e08\changes\unsafe-cleanup\fixtures\cleanup.sql
+[TEST_ARTIFACT_GUARD] ERROR
+- Manifest must record testAuthorization: C:\Users\chenk-u\AppData\Local\Temp\flow-artifact-guard-21cad705cf844f1489e7571299a55e08\changes\missing-authorization\manifest.yaml
+- Manifest must declare configurationSource: C:\Users\chenk-u\AppData\Local\Temp\flow-artifact-guard-21cad705cf844f1489e7571299a55e08\changes\missing-authorization\manifest.yaml
+- Manifest must declare requiredEndpoints: C:\Users\chenk-u\AppData\Local\Temp\flow-artifact-guard-21cad705cf844f1489e7571299a55e08\changes\missing-authorization\manifest.yaml
+- Manifest must declare connectivityProbe: C:\Users\chenk-u\AppData\Local\Temp\flow-artifact-guard-21cad705cf844f1489e7571299a55e08\changes\missing-authorization\manifest.yaml
+- Manifest must declare ownership: C:\Users\chenk-u\AppData\Local\Temp\flow-artifact-guard-21cad705cf844f1489e7571299a55e08\changes\missing-authorization\manifest.yaml
+validate-test-artifacts positive and pollution/DDL negative cases passed.
