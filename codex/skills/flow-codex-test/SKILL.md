@@ -35,8 +35,9 @@ change_name: <name>
 result_verify: PASS
 ```
 
-4. runner FAIL 时仍须在 ceiling=`result` 下执行 result verify 的失败证据完整性分支；该分支不得输出 PASS。只有 confirmed 的
-   `SUT_BUSINESS` 可形成独立业务 Flow 输入，其余类别只允许在归属仓形成新 revision；同一 revision 不得重跑。
+4. runner FAIL 时，在 `record-run` 前完成失败 evidence index、原始报告和 failure report 的完整性检查；controller 随后进入
+   `TEST_EXECUTED_FAIL`，`next=BLOCKED`，不得调用 result verifier。只有 confirmed 的 `SUT_BUSINESS` 可形成独立业务 Flow
+   输入，其余类别只允许在归属仓形成新 revision；同一 revision 不得重跑。
 5. runner 或 result verify FAIL/ERROR 时不得勾选 task、不得输出完成；保留 cleanup/阻断指引。
 
 独立调试只能直接调用 system-test 的 `standalone`，其 PASS 不完成 Flow。

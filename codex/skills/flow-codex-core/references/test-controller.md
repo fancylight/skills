@@ -22,6 +22,7 @@
 | `BLOCKED` | 报告阻断并停止 | 所有入口 |
 
 phase 与表中动作不一致时输出 `[FLOW_CONTROLLER] ERROR_TRANSITION` 并停止。`next=BLOCKED` 必须停止；`next=COMPLETE` 才能完成；不得自行选择后续 skill、提升 authorization 或跳过 implementation/environment/result verify。
+runner FAIL 在 `record-run` 前完成失败证据收集与完整性检查，记录后进入 `TEST_EXECUTED_FAIL` / `next=BLOCKED`；不得把失败运行送入只接受 PASS 的 result verifier。
 
 ## Lease 与结构化结果
 

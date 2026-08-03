@@ -41,9 +41,10 @@ system-test change 的 manifest 读取。缺失、与用户授权不一致或由
    -DerivedContractPath <test-cases.generated.json> -TestPlanPath <test-plan> -JavaSourceRoot <java root> -EvidenceRoot <evidence root>`
    校验每个 Java 测试方法以稳定 ID 绑定且无未知、重复或类/方法漂移，
    并重新核验 sidecar/manifest/report/evidence 的 canonical revision 与 source hash；提供 EvidenceRoot 时普通与外部证据均须存在。
-3. `result`：读取 implementation PASS、runner 原始报告、evidence、根 `集成测试.md`、manifest 与业务/测试 revision。
-   按 TR.1–TR.8 验证计数、必需 suite、cleanup、SQL evidence 与结果记录一致。runner FAIL 时绝不输出 result PASS；
-   必须验证 `evidence/current/index.md`、`failure-report.md`、原始报告、计数与场景/日志/桩关联。缺任一关键证据输出
+3. `result`：只在 controller `next=VERIFY_RESULT`（即已记录 runner PASS）时读取 implementation PASS、runner 原始报告、
+   evidence、根 `集成测试.md`、manifest 与业务/测试 revision，按 TR.1–TR.8 验证计数、必需 suite、cleanup、SQL evidence
+   与结果记录一致。runner FAIL 的 evidence index、failure report、原始报告与归因完整性必须在 `record-run` 前检查；记录后
+   controller `next=BLOCKED`，不得调用本模式或输出 result PASS。缺任一关键证据须在记录运行前输出
    `[TEST_EVIDENCE_INCOMPLETE] ERROR`，结论只能是 `UNDETERMINED`，不得提升为业务缺陷。
 
 `verify_mode: result` 还要求 `testAuthorization.ceiling=result`；若仅授权 execution，只保留 runner evidence 并输出

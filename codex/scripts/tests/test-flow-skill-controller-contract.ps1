@@ -26,4 +26,8 @@ $goal = Get-Content -LiteralPath (Join-Path $skillsRoot 'flow-codex-core\referen
 foreach ($marker in @('next=BLOCKED','next=COMPLETE','controller next','Goal')) {
   if (-not $goal.Contains($marker)) { throw "Goal protocol marker missing: $marker" }
 }
+$orchestrator = Get-Content -LiteralPath (Join-Path $skillsRoot 'flow-codex-test\SKILL.md') -Raw -Encoding UTF8
+if (-not $orchestrator.Contains('TEST_EXECUTED_FAIL') -or -not $orchestrator.Contains('next=BLOCKED')) {
+  throw 'runner FAIL must stop at controller BLOCKED without result verifier'
+}
 Write-Output 'flow test skills consume the controller/lease/Goal contract'
