@@ -240,7 +240,8 @@ switch ($Command) {
     'status' { $state | ConvertTo-Json -Depth 16; exit 0 }
     'next' {
         $next = @{ TEST_DESIGN_DRAFT='VERIFY_DESIGN'; TEST_DESIGN_VERIFIED='ISSUE_IMPLEMENTATION_LEASE'; TEST_IMPLEMENTING='AWAIT_IMPLEMENTATION_RESULT'; TEST_IMPLEMENTED='VERIFY_IMPLEMENTATION'; TEST_IMPLEMENTATION_VERIFIED='VERIFY_ENVIRONMENT'; TEST_ENVIRONMENT_VERIFIED='RUN_ONCE'; TEST_EXECUTING='AWAIT_RUN_RESULT'; TEST_EXECUTED_PASS='VERIFY_RESULT'; TEST_EXECUTED_FAIL='BLOCKED'; TEST_RESULT_VERIFIED='COMPLETE'; BLOCKED='BLOCKED' }[$state.phase]
-        Write-Output '[FLOW_CONTROLLER] PASS'; Write-Output "next: $next"; exit 0
+        $skill = @{ VERIFY_DESIGN='flow-codex-test-verify'; ISSUE_IMPLEMENTATION_LEASE='flow-codex-test-assign'; AWAIT_IMPLEMENTATION_RESULT='flow-codex-test-receive/apply/report'; VERIFY_IMPLEMENTATION='flow-codex-test-verify'; VERIFY_ENVIRONMENT='flow-codex-test'; RUN_ONCE='flow-codex-system-test'; AWAIT_RUN_RESULT='flow-codex-system-test'; VERIFY_RESULT='flow-codex-test-verify'; COMPLETE='flow-codex-test'; BLOCKED='none' }[$next]
+        Write-Output '[FLOW_CONTROLLER] PASS'; Write-Output "phase: $($state.phase)"; Write-Output "next: $next"; Write-Output "skill: $skill"; Write-Output "lease_required: $($next -in @('ISSUE_IMPLEMENTATION_LEASE','AWAIT_IMPLEMENTATION_RESULT'))"; exit 0
     }
     'issue-lease' {
         if ($state.phase -ne 'TEST_DESIGN_VERIFIED' -or $Role -ne 'test-implementer') { Stop-Controller 'ERROR_TRANSITION' 'implementation lease requires TEST_DESIGN_VERIFIED' }

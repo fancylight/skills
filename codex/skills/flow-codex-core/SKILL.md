@@ -11,6 +11,7 @@ description: Codex Flow 适配层的内部公共资源和平台规则。仅在�
 
 - 执行任何公开 `flow-codex-*` skill 前，读取 `references/platform.md`。
 - 派发、编码、审核或汇报时，读取 `references/checkpoints.md`。
+- 执行任一集成测试 skill 或持续 Goal 时，读取 `references/test-controller.md`。
 - 从 `assets/templates/` 加载模板。所有路径均相对于当前 skill 目录。
 
 ## 平台规则

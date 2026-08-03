@@ -1,4 +1,4 @@
 interface:
   display_name: "Flow 集成测试接收"
-  short_description: "加载 st-api spec 与 manifest 到执行 agent"
-  default_prompt: "接收 system-test 集成测试任务。"
+  short_description: "验证 controller lease 并加载 st-api spec"
+  default_prompt: "使用 $flow-codex-test-receive 验证活动 lease 并接收 system-test 任务。"

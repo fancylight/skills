@@ -10,6 +10,8 @@
 
 ### Added
 
+- **可验证集成测试控制器接入**：公开 test skills 统一读取 canonical controller state 与 `next`；实现派发、receive/apply/report 使用受控 lease，verifier 和 runner 只以绑定 revision/configuration 的结构化结果推进状态。持续 Goal 每轮只能执行 controller 返回的一个动作，不能自行跨级、提升授权、恢复或重跑。
+
 - **集成测试 Flow 收口与配置停止**：移除独立运行前 skill 与 READY 凭据；设计阶段声明用户确认的配置来源、必需端点、
   最小只读探针和归属。implementation verify 保留静态检查；runner 仅在 implementation PASS、execution 授权、配置探针
   成功及 revision 一致时执行一次。失败统一停止分类，不自动修复配置、测试或业务仓。

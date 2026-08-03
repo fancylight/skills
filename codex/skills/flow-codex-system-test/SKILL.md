@@ -5,7 +5,7 @@ description: 使用 system-test manifest runner 执行 Flow change 的 API/UI/E2
 
 # Codex Flow 系统测试执行
 
-读取 core platform、runtime-contract 和 local-pitfalls。不得修改业务服务代码、整体 mock SUT，或操作 manifest
+读取 core platform、`../flow-codex-core/references/test-controller.md`、runtime-contract 和 local-pitfalls。不得修改业务服务代码、整体 mock SUT，或操作 manifest
 预留 ID 外的数据。
 
 ## 输入与定位
@@ -17,6 +17,8 @@ description: 使用 system-test manifest runner 执行 Flow change 的 API/UI/E2
 并输出 `STOP_AWAIT_USER_AUTHORIZATION`。解析根 config、概要设计、manifest、test-design、test-plan 与 system-test 仓。
 
 ## 执行
+
+orchestrated 模式先要求 controller `next=RUN_ONCE`，验证当前 harness certification 后调用 `start-run`；只有 controller 已原子持久化 `TEST_EXECUTING` 才运行 manifest 唯一命令。结束后要求 `next=AWAIT_RUN_RESULT`，以当前 active run 的 revision/configuration 和原始 evidence 调用一次 `record-run`。start/record 任一步失败都不运行或重跑。standalone 模式不写 controller state，也不完成 Flow。
 
 1. 在 ceiling>=execution 且 implementation PASS 后，在测试仓执行 scope guard（写入仅限 evidence；运行命令按
    health/service/api/runner 传入对应 `-Action test -CommandKind`），再执行设计声明的最小健康检查，
@@ -32,7 +34,7 @@ description: 使用 system-test manifest runner 执行 Flow change 的 API/UI/E2
 ## 结果
 
 ```text
-[SYSTEM_TEST_RESULT] PASS | FAIL
+[SYSTEM_TEST_RESULT] PASS | FAIL | BLOCKED
 change_name: <name>
 execution_mode: orchestrated | standalone
 flow_completed: false

@@ -1,4 +1,4 @@
 interface:
   display_name: "Flow 系统测试执行"
-  short_description: "运行 system-test runner 并收集证据"
-  default_prompt: "使用 manifest 对 Flow change 执行系统测试。"
+  short_description: "按 controller 单次授权运行认证 harness"
+  default_prompt: "使用 $flow-codex-system-test 在 controller 授权后运行一次认证 harness 并收集证据。"

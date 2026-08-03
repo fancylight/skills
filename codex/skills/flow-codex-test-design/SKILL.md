@@ -6,10 +6,13 @@ description: 在业务代码已审核提交后，基于概要设计验收、as-b
 # Codex Flow 集成测试设计
 
 作为根编排 agent 执行。读取 `../flow-codex-core/references/platform.md`、
+`../flow-codex-core/references/test-controller.md`、
 `references/manifest-checklist.md`、`references/scaffold.md` 和已安装模板中的
 `test-design.md.tmpl`、`test-plan.md.tmpl`。
 
 ## 硬前置与输入
+
+先解析 canonical `.flow/changes/<change_name>/automation-state.yaml`。若 state 已存在，只有 controller `next` 与当前动作相容时才继续；若不存在，可完成 design 产物并形成可提交 design revision，然后以用户明确授权 ceiling、固定 SUT/harness revision、harness certification 和 configuration fingerprint 执行唯一一次 `initialize`。不得自行写 state。
 
 1. 要求根角色为 `orchestrator` 与明确的 `change_name`。以 system-test change 的 `manifest.yaml.testAuthorization`
    作为等价测试状态；首次设计时依据用户本轮明确授权初始化为 `ceiling: design`。不得修改根 task/progress 来

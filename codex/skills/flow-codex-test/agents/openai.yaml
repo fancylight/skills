@@ -1,4 +1,4 @@
 interface:
   display_name: "Flow 集成测试执行"
-  short_description: "运行 system-test runner 并记录结果"
-  default_prompt: "执行业务 verify 与 test-design 完成后的 Flow 集成测试。"
+  short_description: "按 controller next 编排 runner 与最终验证"
+  default_prompt: "使用 $flow-codex-test 按 controller 返回的唯一下一动作编排 Flow 集成测试。"

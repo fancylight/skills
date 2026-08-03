@@ -245,7 +245,7 @@ foreach ($harnessFile in @($harnessCertifier, $harnessSelfTest)) {
     if ($parseErrors.Count -gt 0) { $errors += "PowerShell parse error in harness certification component: $harnessFile" }
 }
 
-@('test-validate-test-artifacts.ps1', 'test-test-scope-guard.ps1', 'test-distributable-surface.ps1', 'test-collect-failure-evidence.ps1', 'test-validate-domain-artifact.ps1', 'test-design-domain-gate.ps1', 'test-domain-fact-propagation.ps1', 'test-domain-verifier-replay.ps1', 'test-flow-test-controller.ps1', 'test-validate-test-cases.ps1', 'test-harness-certification.ps1') | ForEach-Object {
+@('test-validate-test-artifacts.ps1', 'test-test-scope-guard.ps1', 'test-distributable-surface.ps1', 'test-collect-failure-evidence.ps1', 'test-validate-domain-artifact.ps1', 'test-design-domain-gate.ps1', 'test-domain-fact-propagation.ps1', 'test-domain-verifier-replay.ps1', 'test-flow-test-controller.ps1', 'test-flow-skill-controller-contract.ps1', 'test-validate-test-cases.ps1', 'test-harness-certification.ps1') | ForEach-Object {
     if (-not (Test-Path -LiteralPath (Join-Path $scriptDir "scripts\tests\$_"))) {
         $label = if ($_ -match '(?i)domain') { 'domain artifact' } elseif ($_ -match '(?i)flow-test-controller') { 'flow controller' } else { 'integration-test guard' }
         $errors += "Missing $label test script: $_"
@@ -253,6 +253,8 @@ foreach ($harnessFile in @($harnessCertifier, $harnessSelfTest)) {
 }
 
 $workflowMarkers = @(
+    @{ File = "flow-codex-core\references\test-controller.md"; Marker = "next=BLOCKED" },
+    @{ File = "flow-codex-core\references\test-controller.md"; Marker = "validate-lease" },
     @{ File = "flow-codex-test-design\SKILL.md"; Marker = "TDD.1" },
     @{ File = "flow-codex-test-design\SKILL.md"; Marker = "authorization_ceiling" },
     @{ File = "flow-codex-test-design\SKILL.md"; Marker = "failureObservability" },

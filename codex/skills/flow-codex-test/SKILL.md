@@ -5,9 +5,11 @@ description: 在测试实现生命周期独立验证后编排 Flow 集成测试 
 
 # Codex Flow 集成测试编排
 
-作为根编排 agent 执行。读取 core platform 与 `integration-test-result.md.tmpl`。
+作为根编排 agent 执行。读取 core platform、`../flow-codex-core/references/test-controller.md` 与 `integration-test-result.md.tmpl`。
 
 ## 前置（硬门禁）
+
+每轮只执行 controller `next` 返回的一个动作。`BLOCKED` 立即停止，`COMPLETE` 才输出完成；不得根据本文步骤、用户“尽量完成”或 skill 建议自行选择后续 skill。`VERIFY_ENVIRONMENT` 时只消费认证 harness 对固定 configuration source 的结构化 PASS 并调用 `record-verifier -VerifyMode environment`；`RUN_ONCE` 才委托 system-test。
 
 1. 根角色为 `orchestrator`，并提供 `change_name`。
 2. `flow-codex-verify` 全量 §A+§B 无 ERROR。

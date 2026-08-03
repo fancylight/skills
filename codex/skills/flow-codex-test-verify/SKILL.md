@@ -7,9 +7,12 @@ description: 只读验证 Flow 集成测试的 canonical test-cases、派生 sid
 
 作为根编排 agent 或独立只读审核 agent 执行。读取
 `../flow-codex-core/references/platform.md`、[检查清单](references/test-verify-checklist.md)
+、`../flow-codex-core/references/test-controller.md`
 及其指向的共享模板。
 
 ## 输入与边界
+
+首先读取 controller `status`/`next`。design、implementation、result 分别只接受 `VERIFY_DESIGN`、`VERIFY_IMPLEMENTATION`、`VERIFY_RESULT`；phase 不匹配立即 ERROR。验证 PASS 后只向 controller 提交绑定 identity、mode、test/SUT/harness revision、configuration fingerprint 与安全 summary 的结构化报告，由 `record-verifier` 决定是否提升 phase；本 skill 不直接改 state。
 
 要求提供 `change_name` 与 `verify_mode`（`design`、`implementation` 或 `result`）；当前 `testAuthorization` 从
 system-test change 的 manifest 读取。缺失、与用户授权不一致或由流程自行提升均为 ERROR。

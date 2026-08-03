@@ -11,6 +11,8 @@
 - 允许写入：`{authorized_paths}`；唯一允许仓库：`{service_path}`
 - 禁止命令：`{forbidden_commands}`；审核身份/轮次：`{review_identity}` / `{review_round}`
 - capability fingerprint：`{capability_fingerprint}`（不一致即 stale，停止并要求根 agent interrupt）
+- controller state：`{controller_state_path}`；lease：`{lease_id}`；agent：`{agent_id}`
+- implementation base revision：`{implementation_base_revision}`；expires：`{lease_expires_at}`
 
 ## 启动要求
 
@@ -22,6 +24,8 @@
 
 缺少任意 skill 时，在进度文件追加 `[BOOTSTRAP] flow-codex test skills 不可用`，然后停止。
 
+启动后先读取 controller `status`/`next`，必须为 `AWAIT_IMPLEMENTATION_RESULT`，再用 `validate-lease` 核验本 prompt 的 leaseId、agentId、repository、目标路径和 capability。任何字段不匹配、过期或 controller 不可用时停止；不得根据 prompt 自造或扩大租约。
+
 ## 固定流程
 
 严格执行：
@@ -29,6 +33,7 @@
 `flow-codex-test-receive -> flow-codex-test-apply -> flow-codex-test-report`
 
 每个阶段向进度文件追加一行状态。不要写思考过程。
+每次写入、静态校验或提交前重新执行 `validate-lease`；controller 未接受 proposed revision 前不得返回完成。
 
 **测试设计权威**：`{service_path}/changes/{change_name}/test-design.md`、`test-plan.md` 与 `manifest.yaml`。**不使用 OpenSpec**。
 

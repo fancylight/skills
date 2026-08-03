@@ -5,9 +5,11 @@ description: 将 st-api 集成测试 spec 加载到 config 中 type=system-test 
 
 # Codex Flow 集成测试接收
 
-读取 `../flow-codex-core/references/platform.md`。
+读取 `../flow-codex-core/references/platform.md` 和 `../flow-codex-core/references/test-controller.md`。
 
 ## 输入
+
+先要求 controller `next=AWAIT_IMPLEMENTATION_RESULT`，并用 `validate-lease` 核验 leaseId、agentId、role、canonical repository、目标路径与 `read` capability。无活动租约、过期或不匹配时停止，不能只凭 assign prompt 继续。
 
 要求提供 `root_path`、`change_name`、`spec_id`（`st-api-<change_name>`）、authorization ceiling、唯一
 system-test repo/path allowlist 和 capability fingerprint。优先使用编排 agent 传入的值；缺一项或 ceiling<implementation

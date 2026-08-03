@@ -1,4 +1,4 @@
 interface:
   display_name: "Flow 集成测试汇报"
-  short_description: "更新 task.md 中的 st-api 完成状态"
-  default_prompt: "汇报 system-test 集成测试代码完成情况。"
+  short_description: "提交结构化实现结果并更新 st-api 状态"
+  default_prompt: "使用 $flow-codex-test-report 让 controller 接受实现 revision 后汇报完成。"

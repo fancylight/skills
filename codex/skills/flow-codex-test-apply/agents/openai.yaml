@@ -1,4 +1,4 @@
 interface:
   display_name: "Flow 集成测试编码"
-  short_description: "在 system-test 服务编写 JUnit 与 fixtures"
-  default_prompt: "实现 manifest 与 test-plan 定义的集成测试代码。"
+  short_description: "在受控 lease 内编写 JUnit 与 fixtures"
+  default_prompt: "使用 $flow-codex-test-apply 在 controller lease 范围内实现集成测试代码。"

@@ -498,6 +498,8 @@ runner 无论 PASS 或 FAIL 都生成 `evidence/current/index.md`；FAIL 还生�
 
 Harness 认证产物为结构化 JSON，至少包含 `schemaVersion`、`result=PASS`、`harnessVersion`、`harnessRevision`、`selfTestReportHash` 和受控 `files[]`（`path`、`sha256`）。controller 初始化与 runner 启动都必须验证认证绑定的实际文件；文件、revision 或 version 漂移后旧认证立即失效。配置契约的 `source` 是唯一来源，`ownership=human` 失败时状态只能进入 BLOCKED，`ownership=harness` 才能路由到独立平台修复。
 
+公开测试 skill 必须从 canonical state 调用 controller `status`/`next`。`next` 输出当前 `phase`、唯一 `next`、对应 `skill` 和 `lease_required`；Goal 每轮只执行该动作一次。实现 agent 只消费 controller 签发的 lease，并在每次写入前验证 agent、role、capability、repository、path、base revision 与过期时间。skill 文案、manifest 或 agent 口述不得改变 state。
+
 ```yaml
 schemaVersion: 1
 changeName: string

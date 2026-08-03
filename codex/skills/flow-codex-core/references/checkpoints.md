@@ -79,3 +79,6 @@ system-test 执行 agent 遵循：
 已核验配置契约及最小只读探针，才可在用户 ceiling>=execution 时运行 runner；runner 后必须经 result verify PASS，才可完成集成测试 Flow。外部 evidence 缺失只能记录
 `[TEST_EXTERNAL_EVIDENCE] BLOCKED`，不得自动写 owning repo。创建 agent 时记录 capability fingerprint
 （sandboxMode/approvalPolicy/dockerAvailable/networkAvailable）；根环境变化时旧 agent 为 stale，必须 interrupt 而非恢复。
+
+集成测试的 machine phase、revision、authorization 和下一动作以
+[`test-controller.md`](test-controller.md) 为唯一运行协议。所有公开 test skills 先读取 controller `status`/`next`；实现 agent 的 receive/apply/report 每次写入前还必须验证同一活动 lease。Goal 只能执行 controller 返回的一个动作，不能按本文的叙述顺序自行跨阶段推进。

@@ -5,9 +5,11 @@ description: 向 system-test 仓派发 st-api 集成测试 spec。仅在当前�
 
 # Codex Flow 集成测试派发
 
-作为根编排 agent 执行。读取 core platform、checkpoints、scheduler 与 test-child-agent-prompt。
+作为根编排 agent 执行。读取 core platform、checkpoints、`../flow-codex-core/references/test-controller.md`、scheduler 与 test-child-agent-prompt。
 
 ## 派发前检查
+
+先要求 controller `next=ISSUE_IMPLEMENTATION_LEASE`；任何其他 phase 都拒绝。通过 controller `issue-lease` 签发唯一 test-implementer lease 后才创建 agent，prompt 必须逐字段使用 controller 返回值，不得自造 lease、allowlist 或 capability。
 
 1. 根角色为 `orchestrator`，并提供 `change_name`。
 2. `flow-codex-verify` 全量 §A+§B 无 ERROR。
