@@ -1,0 +1,140 @@
+{
+    "schemaVersion":  1,
+    "result":  "PASS",
+    "runtime":  "Windows PowerShell",
+    "generatedAt":  "2026-08-03T03:36:55.1852651Z",
+    "tests":  [
+                  {
+                      "id":  "domain-validator",
+                      "script":  "codex/scripts/tests/test-validate-domain-artifact.ps1",
+                      "scriptHash":  "5a26e7755f0b07c25000dbf312964b8e78bb26cfbf76775e87a93c3ca909bb74",
+                      "startedAt":  "2026-08-03T03:35:22.9678724Z",
+                      "completedAt":  "2026-08-03T03:35:24.4003072Z",
+                      "exitCode":  0,
+                      "result":  "PASS",
+                      "log":  "domain-validator.log",
+                      "logHash":  "f93efd94cc32183d083da960105533b87d02fb033927cf304bab2b4ff2db6785"
+                  },
+                  {
+                      "id":  "domain-replay",
+                      "script":  "codex/scripts/tests/test-domain-verifier-replay.ps1",
+                      "scriptHash":  "660bf92dc6c08eaccb6974744ede5aa2cf6e4bb120079714a3d4366ba15594d0",
+                      "startedAt":  "2026-08-03T03:35:24.4078776Z",
+                      "completedAt":  "2026-08-03T03:35:24.8068208Z",
+                      "exitCode":  0,
+                      "result":  "PASS",
+                      "log":  "domain-replay.log",
+                      "logHash":  "d21b1426902d185612a34665951f94b2ce007940f773f59d0055096283570025"
+                  },
+                  {
+                      "id":  "fact-propagation",
+                      "script":  "codex/scripts/tests/test-domain-fact-propagation.ps1",
+                      "scriptHash":  "ed5859851ce76ac222be2a6f3fe9924a62c3932e86b8391560a672373c5382c0",
+                      "startedAt":  "2026-08-03T03:35:24.8078225Z",
+                      "completedAt":  "2026-08-03T03:35:25.0855589Z",
+                      "exitCode":  0,
+                      "result":  "PASS",
+                      "log":  "fact-propagation.log",
+                      "logHash":  "8f335fc0761249d3872243748c351e5478939e68e9c4c340bf54cc8594870ec3"
+                  },
+                  {
+                      "id":  "design-domain-gate",
+                      "script":  "codex/scripts/tests/test-design-domain-gate.ps1",
+                      "scriptHash":  "ae13a6dcd82184e1f7307ea0804105a39311283633621fc65e340e7cd936e184",
+                      "startedAt":  "2026-08-03T03:35:25.0865544Z",
+                      "completedAt":  "2026-08-03T03:35:25.3695344Z",
+                      "exitCode":  0,
+                      "result":  "PASS",
+                      "log":  "design-domain-gate.log",
+                      "logHash":  "c6cb816ddc2d5f7af34f41aa10f112ff30803929ae96db8f7d9fb50087ff3095"
+                  },
+                  {
+                      "id":  "canonical-test-cases",
+                      "script":  "codex/scripts/tests/test-validate-test-cases.ps1",
+                      "scriptHash":  "8ee1ec12459c75b3d0ccdea99edb642a423e9b4726b6e338cdce20b98da32d75",
+                      "startedAt":  "2026-08-03T03:35:25.3705267Z",
+                      "completedAt":  "2026-08-03T03:35:27.6629717Z",
+                      "exitCode":  0,
+                      "result":  "PASS",
+                      "log":  "canonical-test-cases.log",
+                      "logHash":  "37f8fba123aa417bc5c6efabaac4b77b0727423ec2a4ea1ac5567c25a308b334"
+                  },
+                  {
+                      "id":  "test-artifacts",
+                      "script":  "codex/scripts/tests/test-validate-test-artifacts.ps1",
+                      "scriptHash":  "fbacbd2a54b0e506e796680f8b723bfc113f558ca7280aff6deed02d2c84a3d5",
+                      "startedAt":  "2026-08-03T03:35:27.6639715Z",
+                      "completedAt":  "2026-08-03T03:35:31.3140966Z",
+                      "exitCode":  0,
+                      "result":  "PASS",
+                      "log":  "test-artifacts.log",
+                      "logHash":  "9e5a7b755a94986d651fb6871571d501bd4a0afd8211dddee2d16a3ace068424"
+                  },
+                  {
+                      "id":  "controller",
+                      "script":  "codex/scripts/tests/test-flow-test-controller.ps1",
+                      "scriptHash":  "7c821addfc53ff0efe213f3dff7ffd23e33bb20222d4baa8b3070e41de6e75de",
+                      "startedAt":  "2026-08-03T03:35:31.3156539Z",
+                      "completedAt":  "2026-08-03T03:36:16.1920056Z",
+                      "exitCode":  0,
+                      "result":  "PASS",
+                      "log":  "controller.log",
+                      "logHash":  "d962f4c6f99af1f0d1d1589332d325e667af768a8321130700be5dd1cf737c9c"
+                  },
+                  {
+                      "id":  "harness",
+                      "script":  "codex/scripts/tests/test-harness-certification.ps1",
+                      "scriptHash":  "fdcbda4cde75c74e0c831f6ea1ed41e4a8066a30c7bf8f940e9f62e8e01df5ac",
+                      "startedAt":  "2026-08-03T03:36:16.1930057Z",
+                      "completedAt":  "2026-08-03T03:36:50.4918676Z",
+                      "exitCode":  0,
+                      "result":  "PASS",
+                      "log":  "harness.log",
+                      "logHash":  "5c65eb53956d87317a51c31ebca9bd46c49cb074804ee34e3bf28dc7ed18ee51"
+                  },
+                  {
+                      "id":  "skill-contract",
+                      "script":  "codex/scripts/tests/test-flow-skill-controller-contract.ps1",
+                      "scriptHash":  "4b0a113cd32e6362c870121124cd317aa553a8a640ff02429eb4fccd2ad8b351",
+                      "startedAt":  "2026-08-03T03:36:50.4928675Z",
+                      "completedAt":  "2026-08-03T03:36:50.7835858Z",
+                      "exitCode":  0,
+                      "result":  "PASS",
+                      "log":  "skill-contract.log",
+                      "logHash":  "d2d768ba14475dc86512118f62537db4d2469523db7dee4305ae4ade5dc26d1f"
+                  },
+                  {
+                      "id":  "scope-guard",
+                      "script":  "codex/scripts/tests/test-test-scope-guard.ps1",
+                      "scriptHash":  "a994eaf2677798515e0ea51991ac1f78fd4db817200c6ba17d8c4b076ee891c3",
+                      "startedAt":  "2026-08-03T03:36:50.7845912Z",
+                      "completedAt":  "2026-08-03T03:36:54.2357925Z",
+                      "exitCode":  0,
+                      "result":  "PASS",
+                      "log":  "scope-guard.log",
+                      "logHash":  "00d9b18f8a6e3884d1a11faa6ab1339fb03de04e1e7bba66fff15086e017c4af"
+                  },
+                  {
+                      "id":  "distributable-surface",
+                      "script":  "codex/scripts/tests/test-distributable-surface.ps1",
+                      "scriptHash":  "0a827f8878ba71aff49952276ed306e37d1b6def5c4ff55122437ae6f722cec6",
+                      "startedAt":  "2026-08-03T03:36:54.2367410Z",
+                      "completedAt":  "2026-08-03T03:36:54.4547334Z",
+                      "exitCode":  0,
+                      "result":  "PASS",
+                      "log":  "distributable-surface.log",
+                      "logHash":  "8cbd71489e6be151e8fd5597ab5d022bd52b9ebf59fd093e439deecd10fdd6d2"
+                  },
+                  {
+                      "id":  "failure-evidence",
+                      "script":  "codex/scripts/tests/test-collect-failure-evidence.ps1",
+                      "scriptHash":  "2996cf9f9350bc91238ae7d3186d218895ecc412f018ad1e49d53b9dcf662ebf",
+                      "startedAt":  "2026-08-03T03:36:54.4567437Z",
+                      "completedAt":  "2026-08-03T03:36:55.1782420Z",
+                      "exitCode":  0,
+                      "result":  "PASS",
+                      "log":  "failure-evidence.log",
+                      "logHash":  "8104893d32047bf4f1f033bef0e66328c535306bf04875ba6987208dad65a5cd"
+                  }
+              ]
+}

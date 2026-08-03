@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-08-03T03:35:00Z",
+  "powerShell7": {
+    "command": "where.exe pwsh.exe",
+    "exitCode": 1,
+    "available": false,
+    "result": "BLOCKED"
+  },
+  "shadow": {
+    "observations": 3,
+    "realChanges": true,
+    "readOnly": true,
+    "allPreparedActionsConsistent": false,
+    "evidence": "shadow/report.json",
+    "result": "BLOCKED"
+  },
+  "isolatedGoalFaults": {
+    "persistentProductGoalUsed": false,
+    "isolatedPersistentLoopExecuted": true,
+    "evidence": "goal-faults.json",
+    "result": "PASS"
+  },
+  "realForwardRunner": {
+    "candidateExists": true,
+    "configurationExists": true,
+    "configurationFingerprint": "853cb1a62d8d3370f212f1986302dad60a7b354bffaf0289624f8a21a51077cd",
+    "canonicalGitRepository": false,
+    "harnessCertifierExists": false,
+    "harnessCertificationExists": false,
+    "runnerExecuted": false,
+    "stopReason": "The real candidate cannot satisfy canonical revision and certified harness preconditions.",
+    "result": "BLOCKED"
+  },
+  "controlledHarnessForward": {
+    "runnerEntryExecuted": true,
+    "scenarioCount": 14,
+    "certificationVerified": true,
+    "realSutSubstitute": false,
+    "evidence": "harness/self-test/result.json",
+    "result": "PASS"
+  },
+  "rolloutResult": "BLOCKED_FOR_CONTROLLED_ROLLOUT"
+}

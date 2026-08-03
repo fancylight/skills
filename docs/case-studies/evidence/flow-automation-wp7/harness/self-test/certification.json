@@ -1,0 +1,508 @@
+{
+    "schemaVersion":  2,
+    "result":  "PASS",
+    "harnessVersion":  "wp7",
+    "harnessRevision":  "956bac6991c0725b4c05c1d0ea4b73f46e188a2b4318b4279c0039df709d7d67",
+    "selfTestReportPath":  "self-test/result.json",
+    "selfTestReportHash":  "e6672d409351adbbed47929aaaece488597e8e07b3f40fba1d9f572b89aaea21",
+    "files":  [
+                  {
+                      "path":  "scripts/system-test.ps1",
+                      "sha256":  "4b7f3447cf9e753295b67eba97b2a16ca5b3b36923aa4b2d27602128e4a6b927"
+                  },
+                  {
+                      "path":  "scripts/collect-failure-evidence.ps1",
+                      "sha256":  "3f0a33219d334fd8f1deb81518646dc68b19e368cc8ee3f2726c6470f01d29ea"
+                  },
+                  {
+                      "path":  "scripts/harness-certification.ps1",
+                      "sha256":  "0e29308d2a839c9b2fa8e8d43fb2fed986e46de2f8792b17fa8ea1e859f5c53e"
+                  },
+                  {
+                      "path":  "self-test/invoke-harness-self-test.ps1",
+                      "sha256":  "e2b8bfc14cd036b5200c3184d33ff9745a6d35970849b07d5a4ebc35849c8627"
+                  },
+                  {
+                      "path":  "self-test/harness-self-test-adapter.ps1",
+                      "sha256":  "0ed99d4125ef4ca1725c972382856a3b45c33dbb4cafb8633a6fad80c7765ebe"
+                  }
+              ],
+    "scenarioEvidence":  [
+                             {
+                                 "scenarioId":  "normal-run",
+                                 "path":  "self-test/artifacts/normal-run/evidence/current/index.md",
+                                 "sha256":  "670ea7adbe78fb4477277e4cf026d3b7b9f98b0acc68212ccd9c7f14a398b30d"
+                             },
+                             {
+                                 "scenarioId":  "normal-run",
+                                 "path":  "self-test/artifacts/normal-run/evidence/current/junit/TEST-HarnessSelfTest.xml",
+                                 "sha256":  "d310e390b513997b88f901ced0552429879efa13ce3f845a2a72527d642bf0d5"
+                             },
+                             {
+                                 "scenarioId":  "normal-run",
+                                 "path":  "self-test/artifacts/normal-run/evidence/summary.md",
+                                 "sha256":  "f8f3b78c40bc34d00faeb199aabc088e809e29e05e2a4bf3e2a442386d6d84aa"
+                             },
+                             {
+                                 "scenarioId":  "normal-run",
+                                 "path":  "self-test/artifacts/normal-run/runner-output.log",
+                                 "sha256":  "e1e11c0935851bbaf51cbbfcbe510be63df87495151124226dcbe5d3a0aab99d"
+                             },
+                             {
+                                 "scenarioId":  "normal-run",
+                                 "path":  "self-test/artifacts/normal-run/runtime/raw/runner.json",
+                                 "sha256":  "5537521df5a662c6409aedce24ee716c17c2474cc763b3f18e37656e37b6b93c"
+                             },
+                             {
+                                 "scenarioId":  "normal-run",
+                                 "path":  "self-test/artifacts/normal-run/structured-result.json",
+                                 "sha256":  "517997c6f9195c0ecc46e647cea9d83730a4078bf9d0058696b5ca88b80cd9d0"
+                             },
+                             {
+                                 "scenarioId":  "sut-startup-failure",
+                                 "path":  "self-test/artifacts/sut-startup-failure/evidence/current/failure-report.md",
+                                 "sha256":  "719f93f3927ee79f2b8ec98c558476b997b87c27c54ecad937aa6a9ae823c243"
+                             },
+                             {
+                                 "scenarioId":  "sut-startup-failure",
+                                 "path":  "self-test/artifacts/sut-startup-failure/evidence/current/index.md",
+                                 "sha256":  "bfb2c1b4fa0bbeb4324293dceca90076b46d4a21b5e314f58fb3a44bc918efd9"
+                             },
+                             {
+                                 "scenarioId":  "sut-startup-failure",
+                                 "path":  "self-test/artifacts/sut-startup-failure/evidence/current/junit/TEST-HarnessSelfTest.xml",
+                                 "sha256":  "d310e390b513997b88f901ced0552429879efa13ce3f845a2a72527d642bf0d5"
+                             },
+                             {
+                                 "scenarioId":  "sut-startup-failure",
+                                 "path":  "self-test/artifacts/sut-startup-failure/evidence/current/logs/sut.err.log",
+                                 "sha256":  "75f3d0d3aef2b5e8a7e6723a7e8fa78628dffde11098aed0d0f9f9b2a23cec58"
+                             },
+                             {
+                                 "scenarioId":  "sut-startup-failure",
+                                 "path":  "self-test/artifacts/sut-startup-failure/evidence/summary.md",
+                                 "sha256":  "0eefd875ac316c1075df280b85837326ceb22bf2b6050309b04ad17cdb8f1109"
+                             },
+                             {
+                                 "scenarioId":  "sut-startup-failure",
+                                 "path":  "self-test/artifacts/sut-startup-failure/runner-output.log",
+                                 "sha256":  "02fe160e493f0339e6b4dbc66648944525e309c257de4607380a5dc71346b1e7"
+                             },
+                             {
+                                 "scenarioId":  "sut-startup-failure",
+                                 "path":  "self-test/artifacts/sut-startup-failure/runtime/logs/sut.err.log",
+                                 "sha256":  "75f3d0d3aef2b5e8a7e6723a7e8fa78628dffde11098aed0d0f9f9b2a23cec58"
+                             },
+                             {
+                                 "scenarioId":  "sut-startup-failure",
+                                 "path":  "self-test/artifacts/sut-startup-failure/structured-result.json",
+                                 "sha256":  "861c6e73b30d684ffac5fd65a4f1e6a66e00ca9c39936adc17d3aed38b155c03"
+                             },
+                             {
+                                 "scenarioId":  "mysql-unavailable",
+                                 "path":  "self-test/artifacts/mysql-unavailable/evidence/current/failure-report.md",
+                                 "sha256":  "a411bfab89531ea064f1fa9fde06c9903f239362d8291ca0ab01f5947fdf1c65"
+                             },
+                             {
+                                 "scenarioId":  "mysql-unavailable",
+                                 "path":  "self-test/artifacts/mysql-unavailable/evidence/current/index.md",
+                                 "sha256":  "7a2fac6d98e3cafb40c53e5879b84bf575a13c04e287c25bd7ac383fb51c117d"
+                             },
+                             {
+                                 "scenarioId":  "mysql-unavailable",
+                                 "path":  "self-test/artifacts/mysql-unavailable/evidence/current/junit/TEST-HarnessSelfTest.xml",
+                                 "sha256":  "d310e390b513997b88f901ced0552429879efa13ce3f845a2a72527d642bf0d5"
+                             },
+                             {
+                                 "scenarioId":  "mysql-unavailable",
+                                 "path":  "self-test/artifacts/mysql-unavailable/evidence/summary.md",
+                                 "sha256":  "d45913bd40bc8d693b973b74d580ba2716b8e6c0496a3e9a3f2388e6805442ee"
+                             },
+                             {
+                                 "scenarioId":  "mysql-unavailable",
+                                 "path":  "self-test/artifacts/mysql-unavailable/runner-output.log",
+                                 "sha256":  "9690a76eab18ff9c13449bb96fb32e61dafb2c9eef3e135be11cfc63fcb73903"
+                             },
+                             {
+                                 "scenarioId":  "mysql-unavailable",
+                                 "path":  "self-test/artifacts/mysql-unavailable/structured-result.json",
+                                 "sha256":  "6e315ee9cbec1fb6a65185310190b28e6c563c14f287b11847fd06eca8d3d1b3"
+                             },
+                             {
+                                 "scenarioId":  "postgres-unavailable",
+                                 "path":  "self-test/artifacts/postgres-unavailable/evidence/current/failure-report.md",
+                                 "sha256":  "356fd3d0a44903c1fc309dfc1708e8081d822868386521851596c4e105779235"
+                             },
+                             {
+                                 "scenarioId":  "postgres-unavailable",
+                                 "path":  "self-test/artifacts/postgres-unavailable/evidence/current/index.md",
+                                 "sha256":  "7a2fac6d98e3cafb40c53e5879b84bf575a13c04e287c25bd7ac383fb51c117d"
+                             },
+                             {
+                                 "scenarioId":  "postgres-unavailable",
+                                 "path":  "self-test/artifacts/postgres-unavailable/evidence/current/junit/TEST-HarnessSelfTest.xml",
+                                 "sha256":  "d310e390b513997b88f901ced0552429879efa13ce3f845a2a72527d642bf0d5"
+                             },
+                             {
+                                 "scenarioId":  "postgres-unavailable",
+                                 "path":  "self-test/artifacts/postgres-unavailable/evidence/summary.md",
+                                 "sha256":  "a4d5d7a31a7aa138e4731b34ac547a37706e7b56c6123103b04df4698601dda3"
+                             },
+                             {
+                                 "scenarioId":  "postgres-unavailable",
+                                 "path":  "self-test/artifacts/postgres-unavailable/runner-output.log",
+                                 "sha256":  "a1532c0293997895614bb92daf73760795af9a413375d0cac50898125f5b1bfb"
+                             },
+                             {
+                                 "scenarioId":  "postgres-unavailable",
+                                 "path":  "self-test/artifacts/postgres-unavailable/structured-result.json",
+                                 "sha256":  "940d96b7ea47c47e6552dc20ff1bc22f2deb51c8e07aa50c38e241b902a86cf2"
+                             },
+                             {
+                                 "scenarioId":  "redis-unavailable",
+                                 "path":  "self-test/artifacts/redis-unavailable/evidence/current/failure-report.md",
+                                 "sha256":  "53853b778de714c8c2649df65ce5d97399e9729d4a9cb2f43f93755863d09603"
+                             },
+                             {
+                                 "scenarioId":  "redis-unavailable",
+                                 "path":  "self-test/artifacts/redis-unavailable/evidence/current/index.md",
+                                 "sha256":  "7a2fac6d98e3cafb40c53e5879b84bf575a13c04e287c25bd7ac383fb51c117d"
+                             },
+                             {
+                                 "scenarioId":  "redis-unavailable",
+                                 "path":  "self-test/artifacts/redis-unavailable/evidence/current/junit/TEST-HarnessSelfTest.xml",
+                                 "sha256":  "d310e390b513997b88f901ced0552429879efa13ce3f845a2a72527d642bf0d5"
+                             },
+                             {
+                                 "scenarioId":  "redis-unavailable",
+                                 "path":  "self-test/artifacts/redis-unavailable/evidence/summary.md",
+                                 "sha256":  "16f3b23d85190a279d0ad1df799b1c1a000b54c4248c29edc1706c75a5dd29ab"
+                             },
+                             {
+                                 "scenarioId":  "redis-unavailable",
+                                 "path":  "self-test/artifacts/redis-unavailable/runner-output.log",
+                                 "sha256":  "128555db0754b462bb37a73815b63a30bcc8199954b3e2148a67ca4a824fd41b"
+                             },
+                             {
+                                 "scenarioId":  "redis-unavailable",
+                                 "path":  "self-test/artifacts/redis-unavailable/structured-result.json",
+                                 "sha256":  "32b8463446f3e23ea5b8adb8fbb5304dee5093bc1be5eca527573204c49c8ffc"
+                             },
+                             {
+                                 "scenarioId":  "wiremock-unmatched",
+                                 "path":  "self-test/artifacts/wiremock-unmatched/evidence/current/failure-report.md",
+                                 "sha256":  "644b1b207caa937c26c7ea76bb32ea296b9c090ceebb41971cf9516d9ccb793b"
+                             },
+                             {
+                                 "scenarioId":  "wiremock-unmatched",
+                                 "path":  "self-test/artifacts/wiremock-unmatched/evidence/current/index.md",
+                                 "sha256":  "3ccb55b5275d89e5527eef69a83a4ee525780f5a8987ac69b0e14428bdb7710d"
+                             },
+                             {
+                                 "scenarioId":  "wiremock-unmatched",
+                                 "path":  "self-test/artifacts/wiremock-unmatched/evidence/current/wiremock/unmatched.json",
+                                 "sha256":  "6ac6a237ed833e1291be421a1b8c80cdf799b44b0ae33f6568f8050aa49aaac1"
+                             },
+                             {
+                                 "scenarioId":  "wiremock-unmatched",
+                                 "path":  "self-test/artifacts/wiremock-unmatched/evidence/summary.md",
+                                 "sha256":  "69b4e1eed2277587a62cb3102a831384d9d3b88df843db9a8d0b84d99b96ff73"
+                             },
+                             {
+                                 "scenarioId":  "wiremock-unmatched",
+                                 "path":  "self-test/artifacts/wiremock-unmatched/runner-output.log",
+                                 "sha256":  "eb0937ddff9a2561a89af36c447cb1f37e5e8f47443ba021babc003602bf000e"
+                             },
+                             {
+                                 "scenarioId":  "wiremock-unmatched",
+                                 "path":  "self-test/artifacts/wiremock-unmatched/runtime/wiremock/unmatched.json",
+                                 "sha256":  "6ac6a237ed833e1291be421a1b8c80cdf799b44b0ae33f6568f8050aa49aaac1"
+                             },
+                             {
+                                 "scenarioId":  "wiremock-unmatched",
+                                 "path":  "self-test/artifacts/wiremock-unmatched/structured-result.json",
+                                 "sha256":  "621f0ed888aec8fe8109bfdf2ab7fe2ecdb2f79267c31979f7aa196a0f62e13c"
+                             },
+                             {
+                                 "scenarioId":  "seed-failure",
+                                 "path":  "self-test/artifacts/seed-failure/evidence/current/failure-report.md",
+                                 "sha256":  "423ab4b4d89af3fbeef653abf9d85042643c082d961a558e0928bba572018ab4"
+                             },
+                             {
+                                 "scenarioId":  "seed-failure",
+                                 "path":  "self-test/artifacts/seed-failure/evidence/current/index.md",
+                                 "sha256":  "b72d2ea29124979b2463bff25b65ef5d06008353fc1c246e01b43e63001325ed"
+                             },
+                             {
+                                 "scenarioId":  "seed-failure",
+                                 "path":  "self-test/artifacts/seed-failure/evidence/current/logs/seed.log",
+                                 "sha256":  "792b3ba6cced423af4662d821b1bc74bb7339c4011946ba0037b92a345de27e5"
+                             },
+                             {
+                                 "scenarioId":  "seed-failure",
+                                 "path":  "self-test/artifacts/seed-failure/evidence/summary.md",
+                                 "sha256":  "1b4d9ad76d3a7a240619d6af6e02312780de5011ba1e74aa83173cf5808a16de"
+                             },
+                             {
+                                 "scenarioId":  "seed-failure",
+                                 "path":  "self-test/artifacts/seed-failure/runner-output.log",
+                                 "sha256":  "fec5a8caa03bb073725f2b0232732fc6a114f34502a864d632a6b04451760846"
+                             },
+                             {
+                                 "scenarioId":  "seed-failure",
+                                 "path":  "self-test/artifacts/seed-failure/runtime/logs/seed.log",
+                                 "sha256":  "792b3ba6cced423af4662d821b1bc74bb7339c4011946ba0037b92a345de27e5"
+                             },
+                             {
+                                 "scenarioId":  "seed-failure",
+                                 "path":  "self-test/artifacts/seed-failure/structured-result.json",
+                                 "sha256":  "ec98c4c58ead08d55e79eb5c0f10f721712687e6df33a7ef93fb8139a68ddb4b"
+                             },
+                             {
+                                 "scenarioId":  "cleanup-failure",
+                                 "path":  "self-test/artifacts/cleanup-failure/evidence/current/failure-report.md",
+                                 "sha256":  "f2ed3c5d8f676d465b17df0ea2f0b6aa6c277253ace3e659ef109be907d11013"
+                             },
+                             {
+                                 "scenarioId":  "cleanup-failure",
+                                 "path":  "self-test/artifacts/cleanup-failure/evidence/current/index.md",
+                                 "sha256":  "bfb2c1b4fa0bbeb4324293dceca90076b46d4a21b5e314f58fb3a44bc918efd9"
+                             },
+                             {
+                                 "scenarioId":  "cleanup-failure",
+                                 "path":  "self-test/artifacts/cleanup-failure/evidence/current/junit/TEST-HarnessSelfTest.xml",
+                                 "sha256":  "d310e390b513997b88f901ced0552429879efa13ce3f845a2a72527d642bf0d5"
+                             },
+                             {
+                                 "scenarioId":  "cleanup-failure",
+                                 "path":  "self-test/artifacts/cleanup-failure/evidence/current/logs/cleanup.log",
+                                 "sha256":  "940f62a2631619c03a816d9d35efcb6a107554e2700a3eeb47dc0e83f3a99aa7"
+                             },
+                             {
+                                 "scenarioId":  "cleanup-failure",
+                                 "path":  "self-test/artifacts/cleanup-failure/evidence/summary.md",
+                                 "sha256":  "5b5088f3f498f3d1442840c01a6a2bd12328fd88f769940aa29c60803cddc640"
+                             },
+                             {
+                                 "scenarioId":  "cleanup-failure",
+                                 "path":  "self-test/artifacts/cleanup-failure/runner-output.log",
+                                 "sha256":  "fae5cf639b23eb0cff5ba4a764ed1fc27bc29c979a749b14c6cfb82333f2b461"
+                             },
+                             {
+                                 "scenarioId":  "cleanup-failure",
+                                 "path":  "self-test/artifacts/cleanup-failure/runtime/data-seeded",
+                                 "sha256":  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                             },
+                             {
+                                 "scenarioId":  "cleanup-failure",
+                                 "path":  "self-test/artifacts/cleanup-failure/runtime/logs/cleanup.log",
+                                 "sha256":  "940f62a2631619c03a816d9d35efcb6a107554e2700a3eeb47dc0e83f3a99aa7"
+                             },
+                             {
+                                 "scenarioId":  "cleanup-failure",
+                                 "path":  "self-test/artifacts/cleanup-failure/runtime/raw/runner.json",
+                                 "sha256":  "b76f2c6ee915cccaf69b91833070f173f4125908eb4d066e317f5034dccd63c0"
+                             },
+                             {
+                                 "scenarioId":  "cleanup-failure",
+                                 "path":  "self-test/artifacts/cleanup-failure/structured-result.json",
+                                 "sha256":  "52ac60a9fbc406ad3ba8711c0e90b2eb2639691d659c14fe12c3483ce2c7d39f"
+                             },
+                             {
+                                 "scenarioId":  "maven-arguments",
+                                 "path":  "self-test/artifacts/maven-arguments/evidence/current/index.md",
+                                 "sha256":  "670ea7adbe78fb4477277e4cf026d3b7b9f98b0acc68212ccd9c7f14a398b30d"
+                             },
+                             {
+                                 "scenarioId":  "maven-arguments",
+                                 "path":  "self-test/artifacts/maven-arguments/evidence/current/junit/TEST-HarnessSelfTest.xml",
+                                 "sha256":  "d310e390b513997b88f901ced0552429879efa13ce3f845a2a72527d642bf0d5"
+                             },
+                             {
+                                 "scenarioId":  "maven-arguments",
+                                 "path":  "self-test/artifacts/maven-arguments/evidence/summary.md",
+                                 "sha256":  "15685d9ec6f2d842861e3f767a335217bc161820c65fd05b785edfc550af5fbe"
+                             },
+                             {
+                                 "scenarioId":  "maven-arguments",
+                                 "path":  "self-test/artifacts/maven-arguments/runner-output.log",
+                                 "sha256":  "0c638d29159e17f2ca84e448994808958dafb8bfdb703bdafc7f9e46f8219818"
+                             },
+                             {
+                                 "scenarioId":  "maven-arguments",
+                                 "path":  "self-test/artifacts/maven-arguments/runtime/raw/maven-arguments.json",
+                                 "sha256":  "d385f99f8bf5098cd7f8e7b9dd33578e9413ac7f254b3c6991e98d43a889ed67"
+                             },
+                             {
+                                 "scenarioId":  "maven-arguments",
+                                 "path":  "self-test/artifacts/maven-arguments/runtime/raw/runner.json",
+                                 "sha256":  "99937571f661e0b174d953ba16fe71461ba221b9ed6cfccc76deb1679fabbeda"
+                             },
+                             {
+                                 "scenarioId":  "maven-arguments",
+                                 "path":  "self-test/artifacts/maven-arguments/structured-result.json",
+                                 "sha256":  "d8b5d3d459c0b2326c276d63d30c7f8f635b3b2f88139f806139ef34b94f3497"
+                             },
+                             {
+                                 "scenarioId":  "maven-execution-failure",
+                                 "path":  "self-test/artifacts/maven-execution-failure/evidence/current/failure-report.md",
+                                 "sha256":  "e4c88670b6b2938cc222352faa7183d52a1fe3487d86f309d424bc33e5a63f8f"
+                             },
+                             {
+                                 "scenarioId":  "maven-execution-failure",
+                                 "path":  "self-test/artifacts/maven-execution-failure/evidence/current/index.md",
+                                 "sha256":  "45ad53ebc1f0b8be14b1ee8e636003cc971929ed2a191256badd2e0c26479c7d"
+                             },
+                             {
+                                 "scenarioId":  "maven-execution-failure",
+                                 "path":  "self-test/artifacts/maven-execution-failure/evidence/summary.md",
+                                 "sha256":  "8fa2d3f2ae910d7205424dd344be085bfe8dd46d31c736bb3c7ae109bdbc91f8"
+                             },
+                             {
+                                 "scenarioId":  "maven-execution-failure",
+                                 "path":  "self-test/artifacts/maven-execution-failure/runner-output.log",
+                                 "sha256":  "06d1b7f565fe56d2592347834f05a02f4f8d01987351f7e9bfa21ef9afc55191"
+                             },
+                             {
+                                 "scenarioId":  "maven-execution-failure",
+                                 "path":  "self-test/artifacts/maven-execution-failure/structured-result.json",
+                                 "sha256":  "bad4b535958214c68d1e8c8ba1be062cf6e1fe059ff1bc0ab712f20418187a13"
+                             },
+                             {
+                                 "scenarioId":  "surefire-missing",
+                                 "path":  "self-test/artifacts/surefire-missing/evidence/current/failure-report.md",
+                                 "sha256":  "2544e52e42d80be2dca59909ff3d0f3f22f1835fa53aa41841065f10069afdf7"
+                             },
+                             {
+                                 "scenarioId":  "surefire-missing",
+                                 "path":  "self-test/artifacts/surefire-missing/evidence/current/index.md",
+                                 "sha256":  "45ad53ebc1f0b8be14b1ee8e636003cc971929ed2a191256badd2e0c26479c7d"
+                             },
+                             {
+                                 "scenarioId":  "surefire-missing",
+                                 "path":  "self-test/artifacts/surefire-missing/evidence/summary.md",
+                                 "sha256":  "ffc4849657d8aa9c1ee0157954108d7ab8d1ee4ef07a834100c4509979d7ee9e"
+                             },
+                             {
+                                 "scenarioId":  "surefire-missing",
+                                 "path":  "self-test/artifacts/surefire-missing/runner-output.log",
+                                 "sha256":  "088a239e77e8490b0bbf2aef5a9f4f2a2c70714bb5ecde773e9e070228c7f04a"
+                             },
+                             {
+                                 "scenarioId":  "surefire-missing",
+                                 "path":  "self-test/artifacts/surefire-missing/runtime/raw/runner.json",
+                                 "sha256":  "650ec07edc6223535d8ad6c5d5ebe55294df3c4b496d352280eaa55d3a6be904"
+                             },
+                             {
+                                 "scenarioId":  "surefire-missing",
+                                 "path":  "self-test/artifacts/surefire-missing/structured-result.json",
+                                 "sha256":  "75491927bdb1c6c8edc4a8454ee2735e7672f4b88b57ee38840b54d73ac9366e"
+                             },
+                             {
+                                 "scenarioId":  "utf8-log",
+                                 "path":  "self-test/artifacts/utf8-log/evidence/current/index.md",
+                                 "sha256":  "83b3c8f7240c45eeaf2d72e6bd99bb92c9ed94a3d7ee5b14fdbe843483672ccf"
+                             },
+                             {
+                                 "scenarioId":  "utf8-log",
+                                 "path":  "self-test/artifacts/utf8-log/evidence/current/junit/TEST-HarnessSelfTest.xml",
+                                 "sha256":  "d310e390b513997b88f901ced0552429879efa13ce3f845a2a72527d642bf0d5"
+                             },
+                             {
+                                 "scenarioId":  "utf8-log",
+                                 "path":  "self-test/artifacts/utf8-log/evidence/current/logs/utf8.log",
+                                 "sha256":  "cce73f3ad14d6c890234fafac9cb676afcfe4f2f01aade08a4fb1632200dc0ff"
+                             },
+                             {
+                                 "scenarioId":  "utf8-log",
+                                 "path":  "self-test/artifacts/utf8-log/evidence/summary.md",
+                                 "sha256":  "7c9f43bf0b97a2f5da50cbc4a937379add1dc12f5cf66cb3ef87dd98c899282d"
+                             },
+                             {
+                                 "scenarioId":  "utf8-log",
+                                 "path":  "self-test/artifacts/utf8-log/runner-output.log",
+                                 "sha256":  "200e6ae3337ef05b761d02b84e770cb9778eada65070342d895ccf1bdce20f82"
+                             },
+                             {
+                                 "scenarioId":  "utf8-log",
+                                 "path":  "self-test/artifacts/utf8-log/runtime/logs/utf8.log",
+                                 "sha256":  "cce73f3ad14d6c890234fafac9cb676afcfe4f2f01aade08a4fb1632200dc0ff"
+                             },
+                             {
+                                 "scenarioId":  "utf8-log",
+                                 "path":  "self-test/artifacts/utf8-log/runtime/raw/runner.json",
+                                 "sha256":  "16002e63bfddc136d7d47b12afa4d2edca63de2161cfedea6345a06616263874"
+                             },
+                             {
+                                 "scenarioId":  "utf8-log",
+                                 "path":  "self-test/artifacts/utf8-log/structured-result.json",
+                                 "sha256":  "ff7acc78b788b68fd84d187d34b9364aff94b54ec636db0779dcee3f8a279a0f"
+                             },
+                             {
+                                 "scenarioId":  "interrupted-run",
+                                 "path":  "self-test/artifacts/interrupted-run/evidence/current/failure-report.md",
+                                 "sha256":  "3228166cc11a3a4dce05d5344bb01cac0f22d140a2f439e062450743b8029e88"
+                             },
+                             {
+                                 "scenarioId":  "interrupted-run",
+                                 "path":  "self-test/artifacts/interrupted-run/evidence/current/index.md",
+                                 "sha256":  "b72d2ea29124979b2463bff25b65ef5d06008353fc1c246e01b43e63001325ed"
+                             },
+                             {
+                                 "scenarioId":  "interrupted-run",
+                                 "path":  "self-test/artifacts/interrupted-run/evidence/current/logs/interruption.log",
+                                 "sha256":  "5b1f94ea00b9b0633e812b824e28c4dae26d19b72c6b81afa093e0421b1759ea"
+                             },
+                             {
+                                 "scenarioId":  "interrupted-run",
+                                 "path":  "self-test/artifacts/interrupted-run/evidence/summary.md",
+                                 "sha256":  "3135b201caaa13e42013a4464dd300fb86bf476a6061be9fc4d72f76be874071"
+                             },
+                             {
+                                 "scenarioId":  "interrupted-run",
+                                 "path":  "self-test/artifacts/interrupted-run/runner-output.log",
+                                 "sha256":  "1d1a4862f9cd7d7f12d4569db829a8d9bf90193b38fa893254a9d2daf38b6c4f"
+                             },
+                             {
+                                 "scenarioId":  "interrupted-run",
+                                 "path":  "self-test/artifacts/interrupted-run/runtime/logs/interruption.log",
+                                 "sha256":  "5b1f94ea00b9b0633e812b824e28c4dae26d19b72c6b81afa093e0421b1759ea"
+                             },
+                             {
+                                 "scenarioId":  "interrupted-run",
+                                 "path":  "self-test/artifacts/interrupted-run/structured-result.json",
+                                 "sha256":  "bde79e420bb71cc3cf1e791097084c56eddbb5a3c3629a56eb0f6218ad569368"
+                             },
+                             {
+                                 "scenarioId":  "evidence-missing",
+                                 "path":  "self-test/artifacts/evidence-missing/evidence/current/failure-report.md",
+                                 "sha256":  "31dba01d64324d060114347cbd14c3035d8e774382e23478b67e072c0ccdaa46"
+                             },
+                             {
+                                 "scenarioId":  "evidence-missing",
+                                 "path":  "self-test/artifacts/evidence-missing/evidence/current/index.md",
+                                 "sha256":  "a691c3a1ddda9afd2f785d9c453266b0985f83043e9d31b5b3e1b9d609ae3e7f"
+                             },
+                             {
+                                 "scenarioId":  "evidence-missing",
+                                 "path":  "self-test/artifacts/evidence-missing/evidence/current/junit/TEST-HarnessSelfTest.xml",
+                                 "sha256":  "d310e390b513997b88f901ced0552429879efa13ce3f845a2a72527d642bf0d5"
+                             },
+                             {
+                                 "scenarioId":  "evidence-missing",
+                                 "path":  "self-test/artifacts/evidence-missing/evidence/summary.md",
+                                 "sha256":  "dc6d1715da90f394fe12fbe2c1555b7e51ada8e25010cde21a75a2c5279101fb"
+                             },
+                             {
+                                 "scenarioId":  "evidence-missing",
+                                 "path":  "self-test/artifacts/evidence-missing/runner-output.log",
+                                 "sha256":  "3b04ad98997e5c5c7a52d68bd29b3762975c81889caa92245baccd70b396a54e"
+                             },
+                             {
+                                 "scenarioId":  "evidence-missing",
+                                 "path":  "self-test/artifacts/evidence-missing/structured-result.json",
+                                 "sha256":  "b3409ee7a292a0c55eecf1205893d8b2a13ee3e3fa0dc73569234f4a49fbe37e"
+                             }
+                         ],
+    "certifiedAt":  "2026-08-03T03:37:57.7375798Z"
+}

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "batchA": {
     "controller": "codex/scripts/tests/test-flow-test-controller.ps1",
     "domain": "codex/scripts/tests/test-validate-domain-artifact.ps1",
@@ -9,38 +9,38 @@
     "skills": "codex/scripts/tests/test-flow-skill-controller-contract.ps1"
   },
   "batchB": [
-    { "id": "early-service-start", "firstGuard": "capability lease guard", "evidence": "ERROR_CAPABILITY_FORBIDDEN" },
-    { "id": "early-runner", "firstGuard": "phase transition guard", "evidence": "ERROR_TRANSITION" },
-    { "id": "business-repo-write", "firstGuard": "repository scope guard", "evidence": "BLOCKED_SCOPE_VIOLATION" },
-    { "id": "stale-agent-resume", "firstGuard": "expired lease guard", "evidence": "ERROR_LEASE_INVALID" },
-    { "id": "second-test-root", "firstGuard": "canonical repository guard", "evidence": "ERROR_CANONICAL_PATH" },
-    { "id": "sut-revision-drift", "firstGuard": "immutable SUT guard", "evidence": "ERROR_REVISION_DRIFT" },
-    { "id": "tool-output-pollution", "firstGuard": "artifact parser", "evidence": "TEST_ARTIFACT_GUARD" },
-    { "id": "duplicate-failure", "firstGuard": "failure fingerprint guard", "evidence": "ERROR_FAILURE_DUPLICATE" },
-    { "id": "required-scenario-removal", "firstGuard": "scenario source diff guard", "evidence": "design verifier report" },
-    { "id": "harness-mutation", "firstGuard": "harness certification guard", "evidence": "ERROR_HARNESS_UNCERTIFIED" },
-    { "id": "configuration-source-switch", "firstGuard": "ownership route guard", "evidence": "STOP_AWAIT_HUMAN_CONFIGURATION" }
+    { "id": "early-service-start", "firstGuard": "capability lease guard", "evidence": "ERROR_CAPABILITY_FORBIDDEN", "executionEvidence": "docs/case-studies/evidence/flow-automation-wp7/deterministic/controller.log" },
+    { "id": "early-runner", "firstGuard": "phase transition guard", "evidence": "ERROR_TRANSITION", "executionEvidence": "docs/case-studies/evidence/flow-automation-wp7/deterministic/controller.log" },
+    { "id": "business-repo-write", "firstGuard": "repository scope guard", "evidence": "BLOCKED_SCOPE_VIOLATION", "executionEvidence": "docs/case-studies/evidence/flow-automation-wp7/deterministic/scope-guard.log" },
+    { "id": "stale-agent-resume", "firstGuard": "expired lease guard", "evidence": "ERROR_LEASE_INVALID", "executionEvidence": "docs/case-studies/evidence/flow-automation-wp7/goal-faults.json" },
+    { "id": "second-test-root", "firstGuard": "canonical repository guard", "evidence": "ERROR_CANONICAL_PATH", "executionEvidence": "docs/case-studies/evidence/flow-automation-wp7/deterministic/controller.log" },
+    { "id": "sut-revision-drift", "firstGuard": "immutable revision guard", "evidence": "ERROR_REVISION_DRIFT", "executionEvidence": "docs/case-studies/evidence/flow-automation-wp7/goal-faults.json" },
+    { "id": "tool-output-pollution", "firstGuard": "artifact parser", "evidence": "TEST_ARTIFACT_GUARD", "executionEvidence": "docs/case-studies/evidence/flow-automation-wp7/deterministic/test-artifacts.log" },
+    { "id": "duplicate-failure", "firstGuard": "failure fingerprint guard", "evidence": "ERROR_FAILURE_DUPLICATE", "executionEvidence": "docs/case-studies/evidence/flow-automation-wp7/deterministic/controller.log" },
+    { "id": "required-scenario-removal", "firstGuard": "scenario source diff guard", "evidence": "design verifier report", "executionEvidence": "docs/case-studies/evidence/flow-automation-wp7/deterministic/canonical-test-cases.log" },
+    { "id": "harness-mutation", "firstGuard": "harness certification guard", "evidence": "stale certification rejection", "executionEvidence": "docs/case-studies/evidence/flow-automation-wp7/deterministic/harness.log" },
+    { "id": "configuration-source-switch", "firstGuard": "ownership route guard", "evidence": "STOP_AWAIT_HUMAN_CONFIGURATION", "executionEvidence": "docs/case-studies/evidence/flow-automation-wp7/harness/self-test/artifacts/mysql-unavailable/runner-output.log" }
   ],
   "batchC": [
-    { "id": "single-service-sync-api", "kind": "happy-path", "requiredOutcome": "controller-complete-after-result-verifier" },
-    { "id": "database-and-async-job", "kind": "happy-path", "requiredOutcome": "observable-eventual-side-effects" },
-    { "id": "multi-service-external-stub", "kind": "happy-path", "requiredOutcome": "external-stub-contract-and-evidence" },
-    { "id": "runner-platform-failure", "kind": "failure", "requiredOutcome": "test-harness-route-no-business-write" },
-    { "id": "real-sut-business-failure", "kind": "failure", "requiredOutcome": "confirmed-sut-route-no-assertion-relaxation" }
+    { "id": "single-service-sync-api", "kind": "happy-path", "requiredOutcome": "controller-complete-after-result-verifier", "result": "BLOCKED", "executionEvidence": "docs/case-studies/evidence/flow-automation-wp7/environment-gates.json" },
+    { "id": "database-and-async-job", "kind": "happy-path", "requiredOutcome": "observable-eventual-side-effects", "result": "BLOCKED", "executionEvidence": "docs/case-studies/evidence/flow-automation-wp7/environment-gates.json" },
+    { "id": "multi-service-external-stub", "kind": "happy-path", "requiredOutcome": "external-stub-contract-and-evidence", "result": "BLOCKED", "executionEvidence": "docs/case-studies/evidence/flow-automation-wp7/environment-gates.json" },
+    { "id": "runner-platform-failure", "kind": "failure", "requiredOutcome": "test-harness-route-no-business-write", "result": "PASS_CONTROLLED_HARNESS_ONLY", "executionEvidence": "docs/case-studies/evidence/flow-automation-wp7/harness/self-test/result.json" },
+    { "id": "real-sut-business-failure", "kind": "failure", "requiredOutcome": "confirmed-sut-route-no-assertion-relaxation", "result": "BLOCKED", "executionEvidence": "docs/case-studies/evidence/flow-automation-wp7/environment-gates.json" }
   ],
   "batchD": [
-    { "id": "shadow-design-verified", "phase": "TEST_DESIGN_VERIFIED", "requested": "RUN_ONCE", "next": "ISSUE_IMPLEMENTATION_LEASE", "decision": "reject" },
-    { "id": "shadow-implementation-verified", "phase": "TEST_IMPLEMENTATION_VERIFIED", "requested": "RUN_ONCE", "next": "VERIFY_ENVIRONMENT", "decision": "reject" },
-    { "id": "shadow-executed-pass", "phase": "TEST_EXECUTED_PASS", "requested": "COMPLETE", "next": "VERIFY_RESULT", "decision": "reject" }
+    { "id": "real-shadow-1", "result": "BLOCKED_STATE_MISSING", "executionEvidence": "docs/case-studies/evidence/flow-automation-wp7/shadow/shadow-1.json" },
+    { "id": "real-shadow-2", "result": "BLOCKED_STATE_MISSING", "executionEvidence": "docs/case-studies/evidence/flow-automation-wp7/shadow/shadow-2.json" },
+    { "id": "real-shadow-3", "result": "BLOCKED_STATE_MISSING", "executionEvidence": "docs/case-studies/evidence/flow-automation-wp7/shadow/shadow-3.json" }
   ],
   "batchE": [
-    { "id": "human-configuration", "expected": "BLOCKED" },
-    { "id": "wiremock-contract", "expected": "FIXTURE_ASSERTION" },
-    { "id": "fixture-data", "expected": "FIXTURE_ASSERTION" },
-    { "id": "runner-report-missing", "expected": "TEST_HARNESS" },
-    { "id": "sut-business", "expected": "SUT_BUSINESS" },
-    { "id": "evidence-incomplete", "expected": "UNDETERMINED" },
-    { "id": "out-of-scope-write", "expected": "BLOCKED_SCOPE_VIOLATION" }
+    { "id": "agent-abnormal-exit", "expected": "AWAIT_IMPLEMENTATION_RESULT", "executionEvidence": "docs/case-studies/evidence/flow-automation-wp7/goal-faults.json" },
+    { "id": "duplicate-recovery", "expected": "ERROR_TRANSITION", "executionEvidence": "docs/case-studies/evidence/flow-automation-wp7/goal-faults.json" },
+    { "id": "revision-drift", "expected": "ERROR_REVISION_DRIFT", "executionEvidence": "docs/case-studies/evidence/flow-automation-wp7/goal-faults.json" },
+    { "id": "stale-lease", "expected": "ERROR_LEASE_INVALID", "executionEvidence": "docs/case-studies/evidence/flow-automation-wp7/goal-faults.json" },
+    { "id": "duplicate-runner", "expected": "ERROR_RUN_DUPLICATE", "executionEvidence": "docs/case-studies/evidence/flow-automation-wp7/goal-faults.json" },
+    { "id": "runner-failure-result-entry", "expected": "BLOCKED_AND_RESULT_REJECTED", "executionEvidence": "docs/case-studies/evidence/flow-automation-wp7/goal-faults.json" },
+    { "id": "evidence-missing", "expected": "ERROR_INPUT", "executionEvidence": "docs/case-studies/evidence/flow-automation-wp7/goal-faults.json" }
   ],
   "rollback": "Disable controller-driven Goal entry and return public orchestration to explicit human-invoked steps without changing stored evidence or business repositories."
 }

@@ -1,0 +1,247 @@
+{
+    "schemaVersion":  2,
+    "result":  "PASS",
+    "harnessRevision":  "956bac6991c0725b4c05c1d0ea4b73f46e188a2b4318b4279c0039df709d7d67",
+    "runtimeExecutable":  "powershell.exe",
+    "generatedAt":  "2026-08-03T03:37:56.8803654Z",
+    "scenarios":  [
+                      {
+                          "id":  "normal-run",
+                          "result":  "PASS",
+                          "exitCode":  0,
+                          "status":  "PASS",
+                          "phase":  "RUNNER_COMPLETED",
+                          "classification":  "NONE",
+                          "rawEvidencePath":  "self-test/artifacts/normal-run/evidence/current/index.md",
+                          "runnerOutputPath":  "self-test/artifacts/normal-run/runner-output.log",
+                          "cleanup":  {
+                                          "succeeded":  true,
+                                          "retainedState":  false
+                                      },
+                          "errors":  [
+
+                                     ]
+                      },
+                      {
+                          "id":  "sut-startup-failure",
+                          "result":  "PASS",
+                          "exitCode":  1,
+                          "status":  "FAIL",
+                          "phase":  "RUNNER_FAILED",
+                          "classification":  "TEST_HARNESS",
+                          "rawEvidencePath":  "self-test/artifacts/sut-startup-failure/evidence/current/index.md",
+                          "runnerOutputPath":  "self-test/artifacts/sut-startup-failure/runner-output.log",
+                          "cleanup":  {
+                                          "succeeded":  true,
+                                          "retainedState":  false
+                                      },
+                          "errors":  [
+
+                                     ]
+                      },
+                      {
+                          "id":  "mysql-unavailable",
+                          "result":  "PASS",
+                          "exitCode":  1,
+                          "status":  "BLOCKED",
+                          "phase":  "RUNNER_BLOCKED",
+                          "classification":  "CONFIG_INFRA",
+                          "rawEvidencePath":  "self-test/artifacts/mysql-unavailable/evidence/current/index.md",
+                          "runnerOutputPath":  "self-test/artifacts/mysql-unavailable/runner-output.log",
+                          "cleanup":  {
+                                          "succeeded":  true,
+                                          "retainedState":  false
+                                      },
+                          "errors":  [
+
+                                     ]
+                      },
+                      {
+                          "id":  "postgres-unavailable",
+                          "result":  "PASS",
+                          "exitCode":  1,
+                          "status":  "BLOCKED",
+                          "phase":  "RUNNER_BLOCKED",
+                          "classification":  "CONFIG_INFRA",
+                          "rawEvidencePath":  "self-test/artifacts/postgres-unavailable/evidence/current/index.md",
+                          "runnerOutputPath":  "self-test/artifacts/postgres-unavailable/runner-output.log",
+                          "cleanup":  {
+                                          "succeeded":  true,
+                                          "retainedState":  false
+                                      },
+                          "errors":  [
+
+                                     ]
+                      },
+                      {
+                          "id":  "redis-unavailable",
+                          "result":  "PASS",
+                          "exitCode":  1,
+                          "status":  "BLOCKED",
+                          "phase":  "RUNNER_BLOCKED",
+                          "classification":  "CONFIG_INFRA",
+                          "rawEvidencePath":  "self-test/artifacts/redis-unavailable/evidence/current/index.md",
+                          "runnerOutputPath":  "self-test/artifacts/redis-unavailable/runner-output.log",
+                          "cleanup":  {
+                                          "succeeded":  true,
+                                          "retainedState":  false
+                                      },
+                          "errors":  [
+
+                                     ]
+                      },
+                      {
+                          "id":  "wiremock-unmatched",
+                          "result":  "PASS",
+                          "exitCode":  1,
+                          "status":  "FAIL",
+                          "phase":  "RUNNER_FAILED",
+                          "classification":  "TEST_HARNESS",
+                          "rawEvidencePath":  "self-test/artifacts/wiremock-unmatched/evidence/current/index.md",
+                          "runnerOutputPath":  "self-test/artifacts/wiremock-unmatched/runner-output.log",
+                          "cleanup":  {
+                                          "succeeded":  true,
+                                          "retainedState":  false
+                                      },
+                          "errors":  [
+
+                                     ]
+                      },
+                      {
+                          "id":  "seed-failure",
+                          "result":  "PASS",
+                          "exitCode":  1,
+                          "status":  "FAIL",
+                          "phase":  "RUNNER_FAILED",
+                          "classification":  "FIXTURE_ASSERTION",
+                          "rawEvidencePath":  "self-test/artifacts/seed-failure/evidence/current/index.md",
+                          "runnerOutputPath":  "self-test/artifacts/seed-failure/runner-output.log",
+                          "cleanup":  {
+                                          "succeeded":  true,
+                                          "retainedState":  false
+                                      },
+                          "errors":  [
+
+                                     ]
+                      },
+                      {
+                          "id":  "cleanup-failure",
+                          "result":  "PASS",
+                          "exitCode":  1,
+                          "status":  "FAIL",
+                          "phase":  "RUNNER_FAILED",
+                          "classification":  "TEST_HARNESS",
+                          "rawEvidencePath":  "self-test/artifacts/cleanup-failure/evidence/current/index.md",
+                          "runnerOutputPath":  "self-test/artifacts/cleanup-failure/runner-output.log",
+                          "cleanup":  {
+                                          "succeeded":  false,
+                                          "retainedState":  true
+                                      },
+                          "errors":  [
+
+                                     ]
+                      },
+                      {
+                          "id":  "maven-arguments",
+                          "result":  "PASS",
+                          "exitCode":  0,
+                          "status":  "PASS",
+                          "phase":  "RUNNER_COMPLETED",
+                          "classification":  "NONE",
+                          "rawEvidencePath":  "self-test/artifacts/maven-arguments/evidence/current/index.md",
+                          "runnerOutputPath":  "self-test/artifacts/maven-arguments/runner-output.log",
+                          "cleanup":  {
+                                          "succeeded":  true,
+                                          "retainedState":  false
+                                      },
+                          "errors":  [
+
+                                     ]
+                      },
+                      {
+                          "id":  "maven-execution-failure",
+                          "result":  "PASS",
+                          "exitCode":  1,
+                          "status":  "FAIL",
+                          "phase":  "RUNNER_FAILED",
+                          "classification":  "TEST_HARNESS",
+                          "rawEvidencePath":  "self-test/artifacts/maven-execution-failure/evidence/current/index.md",
+                          "runnerOutputPath":  "self-test/artifacts/maven-execution-failure/runner-output.log",
+                          "cleanup":  {
+                                          "succeeded":  true,
+                                          "retainedState":  false
+                                      },
+                          "errors":  [
+
+                                     ]
+                      },
+                      {
+                          "id":  "surefire-missing",
+                          "result":  "PASS",
+                          "exitCode":  1,
+                          "status":  "FAIL",
+                          "phase":  "RUNNER_FAILED",
+                          "classification":  "TEST_HARNESS",
+                          "rawEvidencePath":  "self-test/artifacts/surefire-missing/evidence/current/index.md",
+                          "runnerOutputPath":  "self-test/artifacts/surefire-missing/runner-output.log",
+                          "cleanup":  {
+                                          "succeeded":  true,
+                                          "retainedState":  false
+                                      },
+                          "errors":  [
+
+                                     ]
+                      },
+                      {
+                          "id":  "utf8-log",
+                          "result":  "PASS",
+                          "exitCode":  0,
+                          "status":  "PASS",
+                          "phase":  "RUNNER_COMPLETED",
+                          "classification":  "NONE",
+                          "rawEvidencePath":  "self-test/artifacts/utf8-log/evidence/current/index.md",
+                          "runnerOutputPath":  "self-test/artifacts/utf8-log/runner-output.log",
+                          "cleanup":  {
+                                          "succeeded":  true,
+                                          "retainedState":  false
+                                      },
+                          "errors":  [
+
+                                     ]
+                      },
+                      {
+                          "id":  "interrupted-run",
+                          "result":  "PASS",
+                          "exitCode":  1,
+                          "status":  "FAIL",
+                          "phase":  "RUNNER_FAILED",
+                          "classification":  "TEST_HARNESS",
+                          "rawEvidencePath":  "self-test/artifacts/interrupted-run/evidence/current/index.md",
+                          "runnerOutputPath":  "self-test/artifacts/interrupted-run/runner-output.log",
+                          "cleanup":  {
+                                          "succeeded":  true,
+                                          "retainedState":  false
+                                      },
+                          "errors":  [
+
+                                     ]
+                      },
+                      {
+                          "id":  "evidence-missing",
+                          "result":  "PASS",
+                          "exitCode":  1,
+                          "status":  "FAIL",
+                          "phase":  "RUNNER_FAILED",
+                          "classification":  "TEST_HARNESS",
+                          "rawEvidencePath":  "self-test/artifacts/evidence-missing/evidence/current/index.md",
+                          "runnerOutputPath":  "self-test/artifacts/evidence-missing/runner-output.log",
+                          "cleanup":  {
+                                          "succeeded":  true,
+                                          "retainedState":  false
+                                      },
+                          "errors":  [
+
+                                     ]
+                      }
+                  ]
+}

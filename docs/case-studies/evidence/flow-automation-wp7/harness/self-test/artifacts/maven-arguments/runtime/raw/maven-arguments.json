@@ -1,0 +1,10 @@
+[
+    "-f",
+    "C:\\Users\\chenk-u\\AppData\\Local\\Temp\\flow harness-wp7-evidence\\pom.xml",
+    "-pl",
+    "backend-tests",
+    "-am",
+    "test",
+    "-Dtest=*Test",
+    "-Dsurefire.failIfNoSpecifiedTests=false"
+]

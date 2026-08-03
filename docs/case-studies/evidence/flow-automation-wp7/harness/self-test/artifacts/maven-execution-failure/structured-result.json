@@ -1,0 +1,21 @@
+{
+    "schemaVersion":  1,
+    "scenario":  "maven-execution-failure",
+    "status":  "FAIL",
+    "exitCode":  1,
+    "phase":  "RUNNER_FAILED",
+    "classification":  "TEST_HARNESS",
+    "rawEvidencePath":  "C:\\Users\\chenk-u\\AppData\\Local\\Temp\\flow harness-wp7-evidence\\changes\\harness-self-test-maven-execution-failure\\evidence\\current\\index.md",
+    "cleanup":  {
+                    "attempted":  true,
+                    "succeeded":  true,
+                    "retainedState":  false,
+                    "command":  "none"
+                },
+    "counts":  {
+                   "passed":  0,
+                   "failed":  1,
+                   "skipped":  0,
+                   "raw":  "missing"
+               }
+}

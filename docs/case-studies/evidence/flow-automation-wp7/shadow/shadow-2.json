@@ -1,0 +1,25 @@
+{
+    "observationId":  "shadow-2",
+    "observedAt":  "2026-08-03T03:37:02.8644864Z",
+    "inputRevision":  "5178e454ca7a69990f66f29e7720bfc07975bf28be00ab8459b910ef0d8001d3",
+    "sutRevision":  "95653d37663d4d63bea1a13e203a7c4fd8de9f4b",
+    "sourceLocatorHash":  "76ff3a733896adeaf7791027a68e33ff6eb753ef45e7ce34e30ba345a053930e",
+    "sourceModifiedAt":  "2026-07-31T03:13:37.8840975Z",
+    "initialControllerState":  {
+                                   "exists":  false,
+                                   "stateHash":  "missing"
+                               },
+    "controller":  {
+                       "exitCode":  1,
+                       "next":  "BLOCKED",
+                       "errorCode":  "ERROR_STATE_CORRUPT",
+                       "rawOutputHash":  "4ed3fa83855abc34587ff90b8f359a46994803a2936e8baa5146e26e64bbaf7c",
+                       "normalizedOutput":  [
+                                                "[FLOW_CONTROLLER] ERROR_STATE_CORRUPT",
+                                                "message: state cannot be read or recovered: state file not found: \u003credacted\u003e"
+                                            ]
+                   },
+    "actualPreparedAction":  "ASSIGN_IMPLEMENTATION",
+    "consistent":  false,
+    "evidenceLocation":  "shadow-2.json"
+}

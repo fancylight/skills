@@ -1,0 +1,117 @@
+{
+    "schemaVersion":  1,
+    "result":  "PASS",
+    "isolationRootHash":  "dee3b2a8f8b104ae046979b073da8bacc18ad955a9a821aba3c1d24f06b93266",
+    "controllerHash":  "3826f1c3f89812430ea8d66a5f4ee5e0a8a60c13c5e07c940422b417cf6795cc",
+    "generatedAt":  "2026-08-03T03:37:01.5282267Z",
+    "observations":  [
+                         {
+                             "id":  "agent-abnormal-exit",
+                             "executedAt":  "2026-08-03T03:36:58.3332072Z",
+                             "expected":  "next: AWAIT_IMPLEMENTATION_RESULT",
+                             "observed":  "next: AWAIT_IMPLEMENTATION_RESULT",
+                             "outputHash":  "fe1bd5a3d7328834e689ad58c523583f96054e5ae3d3d3dc3f3166df8f180faa",
+                             "output":  [
+                                            "[FLOW_CONTROLLER] PASS",
+                                            "phase: TEST_IMPLEMENTING",
+                                            "next: AWAIT_IMPLEMENTATION_RESULT",
+                                            "skill: flow-codex-test-receive/apply/report",
+                                            "lease_required: True"
+                                        ]
+                         },
+                         {
+                             "id":  "duplicate-recovery",
+                             "executedAt":  "2026-08-03T03:36:58.3477600Z",
+                             "expected":  "next: AWAIT_IMPLEMENTATION_RESULT",
+                             "observed":  "next: AWAIT_IMPLEMENTATION_RESULT",
+                             "outputHash":  "fe1bd5a3d7328834e689ad58c523583f96054e5ae3d3d3dc3f3166df8f180faa",
+                             "output":  [
+                                            "[FLOW_CONTROLLER] PASS",
+                                            "phase: TEST_IMPLEMENTING",
+                                            "next: AWAIT_IMPLEMENTATION_RESULT",
+                                            "skill: flow-codex-test-receive/apply/report",
+                                            "lease_required: True"
+                                        ]
+                         },
+                         {
+                             "id":  "duplicate-lease-resume",
+                             "executedAt":  "2026-08-03T03:36:58.4969023Z",
+                             "expected":  "ERROR_TRANSITION",
+                             "observed":  "ERROR_TRANSITION",
+                             "outputHash":  "6bea769cf65826b23887dbc51dd322106c2d305578bb10a74919f43d4bf0ce31",
+                             "output":  [
+                                            "[FLOW_CONTROLLER] ERROR_TRANSITION",
+                                            "message: implementation lease requires TEST_DESIGN_VERIFIED"
+                                        ]
+                         },
+                         {
+                             "id":  "stale-lease",
+                             "executedAt":  "2026-08-03T03:36:58.7277587Z",
+                             "expected":  "ERROR_LEASE_INVALID",
+                             "observed":  "ERROR_LEASE_INVALID",
+                             "outputHash":  "d0667471858fbc813df728734d3c9831ebf4c44787d4432c73824fcab3926b16",
+                             "output":  [
+                                            "[FLOW_CONTROLLER] ERROR_LEASE_INVALID",
+                                            "message: lease is missing, stale, expired, or owned by another agent"
+                                        ]
+                         },
+                         {
+                             "id":  "duplicate-runner",
+                             "executedAt":  "2026-08-03T03:37:00.5432515Z",
+                             "expected":  "ERROR_RUN_DUPLICATE",
+                             "observed":  "ERROR_RUN_DUPLICATE",
+                             "outputHash":  "85be4a4bae731793d5f1c6408eff7534a16a1eb877c83d0f858f1480d015baca",
+                             "output":  [
+                                            "[FLOW_CONTROLLER] ERROR_RUN_DUPLICATE",
+                                            "message: runner already started for this test revision"
+                                        ]
+                         },
+                         {
+                             "id":  "evidence-missing",
+                             "executedAt":  "2026-08-03T03:37:00.7928081Z",
+                             "expected":  "ERROR_INPUT",
+                             "observed":  "ERROR_INPUT",
+                             "outputHash":  "f0e7fd2fee51f201e7225658b3814f919dd7712315dfa3594d350bcc65fdd0a2",
+                             "output":  [
+                                            "[FLOW_CONTROLLER] ERROR_INPUT",
+                                            "message: run result and evidence path are required"
+                                        ]
+                         },
+                         {
+                             "id":  "runner-failure-next",
+                             "executedAt":  "2026-08-03T03:37:01.0552661Z",
+                             "expected":  "next: BLOCKED",
+                             "observed":  "next: BLOCKED",
+                             "outputHash":  "821bdec71096d13c5dd4921db471b3986c06a9bb7e304e4acad4efaa6ae0eef3",
+                             "output":  [
+                                            "[FLOW_CONTROLLER] PASS",
+                                            "phase: TEST_EXECUTED_FAIL",
+                                            "next: BLOCKED",
+                                            "skill: none",
+                                            "lease_required: False"
+                                        ]
+                         },
+                         {
+                             "id":  "runner-failure-result-entry",
+                             "executedAt":  "2026-08-03T03:37:01.2051462Z",
+                             "expected":  "ERROR_VERIFIER_REVISION",
+                             "observed":  "ERROR_VERIFIER_REVISION",
+                             "outputHash":  "65ed85e88ea1b68435f94b87bd5154809a723008b17bc21ba3608d277ab271a8",
+                             "output":  [
+                                            "[FLOW_CONTROLLER] ERROR_VERIFIER_REVISION",
+                                            "message: verifier phase or revision does not match state"
+                                        ]
+                         },
+                         {
+                             "id":  "revision-drift",
+                             "executedAt":  "2026-08-03T03:37:01.5262265Z",
+                             "expected":  "ERROR_REVISION_DRIFT",
+                             "observed":  "ERROR_REVISION_DRIFT",
+                             "outputHash":  "edbd232f752b8c3e412cfe4fb29523b1fbe42b892216da3a75d293760b28e087",
+                             "output":  [
+                                            "[FLOW_CONTROLLER] ERROR_REVISION_DRIFT",
+                                            "message: canonical system-test HEAD differs from locked test revision"
+                                        ]
+                         }
+                     ]
+}

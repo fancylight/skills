@@ -1,0 +1,21 @@
+{
+    "schemaVersion":  1,
+    "scenario":  "cleanup-failure",
+    "status":  "FAIL",
+    "exitCode":  1,
+    "phase":  "RUNNER_FAILED",
+    "classification":  "TEST_HARNESS",
+    "rawEvidencePath":  "C:\\Users\\chenk-u\\AppData\\Local\\Temp\\flow harness-wp7-evidence\\changes\\harness-self-test-cleanup-failure\\evidence\\current\\index.md",
+    "cleanup":  {
+                    "attempted":  true,
+                    "succeeded":  false,
+                    "retainedState":  true,
+                    "command":  ".\\scripts\\system-test.ps1 cleanup -Change harness-self-test-cleanup-failure"
+                },
+    "counts":  {
+                   "passed":  1,
+                   "failed":  0,
+                   "skipped":  0,
+                   "raw":  "C:\\Users\\chenk-u\\AppData\\Local\\Temp\\flow harness-wp7-evidence\\backend-tests\\target\\surefire-reports"
+               }
+}
