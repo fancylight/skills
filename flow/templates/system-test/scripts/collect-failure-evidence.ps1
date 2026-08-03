@@ -53,7 +53,7 @@ function Get-JunitFailures($Manifest, [string]$Directory) {
         $methodName = [string]$testCase.name
         $rule = Get-TriageRule $Manifest $className $methodName
         $category = if ($rule -and $rule.category) { [string]$rule.category } else { 'UNDETERMINED' }
-        if ($category -notin @('CONFIG_INFRA','TEST_HARNESS','DATA_SCHEMA_CONTRACT','SUT_BUSINESS','UNDETERMINED')) { $category = 'UNDETERMINED' }
+        if ($category -notin @('CONFIG_INFRA','TEST_HARNESS','FIXTURE_ASSERTION','DATA_SCHEMA_CONTRACT','SUT_BUSINESS','UNDETERMINED')) { $category = 'UNDETERMINED' }
         $certainty = if ($rule -and $rule.certainty -eq 'confirmed') { 'confirmed' } else { 'suspected' }
         $scenario = if ($rule -and $rule.scenarioId) { [string]$rule.scenarioId } else { 'unmapped' }
         $message = ConvertTo-SafeEvidenceText (([string]$node.message) + ' ' + ([string]$node.'#text'))
