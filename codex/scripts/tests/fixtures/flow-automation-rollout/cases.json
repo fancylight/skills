@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "batchA": {
+    "controller": "codex/scripts/tests/test-flow-test-controller.ps1",
+    "domain": "codex/scripts/tests/test-validate-domain-artifact.ps1",
+    "domainReplay": "codex/scripts/tests/test-domain-verifier-replay.ps1",
+    "scenarioSource": "codex/scripts/tests/test-validate-test-cases.ps1",
+    "harness": "codex/scripts/tests/test-harness-certification.ps1",
+    "skills": "codex/scripts/tests/test-flow-skill-controller-contract.ps1"
+  },
+  "batchB": [
+    { "id": "early-service-start", "firstGuard": "capability lease guard", "evidence": "ERROR_CAPABILITY_FORBIDDEN" },
+    { "id": "early-runner", "firstGuard": "phase transition guard", "evidence": "ERROR_TRANSITION" },
+    { "id": "business-repo-write", "firstGuard": "repository scope guard", "evidence": "BLOCKED_SCOPE_VIOLATION" },
+    { "id": "stale-agent-resume", "firstGuard": "expired lease guard", "evidence": "ERROR_LEASE_INVALID" },
+    { "id": "second-test-root", "firstGuard": "canonical repository guard", "evidence": "ERROR_CANONICAL_PATH" },
+    { "id": "sut-revision-drift", "firstGuard": "immutable SUT guard", "evidence": "ERROR_REVISION_DRIFT" },
+    { "id": "tool-output-pollution", "firstGuard": "artifact parser", "evidence": "TEST_ARTIFACT_GUARD" },
+    { "id": "duplicate-failure", "firstGuard": "failure fingerprint guard", "evidence": "ERROR_FAILURE_DUPLICATE" },
+    { "id": "required-scenario-removal", "firstGuard": "scenario source diff guard", "evidence": "design verifier report" },
+    { "id": "harness-mutation", "firstGuard": "harness certification guard", "evidence": "ERROR_HARNESS_UNCERTIFIED" },
+    { "id": "configuration-source-switch", "firstGuard": "ownership route guard", "evidence": "STOP_AWAIT_HUMAN_CONFIGURATION" }
+  ],
+  "batchC": [
+    { "id": "single-service-sync-api", "kind": "happy-path", "requiredOutcome": "controller-complete-after-result-verifier" },
+    { "id": "database-and-async-job", "kind": "happy-path", "requiredOutcome": "observable-eventual-side-effects" },
+    { "id": "multi-service-external-stub", "kind": "happy-path", "requiredOutcome": "external-stub-contract-and-evidence" },
+    { "id": "runner-platform-failure", "kind": "failure", "requiredOutcome": "test-harness-route-no-business-write" },
+    { "id": "real-sut-business-failure", "kind": "failure", "requiredOutcome": "confirmed-sut-route-no-assertion-relaxation" }
+  ],
+  "batchD": [
+    { "id": "shadow-design-verified", "phase": "TEST_DESIGN_VERIFIED", "requested": "RUN_ONCE", "next": "ISSUE_IMPLEMENTATION_LEASE", "decision": "reject" },
+    { "id": "shadow-implementation-verified", "phase": "TEST_IMPLEMENTATION_VERIFIED", "requested": "RUN_ONCE", "next": "VERIFY_ENVIRONMENT", "decision": "reject" },
+    { "id": "shadow-executed-pass", "phase": "TEST_EXECUTED_PASS", "requested": "COMPLETE", "next": "VERIFY_RESULT", "decision": "reject" }
+  ],
+  "batchE": [
+    { "id": "human-configuration", "expected": "BLOCKED" },
+    { "id": "wiremock-contract", "expected": "FIXTURE_ASSERTION" },
+    { "id": "fixture-data", "expected": "FIXTURE_ASSERTION" },
+    { "id": "runner-report-missing", "expected": "TEST_HARNESS" },
+    { "id": "sut-business", "expected": "SUT_BUSINESS" },
+    { "id": "evidence-incomplete", "expected": "UNDETERMINED" },
+    { "id": "out-of-scope-write", "expected": "BLOCKED_SCOPE_VIOLATION" }
+  ],
+  "rollback": "Disable controller-driven Goal entry and return public orchestration to explicit human-invoked steps without changing stored evidence or business repositories."
+}
