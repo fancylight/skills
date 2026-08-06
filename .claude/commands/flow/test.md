@@ -1,120 +1,52 @@
 ---
 name: "Flow: Test"
-description: "Root agent triggers integration tests — service-level (delegate to service dir) or cross-service acceptance (HTTP/MQ/DB)"
+description: "Root orchestration entry for integration tests — reads flow-test-controller next and runs exactly one allowed action"
 category: Workflow
 tags: [workflow, orchestration, multi-agent, testing]
-version: "0.2.0"
+version: "0.4.0"
 ---
 
-根 agent 触发集成测试。支持两种模式。
+根集成测试编排入口。协议：`control-plane.md` §4 + controller 脚本 `~/.claude/commands/flow/scripts/flow-test-controller.ps1`。
 
-**输入**：`/flow:test [service-name|change-name]`
-- 指定 service-name（如 `glm-attendance`）：运行该服务的集成测试（委托 agent 执行 `test_command`）
-- 指定 change-name 或不指定：端到端跨服务验收测试（基于概要设计验收标准）
+**输入**：`/flow:test [change-name]`
 
-**与 apply.md 的分工**：
-- 每个 spec 的单元测试：由 `/flow:apply` 在编码循环中执行（`test_command`）
-- 服务的集成测试（如 c10 集成测试 spec）：由 `/flow:test <service>` 触发
-- 跨服务端到端验收：由 `/flow:test <change>` 触发
+每轮**只**执行 controller `next` 返回的一个动作。`BLOCKED` 立即停止；`COMPLETE` 才输出完成。不得按本文叙述顺序自行跨阶段。
 
 ---
 
-## 模式 A：服务集成测试（`/flow:test <service-name>`）
+**前置**
 
-**职责**：委托内联 agent 到服务目录运行 `test_command`，收集结果。根 agent 不亲自执行测试命令。
-
-**前置检查**
-
-1. 确认 `.flow/config.yaml` 存在且 `role: orchestrator`
-2. 确认指定的 service 在 services 列表中
-
-**步骤**
-
-1. **读取服务配置**
-
-   从 config.yaml 获取服务的 `path`。读取服务的 `.flow/config.yaml`，获取 `inline_agents.unit_test.test_command`。
-
-2. **内联启动测试 agent**
-
-   使用 **Agent tool** 启动内联 agent。读取 `~/.claude/commands/flow/templates/test-agent-prompt.md` 模板，替换 `{服务绝对路径}` 和 `{test_command}` 后传入。
-
-3. **输出结果**
-
-   将 agent 返回的测试结果展示给用户。
+1. `role: orchestrator`，提供 `change_name`
+2. 解析 system-test 仓（根 config `type: system-test`）与 `.flow/changes/<change>/automation-state.yaml`
+3. 先运行 flow-test-controller.ps1 的 `status` / `next`（参数以脚本实际 param 为准）
 
 ---
 
-## 模式 B：跨服务验收测试（`/flow:test [change-name]`）
+**next → 唯一动作**
 
-**职责**：端到端验证大需求的验收标准（HTTP 调用 / MQ 消息 / DB 直查）。
+| next | 动作 |
+|------|------|
+| VERIFY_DESIGN | `/flow:test-verify design` |
+| ISSUE_IMPLEMENTATION_LEASE | `/flow:test-assign`（controller issue-lease） |
+| AWAIT_IMPLEMENTATION_RESULT | 等待持租约 agent receive/apply/report |
+| VERIFY_IMPLEMENTATION | `/flow:test-verify implementation` |
+| VERIFY_ENVIRONMENT | 认证 harness 最小环境验证 + record-verifier environment |
+| RUN_ONCE / AWAIT_RUN_RESULT | `/flow:system-test` orchestrated → record-run |
+| VERIFY_RESULT | `/flow:test-verify result` |
+| COMPLETE / BLOCKED | 完成或停止 |
 
-**前置检查**
+业务全量 `/flow:verify full`（§A+§B）无 ERROR 是进入 test-design 的前置（见 test-design）。
 
-1. 确认 `.flow/config.yaml` 存在且 `role: orchestrator`
-2. 确认有活跃 change（多个则 AskUserQuestion 选择）
+---
 
-**步骤**
+**废弃路径（迁移）**
 
-1. **检查完成条件**
-
-   读取 task.md，确认所有服务的所有 spec 已完成（全部 `[x]`）。
-   如有未完成项，展示清单并警告，使用 **AskUserQuestion** 确认是否继续。
-
-2. **读取验收标准**
-
-   读取活跃 change 的 `概要设计.md`，提取 `## 验收标准` 与 `## 数据访问契约` 章节。
-   如验收标准章节不存在或过于笼统，警告用户并建议补充后再测试。
-
-3. **确认测试环境**
-
-   使用 **AskUserQuestion** 逐项确认：
-   - 各服务是否已在本地启动？（列出 services 清单，逐个确认地址）
-   - 数据库连接（host:port/database）
-   - MQ 连接（如概要设计中涉及 MQ）
-
-4. **内联启动集成测试 agent**
-
-   使用 **Agent tool** 启动内联测试 agent，传入：
-   - 验收标准内容
-   - 环境配置（服务地址、DB、MQ）
-   - 概要设计.md 路径
-
-   测试 agent 执行：
-
-   a. **HTTP 接口验证**：对每个接口发请求，验证状态码和响应
-   b. **MQ 消息验证**：发送消息，通过 HTTP 或 DB 验证结果
-   c. **数据库直查验证**：执行 SELECT 查询，验证数据一致性
-   d. **SQL 计划验证**（数据访问契约有风险行时）：对代表性参数执行最终列表 SQL 与框架生成的分页 count SQL 的只读 `EXPLAIN`；记录脱敏计划、参数/数据量、环境与时间。非豁免 `DEPENDENT SUBQUERY`、关键大表 `ALL`、无法获得最终 count SQL 或证据均为失败，不得以 Mapper 文本或普通 API 断言替代。
-
-5. **输出测试报告**
-
-   ```
-   ## 集成测试报告
-
-   需求：{需求名}
-   测试时间：{datetime}
-
-   ### 测试结果
-   ✅ 用例1：{描述} — 通过
-   ❌ 用例2：{描述} — 失败
-      实际：{actual} | 期望：{expected}
-
-   ### 汇总
-   通过：X / 失败：Y / 共 Z
-
-   ### SQL 计划证据（如适用）
-   - <最终列表 SQL / 分页 count SQL / EXPLAIN evidence 路径或附件>
-
-   ```
-
-6. **建议下一步**
-
-   - 全部通过 → "建议执行 `/flow:verify` + `/flow:archive`"
-   - 有失败 → "以下服务需要修复：{列表}。建议重新 `/flow:assign <service>`"
+旧「委托 test_command / 手写 E2E HTTP」不再作为主路径。服务级单测仍在 `/flow:apply`。详见 `docs/claude-lease-migration.md`。
 
 ---
 
 **约束**
 
-- 根 agent 不亲自执行测试命令，所有测试工作委托给内联 agent
-- 模式 B：只在所有 spec 完成后执行；DB 直查使用只读连接
+- Goal 只能执行 controller 返回的一个动作
+- runner PASS ≠ Flow complete；须 result verify PASS
+- 不在根上下文编写测试代码

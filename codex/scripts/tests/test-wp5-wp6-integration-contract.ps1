@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
 $sourceHarness = Join-Path $repoRoot 'flow\templates\system-test'
-$controller = Join-Path (Split-Path -Parent $PSScriptRoot) 'flow-test-controller.ps1'
+$controller = Join-Path $repoRoot 'flow\scripts\flow-test-controller.ps1'
 $root = Join-Path ([IO.Path]::GetTempPath()) ('wp5-wp6 contract-' + [guid]::NewGuid().ToString('N'))
 
 function Invoke-Git([string]$Repository, [string[]]$Arguments) {

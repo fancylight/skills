@@ -42,7 +42,14 @@ conventions:
 child_agent:
   spec_tool: string         # 可选。子 agent 使用的 spec 工具标识
   onboarding_doc: string    # 必填。默认 ".flow/onboarding.md"
+
+flow:                       # 可选。控制面协议（见 flow/docs/control-plane.md）
+  protocol_version: string  # 可选。枚举：legacy | lease-v1
+                            # 缺省 = legacy（进行中 change 不中断）
+                            # 新建 change 由 init/design 写入 lease-v1（Phase 1+）
 ```
+
+`protocol_version` 也可写在单个 change 的 `task.md` frontmatter（同名字段）；**change 级覆盖根 config**。apply 中途禁止自动改写。词法与租约握手见 [control-plane.md](./control-plane.md)。
 
 ### 1.2 子 Agent 配置（`role: executor`）
 
@@ -98,6 +105,7 @@ tier: integer               # 必填。1 / 2 / 3
 branch: string              # 必填。完整分支名
 services: array[string]     # 必填。涉及的服务名列表
 created: string             # 必填。ISO-8601 日期
+protocol_version: string    # 可选。legacy | lease-v1；覆盖根 config.flow.protocol_version
 updated: string             # 必填。ISO-8601 日期
 archived: string            # 可选。归档时填写
 ---

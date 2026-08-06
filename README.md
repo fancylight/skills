@@ -54,12 +54,14 @@
 | **本仓库路径** | `.claude/`（gitignore，开发用） | `codex/skills/` |
 | **安装脚本** | `install.sh` | `codex/install.ps1` |
 | **安装目标** | `~/.claude` 或项目 `.claude` | `~/.agents/skills` |
-| **触发方式** | 斜杠命令 `/flow:*` + `flow-*` skill | `flow-codex-*` skill（语义触发） |
+| **触发方式** | 斜杠命令 `/flow:*` + `flow-*` skill stub | `flow-codex-*` skill（语义触发） |
 | **Agent 入口** | [docs/claude-code.md](./docs/claude-code.md)（经 [CLAUDE.md](./CLAUDE.md) 路由） | [AGENTS.md](./AGENTS.md) |
-| **审核** | 执行 Agent 内联启动审核子 Agent | 根 Agent 调度 `flow-codex-review` |
-| **汇报** | 执行 Agent 直接 `report` | 根 Agent 发放串行报告租约后 `report` |
+| **审核（lease-v1）** | 根收 `REVIEW_REQUEST` → `/flow:review` → 注入 `REVIEW_RESULT` | 根调度 `flow-codex-review` |
+| **汇报（lease-v1）** | 根串行 `REPORT_LEASE_GRANTED` 后 `/flow:report` | 同词法，`flow-codex-report` |
+| **兼容（legacy）** | 内联审核 + 直接 report（缺省，不打断进行中 change） | — |
+| **共享 SoT** | `flow/docs/*` · `flow/templates/**` · `flow/scripts/*.ps1` | 同左（`codex/scripts` 为过渡 shim） |
 
-平台差异详见 [codex/PLAN.md](./codex/PLAN.md)。
+协议词法：[flow/docs/control-plane.md](./flow/docs/control-plane.md)。Claude 迁移：[docs/claude-lease-migration.md](./docs/claude-lease-migration.md)。平台差异详见 [codex/PLAN.md](./codex/PLAN.md)。
 
 ---
 
@@ -75,25 +77,28 @@ skills/
 ├── CHANGELOG.md              ← 版本与变更记录
 │
 ├── .claude/                  ← Claude 实现（gitignore；install.sh 复制到 ~/.claude）
-│   ├── commands/flow/            /flow:init … /flow:archive（13 个）
-│   ├── skills/flow-*/            flow-init … flow-verify（12 个）
+│   ├── commands/flow/            /flow:* 正文（22 个，含 review + test 全链）
+│   ├── skills/flow-*/            薄 stub → 对应 command（22 个）
 │   └── INSTALL.md
 │
 ├── codex/                    ← Codex 适配层
 │   ├── install.ps1
 │   ├── validate.ps1
 │   ├── PLAN.md
+│   ├── scripts/                过渡 shim → flow/scripts/
 │   └── skills/
-│       ├── flow-codex-*        公开 skills（20 个）
+│       ├── flow-codex-*        公开 skills
 │       └── flow-codex-core     内部公共资源 + 安装后模板副本
 │
-├── flow/                     ← 双平台共享
-│   ├── docs/schema.md          .flow/ 数据格式规范
-│   └── templates/              模板源
-│       └── codex/              Codex 覆盖项（install 时叠加）
+├── flow/                     ← 双平台共享 SoT
+│   ├── docs/                   schema · control-plane · test-controller
+│   ├── scripts/                validators + flow-test-controller + tests
+│   └── templates/              模板源（含 system-test/）
+│       └── codex/              Codex 覆盖项（仅 Codex install 叠加）
 │
-├── scripts/validate.js       ← Claude 侧静态校验
+├── scripts/validate.js       ← Claude 侧静态校验（stub/lease/scripts）
 ├── install.sh                ← Claude 安装
+├── docs/claude-lease-migration.md
 ├── flow-redesign.md          ← 设计文档 v3（细节参考）
 ├── 流程文档.md                ← 工作流场景与 Mermaid 图
 └── 多阶段AI自动化开发流程（含Mermaid流程图）.md  ← 愿景

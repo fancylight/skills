@@ -3,7 +3,7 @@ name: "Flow: Init"
 description: "Initialize flow scaffold for root or child agent — creates .flow/ config and required files only, no design work"
 category: Workflow
 tags: [workflow, orchestration, multi-agent]
-version: "0.2.0"
+version: "0.4.0"
 ---
 
 初始化 `.flow/` 必要文件。**只创建配置和规范文档，不做需求分析或设计。**
@@ -55,9 +55,11 @@ version: "0.2.0"
 
    模板文件：`~/.claude/commands/flow/templates/config.yaml.tmpl`。
 
+   **protocol_version**：根 config 模板默认 `flow.protocol_version: legacy`（兼容存量）。**新建 change** 在 `/flow:design` 写入 change 级 `protocol_version: lease-v1`。init **不**自动 bump 进行中 change。
+
    **onboarding.md** 内容（模板渲染）：
    - 二级 agent 架构说明（根职责：设计/编排；子职责：实现）
-   - 平台限制说明（根无法自动启动子，子可内联启动审核/测试 agent）
+   - 平台限制说明（根编排；lease-v1 下根中继 review + 串行 report 租约；legacy 子可内联审核）
    - 子 agent 三阶段工作循环（阶段一设计 → 阶段二编码 → 阶段三汇报）
    - 提交格式、分支规范、知识库读写规则
 
@@ -121,7 +123,7 @@ version: "0.2.0"
    **工作流程.md** 内容（模板渲染，注入服务信息）：
    - 基本信息（服务名、根路径、spec 工具、测试命令）
    - 阶段一：设计（receive → design → 自检 → 等待评审）
-   - 阶段二：编码（apply → 内联审核 → 单元测试，逐 spec 循环）
+   - 阶段二：编码（apply → lease-v1: REVIEW_REQUEST/根 review；legacy: 内联审核 → 单元测试）
    - 阶段三：汇报（report → 知识库判断）
 
 3. **向根注册**

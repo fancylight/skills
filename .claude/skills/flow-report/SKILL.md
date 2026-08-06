@@ -1,14 +1,10 @@
 ---
 name: flow-report
-description: "Child agent submits a structured completion report after finishing coding, updates root task.md, and triggers knowledge base maintenance check. Use when: 'I finished coding, submit report', 'report my progress', 'complete this task and report'"
+description: "Child agent submits structured completion report under report lease (lease-v1) or legacy direct path; updates root task.md and KB hints. Use when: report complete, finish spec, update task.md"
 license: MIT
 metadata:
   author: flow
-  version: "0.3.0"
+  version: "0.4.0"
 ---
 
-子 agent 完成编码后提交结构化汇报，更新根 task.md、开发文档（§3.2 + §4.1/§4.2/§4.3 回写）与发版记录，强制触发知识库维护判断。
-
-开发文档回写须读 `commands/flow/templates/dev-doc-update-rules.md`：§4.1 可部署服务（非仓名）、§4.2 SQL 自包含、§4.3 业务验收语义。
-
-执行 `/flow:report` 开始。
+子 agent 汇报。执行 `/flow:report`（正文：commands/flow/report.md）。lease-v1 须先有 REPORT_LEASE_GRANTED。

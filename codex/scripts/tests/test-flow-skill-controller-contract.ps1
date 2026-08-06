@@ -18,7 +18,7 @@ foreach ($entry in $contracts.GetEnumerator()) {
     if (-not $content.Contains($marker)) { throw "$($entry.Key) does not consume controller contract marker: $marker" }
   }
 }
-$controller = Get-Content -LiteralPath (Join-Path $repoRoot 'codex\scripts\flow-test-controller.ps1') -Raw -Encoding UTF8
+$controller = Get-Content -LiteralPath (Join-Path $repoRoot 'flow\scripts\flow-test-controller.ps1') -Raw -Encoding UTF8
 foreach ($marker in @('phase: $($state.phase)','skill: $skill','lease_required:','ERROR_TRANSITION','ERROR_AUTHORIZATION')) {
   if (-not $controller.Contains($marker)) { throw "controller next/guard marker missing: $marker" }
 }

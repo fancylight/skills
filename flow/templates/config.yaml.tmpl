@@ -32,3 +32,9 @@ conventions:
 child_agent:
   spec_tool: "{{spec_tool}}"
   onboarding_doc: ".flow/onboarding.md"
+
+# 控制面协议：缺省 legacy（兼容进行中 change）。
+# 新建 change 在 design/init 写入 lease-v1 后走根调度 review + 串行 report 租约。
+# 详见 flow/docs/control-plane.md 与 docs/claude-lease-migration.md
+flow:
+  protocol_version: "legacy"

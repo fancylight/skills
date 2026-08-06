@@ -1,12 +1,10 @@
 ---
 name: flow-verify
-description: "Root agent verifies cross-service API contract consistency between providers and consumers. Use when: 'verify API contracts', 'check interface consistency', 'do the services agree on the API'"
+description: "Read-only Flow gates — format, domain, design, full, release (optional legacy-api). Use when: verify design, domain facts, release readiness, before assign/archive/test"
 license: MIT
 metadata:
   author: flow
-  version: "0.1.0"
+  version: "0.4.0"
 ---
 
-根 agent 验证跨服务接口契约一致性，比对消费者期望（{provider}-api.md）vs 提供者实现（api.md）。
-
-执行 `/flow:verify` 开始。
+只读门禁。执行 `/flow:verify`（正文：commands/flow/verify.md）。清单见 templates/verify-checklist.md。

@@ -1,14 +1,16 @@
 ---
 name: "Flow: Report"
-description: "Child agent submits structured completion report, updates root task.md, and triggers knowledge base maintenance"
+description: "Child agent submits structured completion report under report lease (lease-v1) or legacy direct path; updates root task.md and KB hints"
 category: Workflow
 tags: [workflow, orchestration, multi-agent, executor]
-version: "0.2.0"
+version: "0.4.0"
 ---
 
 子 agent 完成编码后提交结构化汇报。**`/flow:report` 是 task.md 的唯一写入者**——根 agent（assign）和编码阶段（apply）均不更新 spec 完成状态。
 
 **输入**：`/flow:report` 无参数，自动收集当前工作信息。
+
+协议：`~/.claude/commands/flow/docs/control-plane.md`。
 
 ---
 
@@ -16,10 +18,17 @@ version: "0.2.0"
 
 1. 确认 `.flow/config.yaml` 存在且 `role: executor`
 2. 读取 `root_path`、`service_name`、`inline_agents.knowledge_maintenance` 配置
+3. 解析 `protocol_version`（change 覆盖根 config；缺省 `legacy`）
+4. **租约门禁**：
+   - `lease-v1`：本会话上下文必须已收到根发放的 `[REPORT_LEASE_GRANTED]`（及对应 `change_name`/`spec_id`/`commit_hash`）。**缺失则硬拒绝**，输出 `[REPORT] DENIED reason: NO_LEASE`，不得写 task.md。
+   - `legacy`：允许直接 report，但必须先警告一行：`[WARN] legacy report without REPORT_LEASE_GRANTED`。
+5. 确认提交存在且（lease-v1）审核已 PASS。
 
 ---
 
 **步骤**
+
+0. **租约确认后**追加进度：`- [REPORT] 开始 — lease ok / legacy`
 
 1. **收集工作信息**
 
@@ -217,15 +226,23 @@ version: "0.2.0"
    - 根 task.md 更新状态（成功/失败原因）
    - 知识库维护状态（已触发/不需要/已跳过）
 
+   必须返回（根释放租约依赖此标记）：
+
+   ```text
+   [REPORT] complete
+   ```
+
    提示：
-   "汇报完成。请将完成情况告知根 agent，由根 agent 执行 /flow:status 查看整体进度。"
+   "汇报完成。根 agent 执行 /flow:status 查看整体进度。"
 
 ---
 
 **约束**
 
 - task.md 维护规则详见 `~/.claude/commands/flow/templates/task-md-maintenance.md`
-- 知识库判断步骤不可跳过，用户必须明确回答
+- `lease-v1` 无 `REPORT_LEASE_GRANTED` **禁止**写 task.md / 发版记录 / 开发文档
+- 知识库判断步骤不可跳过
 - 只更新本服务相关的 task.md 条目，不修改其他服务
 - 汇报格式必须结构化，便于根 agent 解析
 - 更新 task.md 时**重写**条目和服务头部，**不追加**
+- 不要与其他执行 agent 并发汇报（根串行租约）

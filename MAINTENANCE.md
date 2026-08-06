@@ -33,14 +33,16 @@
 | 路径 | 职责 | 修改时注意 |
 |------|------|------------|
 | `codex/skills/flow-codex-*` | Codex/Cursor 技能实现 | 改完跑 `codex/validate.ps1` |
-| `.claude/commands/flow/` | Claude 斜杠命令 | 与 `flow-*` skill 保持一致 |
+| `.claude/commands/flow/` | Claude 斜杠命令 | 与 `flow-*` skill 保持一致；**command 为正文源，skill 仅 stub** |
 | `.claude/skills/flow-*` | Claude 技能 | gitignore；改完用 `install.sh` 验证；**需纳入版本库时用 `git add -f .claude/`** |
 | `flow/templates/` | **共享模板源** | Codex 覆盖放 `flow/templates/codex/`；集成测试框架骨架在 `flow/templates/system-test/`（`install.ps1` 整目录复制） |
 | `flow/docs/schema.md` | `.flow/` 数据格式 | 协议变更须同步两套 skills |
+| `flow/docs/control-plane.md` | **控制面 / 租约词法 SoT** | 禁止在宿主 skill 内另写第二套 REVIEW/REPORT/lease 语义 |
+| `flow/scripts/*.ps1` | **共享门禁脚本 / controller** | install 两边复制；`codex/scripts/*.ps1` 仅为过渡 shim |
 | `scripts/validate.js` | Claude 侧校验 | 注意路径是否仍指向 `.claude/` |
-| `install.sh` / `codex/install.ps1` | 安装脚本 | 改模板路径须两边检查 |
+| `install.sh` / `codex/install.ps1` | 安装脚本 | 改模板/脚本路径须两边检查 |
 
-**原则**：协议与模板尽量单一来源（`flow/`）；平台差异收敛到 skill 指令与 `codex/PLAN.md`。
+**原则**：协议、模板、门禁脚本尽量单一来源（`flow/`）；平台差异只收敛到 skill/command 触发与 agent 拉起方式。Claude 对齐进度见 `docs/claude-lease-migration.md`。
 
 ---
 
@@ -48,14 +50,18 @@
 
 修改下列内容时，检查对侧是否需要同步：
 
-| 变更类型 | Claude | Codex |
-|----------|--------|-------|
-| 新增/改 `.flow` 字段 | `flow/docs/schema.md` + 相关 command/skill | 同上 + `flow-codex-*` |
-| 改任务/文档模板 | `flow/templates/*.tmpl` | `install.ps1` 会复制并做 `/flow:` → `$flow-codex-` 替换；特殊项写 `flow/templates/codex/` |
-| 改工作流步骤 | `.claude/commands/flow/*.md` + skill | `codex/skills/flow-codex-*/SKILL.md` |
-| 改审核/汇报机制 | 内联审核模板 `review-agent-prompt.md` | `flow-codex-review` + `checkpoints.md` |
+| 变更类型 | 单一事实源（先改这里） | Claude | Codex |
+|----------|------------------------|--------|-------|
+| 新增/改 `.flow` 字段 | `flow/docs/schema.md` | 相关 command | `flow-codex-*` |
+| 控制面 / 租约 / REVIEW 词法 | **`flow/docs/control-plane.md`** | command 只链引用 + 宿主拉起方式 | `checkpoints.md` 链引用；禁止分叉词法 |
+| 门禁脚本 / controller | **`flow/scripts/*.ps1`** | `install.sh` 复制到 `commands/flow/scripts/` | `install.ps1` → `assets/scripts/` |
+| 改任务/文档模板 | `flow/templates/*.tmpl` | `install.sh` 复制（**去掉** `templates/codex/`） | `install.ps1` 复制并做 `/flow:` → `$flow-codex-`；覆盖写 `flow/templates/codex/` |
+| 改工作流步骤 | （协议不进 skill 正文） | `.claude/commands/flow/*.md`（skill stub） | `codex/skills/flow-codex-*/SKILL.md` |
+| 改审核/汇报机制 | `control-plane.md` | `/flow:review` + assign 根循环（lease-v1） | `flow-codex-review` + checkpoints |
 
-不允许在 Codex skill 中硬编码 `~/\.claude`、`/flow:`、`TaskCreate` 等 Claude 专属语法（`validate.ps1` 会检查）。
+**冻结双写**：协议语义只改 `flow/docs/*` 与 `flow/templates/*` / `flow/scripts/*`；宿主包禁止粘贴完整 lease 状态机。  
+不允许在 Codex skill 中硬编码 `~/\.claude`、`/flow:`、`TaskCreate` 等 Claude 专属语法（`validate.ps1` 会检查）。  
+不允许在 Claude command 中硬编码 `$flow-codex-` 或假定 `~/.agents/skills` 为唯一脚本源。
 
 ---
 

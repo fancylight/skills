@@ -1,5 +1,8 @@
 # Codex 执行 Agent Checkpoints
 
+> 宿主无关协议正文：`flow/docs/control-plane.md`（安装后随 core/docs 或仓库路径引用）。  
+> 本文保留 Codex 触发名与生命周期表述；**词法冲突以 control-plane.md 为准**。
+
 Codex 子 agent 不能假设嵌套子 agent 工具可调用。根编排 agent 负责审核调度和串行汇报。
 
 ## 执行 Agent 生命周期

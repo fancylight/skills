@@ -15,11 +15,12 @@ phase、授权或 `allowedNext`。
 
 ## ADR-002：controller 的首版实现语言
 
-**状态：Accepted**
+**状态：Accepted（路径修订：Phase 0）**
 
-controller 首版使用 PowerShell 7 实现，源代码放在 `codex/scripts/`，安装时作为 Codex
-运行时资产复制。其输入输出、state schema 和错误码必须是平台无关的；跨平台实现是后续
-兼容工作，不作为 WP3 的前置条件。
+controller 首版使用 PowerShell 实现；**源代码单一事实源为 `flow/scripts/`**（原 `codex/scripts/`
+已迁出，Codex 树内仅保留过渡 shim）。安装时复制到各宿主运行时资产目录（Codex：
+`flow-codex-core/assets/scripts/`；Claude：`commands/flow/scripts/`）。其输入输出、state schema
+和错误码必须是平台无关的；Node/跨平台重写是后续兼容工作，不作为控制器语义前置条件。
 
 这复用当前仓库的 PowerShell 校验与测试基础，同时避免在控制器语义尚未稳定时维护两套
 行为实现。
@@ -46,13 +47,14 @@ self-test 与认证。
 
 ## ADR-005：Codex 与 Claude 的上线顺序
 
-**状态：Accepted**
+**状态：Accepted（Claude 对齐进行中）**
 
-可验证自动化的 controller、状态协议和 skill 接入先在 Codex 上上线。WP1–WP7 不要求同时
-修改 Claude command/skill；若修改共享 schema 或模板，必须保持其平台无关，Claude 的运行时
-接入另立兼容工作包并在具备同等 controller 约束后上线。
+可验证自动化的 controller、状态协议和 skill 接入**先在 Codex 上验证**。共享 schema、模板与
+`flow/scripts/` 必须保持平台无关。Claude 运行时接入按独立工作包推进，且须具备**同等**
+controller / 租约约束后才算完成对等（见仓库计划 Phase 0–5 与 `flow/docs/control-plane.md`）。
 
-这避免两套宿主在控制器、租约或状态语义尚未验证时产生不一致的自动化行为。
+在 Claude 完成 lease-v1 与 test 全链之前，不得声称双宿主行为一致；缺省 `protocol_version: legacy`
+保护进行中业务 change。
 
 ## ADR-006：旧 `testAuthorization.ceiling` 的迁移
 

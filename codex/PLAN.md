@@ -2,8 +2,9 @@
 
 ## 目标
 
-保持 Claude Code 实现不变，新增原生 Codex 适配层。复用 `.flow` 协议、OpenSpec 目录、任务元数据和
-公共模板。
+原生 Codex 适配层与 Claude Code 宿主包共享 `.flow` 协议、OpenSpec 目录、任务元数据、公共模板与
+`flow/scripts/` 门禁脚本。Claude 侧正按 [control-plane.md](../flow/docs/control-plane.md) 与
+`docs/claude-lease-migration.md` **对齐中**（完整能力对等 + 租约控制面）；不是「永久冻结 Claude」。
 
 ## 平台边界
 

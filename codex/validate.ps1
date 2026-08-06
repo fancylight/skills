@@ -147,8 +147,9 @@ Get-ChildItem -LiteralPath $skillsDir -Recurse -File -Filter '*.md' -ErrorAction
     }
 }
 
+$sharedScriptsDir = Join-Path $projectRoot 'flow\scripts'
 @('validate-test-artifacts.ps1', 'test-scope-guard.ps1') | ForEach-Object {
-    $scriptPath = Join-Path $scriptDir "scripts\$_"
+    $scriptPath = Join-Path $sharedScriptsDir $_
     if (-not (Test-Path -LiteralPath $scriptPath)) {
         $errors += "Missing integration-test guard script: $scriptPath"
     }
@@ -160,7 +161,7 @@ Get-ChildItem -LiteralPath $skillsDir -Recurse -File -Filter '*.md' -ErrorAction
         }
     }
 }
-$testCasesValidator = Join-Path $scriptDir 'scripts\validate-test-cases.ps1'
+$testCasesValidator = Join-Path $sharedScriptsDir 'validate-test-cases.ps1'
 if (-not (Test-Path -LiteralPath $testCasesValidator)) {
     $errors += "Missing canonical test-cases validator: $testCasesValidator"
 }
@@ -188,7 +189,7 @@ if (Test-Path -LiteralPath $testPlanTemplate) {
         $errors += 'test-plan template lacks the controlled generated region'
     }
 }
-$domainArtifactValidator = Join-Path $scriptDir 'scripts\validate-domain-artifact.ps1'
+$domainArtifactValidator = Join-Path $sharedScriptsDir 'validate-domain-artifact.ps1'
 if (-not (Test-Path -LiteralPath $domainArtifactValidator)) {
     $errors += "Missing domain artifact validator: $domainArtifactValidator"
 }
@@ -199,7 +200,7 @@ else {
         $errors += "PowerShell parse error in domain artifact validator: $domainArtifactValidator"
     }
 }
-$flowTestController = Join-Path $scriptDir 'scripts\flow-test-controller.ps1'
+$flowTestController = Join-Path $sharedScriptsDir 'flow-test-controller.ps1'
 if (-not (Test-Path -LiteralPath $flowTestController)) {
     $errors += "Missing flow test controller: $flowTestController"
 }
@@ -210,7 +211,7 @@ else {
         $errors += "PowerShell parse error in flow test controller: $flowTestController"
     }
 }
-$domainReplayCases = Join-Path $scriptDir 'scripts\tests\fixtures\domain-replay\cases.json'
+$domainReplayCases = Join-Path $sharedScriptsDir 'tests\fixtures\domain-replay\cases.json'
 if (-not (Test-Path -LiteralPath $domainReplayCases)) {
     $errors += "Missing domain verifier replay case index: $domainReplayCases"
 }
@@ -246,10 +247,33 @@ foreach ($harnessFile in @($harnessCertifier, $harnessSelfTest, $harnessSelfTest
     if ($parseErrors.Count -gt 0) { $errors += "PowerShell parse error in harness certification component: $harnessFile" }
 }
 
-@('test-validate-test-artifacts.ps1', 'test-test-scope-guard.ps1', 'test-distributable-surface.ps1', 'test-collect-failure-evidence.ps1', 'test-validate-domain-artifact.ps1', 'test-design-domain-gate.ps1', 'test-domain-fact-propagation.ps1', 'test-domain-verifier-replay.ps1', 'test-flow-test-controller.ps1', 'test-wp5-wp6-integration-contract.ps1', 'test-flow-skill-controller-contract.ps1', 'test-validate-test-cases.ps1', 'test-harness-certification.ps1') | ForEach-Object {
-    if (-not (Test-Path -LiteralPath (Join-Path $scriptDir "scripts\tests\$_"))) {
-        $label = if ($_ -match '(?i)domain') { 'domain artifact' } elseif ($_ -match '(?i)flow-test-controller') { 'flow controller' } else { 'integration-test guard' }
-        $errors += "Missing $label test script: $_"
+$sharedScriptTests = @(
+    'test-validate-test-artifacts.ps1',
+    'test-test-scope-guard.ps1',
+    'test-validate-domain-artifact.ps1',
+    'test-domain-verifier-replay.ps1',
+    'test-flow-test-controller.ps1',
+    'test-validate-test-cases.ps1'
+)
+$codexOnlyScriptTests = @(
+    'test-distributable-surface.ps1',
+    'test-collect-failure-evidence.ps1',
+    'test-design-domain-gate.ps1',
+    'test-domain-fact-propagation.ps1',
+    'test-wp5-wp6-integration-contract.ps1',
+    'test-flow-skill-controller-contract.ps1',
+    'test-harness-certification.ps1'
+)
+foreach ($name in $sharedScriptTests) {
+    if (-not (Test-Path -LiteralPath (Join-Path $sharedScriptsDir "tests\$name"))) {
+        $label = if ($name -match '(?i)domain') { 'domain artifact' } elseif ($name -match '(?i)flow-test-controller') { 'flow controller' } else { 'integration-test guard' }
+        $errors += "Missing $label test script: flow/scripts/tests/$name"
+    }
+}
+foreach ($name in $codexOnlyScriptTests) {
+    if (-not (Test-Path -LiteralPath (Join-Path $scriptDir "scripts\tests\$name"))) {
+        $label = if ($name -match '(?i)domain') { 'domain artifact' } elseif ($name -match '(?i)flow-test-controller') { 'flow controller' } else { 'integration-test guard' }
+        $errors += "Missing $label test script: $name"
     }
 }
 
