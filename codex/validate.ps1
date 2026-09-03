@@ -320,6 +320,7 @@ $feedbackSkillDir = Join-Path $skillsDir "flow-codex-feedback"
     (Join-Path $sharedTemplatesDir "feedback-index.md.tmpl"),
     (Join-Path $sharedTemplatesDir "cdp-playbook.md.tmpl"),
     (Join-Path $sharedTemplatesDir "feedback-kb-rules.md"),
+    (Join-Path $sharedTemplatesDir "feedback-trace-rules.md"),
     (Join-Path $feedbackSkillDir "references\cdp.md"),
     (Join-Path $feedbackSkillDir "references\discover-kb.md"),
     (Join-Path $feedbackSkillDir "references\workflow.md"),

@@ -34,7 +34,7 @@ description: 调查线上用户反馈或生产问题，产出结构化调查报�
 
 3. **Orient** — 理解端/页面/操作/期望 vs 实际；缺材料写入调查日志「待补」
 
-4. **Trace** — 追踪 Controller → Service → SQL → Adapter/Job；见 `references/gitnexus.md`；需要查库时遵循已选用的 CDP playbook
+4. **Trace** — 追踪 Controller → Service → SQL → Adapter/Job；先读 `../flow-codex-core/assets/templates/feedback-trace-rules.md`。按目标服务 / 模块判定语言：Java 优先 IDEA MCP，不可用时暂停并提示用户打开对应工程或明确授权 GitNexus，禁止静默回退；非 Java 保留 GitNexus 优先策略。需要查库时遵循已选用的 CDP playbook
 
 5. **Verify** — 假设 → SQL/日志 → 用户回传 → 更新「数据验证」表与调查日志（默认只读查询）
 

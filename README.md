@@ -186,6 +186,10 @@ Claude Code 将上述 skill 名替换为 `/flow:*` 命令，审核内联在执�
 
 ---
 
+## 反馈调查的代码追踪
+
+`feedback` 按目标服务 / 模块判断语言：Java 项目优先使用 IDEA MCP；不可用时暂停，提示用户在 IDEA 中打开对应工程、确认 MCP / 索引就绪，或明确允许本次改用 GitNexus，不静默回退。非 Java 项目保留 GitNexus 优先、不可用时搜索源码的策略。双平台共用 [Trace 规则](./flow/templates/feedback-trace-rules.md)。
+
 ## 文档索引
 
 | 文档 | 用途 |

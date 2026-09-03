@@ -37,7 +37,7 @@ version: "0.2.0"
 
 3. **Orient** — 端/页面/操作/期望 vs 实际；缺材料写入调查日志
 
-4. **Trace** — Controller → Service → SQL → Adapter/Job；查库遵循已选 CDP playbook
+4. **Trace** — Controller → Service → SQL → Adapter/Job；先读 `templates/feedback-trace-rules.md`。按目标服务 / 模块判定语言：Java 优先 IDEA MCP，不可用时暂停并提示用户打开对应工程或明确授权 GitNexus，禁止静默回退；非 Java 保留 GitNexus 优先策略。查库遵循已选 CDP playbook
 
 5. **Verify** — 假设 → SQL/日志 → 用户回传 → 更新「数据验证」表（默认只读查询）
 

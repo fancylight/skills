@@ -48,6 +48,7 @@
 
 ### Changed
 
+- **Feedback Trace 工具选择**：Java 服务 / 模块优先使用 IDEA MCP；MCP 不可用时暂停并提示打开对应工程或明确授权 GitNexus，禁止静默回退。非 Java 保留原策略。规则迁至共享 `feedback-trace-rules.md`，Codex / Claude 同步引用，并校验模板存在性。
 - **`flow-codex-kb`** / **`flow-kb`** — 双入口（change / feedback）；`references/feedback-kb-rules.md`
 - `AGENTS.md` · `docs/claude-code.md` · `流程文档.md` · `codex/PLAN.md` — 反馈闭环文档
 
