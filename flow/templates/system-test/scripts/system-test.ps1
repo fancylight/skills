@@ -16,6 +16,7 @@ param(
   [string]$HarnessSelfTestScenario = '',
   [string]$HarnessSelfTestToken = '',
   [string]$StructuredResultPath = '',
+  [string]$ManagedJavaHome = '',
   [switch]$HarnessSelfTest
 )
 
@@ -222,6 +223,17 @@ function Convert-SpringBootRunArgument([string]$Value, [hashtable]$Environment) 
   return $null
 }
 
+function Resolve-ManagedJavaHome {
+  if ([string]::IsNullOrWhiteSpace($ManagedJavaHome)) { return '' }
+  $managedHomePath = [IO.Path]::GetFullPath($ManagedJavaHome)
+  foreach ($executable in @('java.exe', 'javac.exe')) {
+    if (-not (Test-Path -LiteralPath (Join-Path $managedHomePath "bin\$executable") -PathType Leaf)) {
+      throw "[TEST_CONFIGURATION] BLOCKED; managed JDK is missing $executable`: $managedHomePath"
+    }
+  }
+  return $managedHomePath
+}
+
 function Start-ManagedServices($Manifest, [string[]]$Suites) {
   New-Item -ItemType Directory -Force $LogDir | Out-Null
   $state = @{ processes = @(); composeProfiles = @($Manifest.composeProfiles) }
@@ -238,6 +250,8 @@ function Start-ManagedServices($Manifest, [string[]]$Suites) {
     if ([string]::IsNullOrWhiteSpace($exe)) { throw "executable missing for $($service.name)" }
     $argumentList = New-Object System.Collections.Generic.List[string]
     $managedEnvironment = @{}
+    $managedJdk = Resolve-ManagedJavaHome
+    if (-not [string]::IsNullOrWhiteSpace($managedJdk)) { $managedEnvironment.JAVA_HOME = $managedJdk }
     if ($service.argumentsEnvPrefix) { $argumentList.Add([Environment]::GetEnvironmentVariable($service.argumentsEnvPrefix)) }
     foreach ($arg in $service.arguments) {
       $converted = Convert-SpringBootRunArgument (Expand-Value $arg) $managedEnvironment

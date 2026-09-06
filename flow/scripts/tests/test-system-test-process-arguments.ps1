@@ -11,6 +11,10 @@ $convertMatch = [regex]::Match($source, '(?ms)^function Convert-SpringBootRunArg
 if (-not $convertMatch.Success) { throw 'Convert-SpringBootRunArgument helper is missing from system-test runner' }
 Invoke-Expression $convertMatch.Value
 
+$managedJavaMatch = [regex]::Match($source, '(?ms)^function Resolve-ManagedJavaHome \{.*?^\}')
+if (-not $managedJavaMatch.Success) { throw 'Resolve-ManagedJavaHome helper is missing from system-test runner' }
+Invoke-Expression $managedJavaMatch.Value
+
 $resetMarker = "if (`$suites -contains 'api') { Reset-ApiReports }"
 $resetIndex = $source.IndexOf($resetMarker, [StringComparison]::Ordinal)
 $startupIndex = $source.IndexOf('Invoke-Up $manifest $suites', [StringComparison]::Ordinal)
@@ -21,6 +25,15 @@ if ($resetIndex -lt 0 -or $startupIndex -lt 0 -or $resetIndex -gt $startupIndex)
 $root = Join-Path ([IO.Path]::GetTempPath()) ('flow process arguments ' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $root -Force | Out-Null
 try {
+    $jdkRoot = Join-Path $root 'managed jdk'
+    [void](New-Item -ItemType Directory -Path (Join-Path $jdkRoot 'bin') -Force)
+    [void](New-Item -ItemType File -Path (Join-Path $jdkRoot 'bin\java.exe') -Force)
+    [void](New-Item -ItemType File -Path (Join-Path $jdkRoot 'bin\javac.exe') -Force)
+    $ManagedJavaHome = $jdkRoot
+    if ((Resolve-ManagedJavaHome) -ne [IO.Path]::GetFullPath($jdkRoot)) {
+        throw 'managed JDK path was not resolved deterministically'
+    }
+
     $capture = Join-Path $root 'capture arguments.cmd'
     $output = Join-Path $root 'captured arguments.txt'
 @'
