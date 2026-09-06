@@ -15,6 +15,10 @@ $managedJavaMatch = [regex]::Match($source, '(?ms)^function Resolve-ManagedJavaH
 if (-not $managedJavaMatch.Success) { throw 'Resolve-ManagedJavaHome helper is missing from system-test runner' }
 Invoke-Expression $managedJavaMatch.Value
 
+$startupArgumentsMatch = [regex]::Match($source, '(?ms)^function Ensure-MavenServiceStartupArguments\(.*?^\}')
+if (-not $startupArgumentsMatch.Success) { throw 'Ensure-MavenServiceStartupArguments helper is missing from system-test runner' }
+Invoke-Expression $startupArgumentsMatch.Value
+
 $resetMarker = "if (`$suites -contains 'api') { Reset-ApiReports }"
 $resetIndex = $source.IndexOf($resetMarker, [StringComparison]::Ordinal)
 $startupIndex = $source.IndexOf('Invoke-Up $manifest $suites', [StringComparison]::Ordinal)
@@ -49,6 +53,18 @@ try {
         $managedEnvironment.SPRING_PROFILES_ACTIVE -ne 'native' -or
         $managedEnvironment.MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE -ne 'health,info,env') {
         throw 'Spring Boot application arguments were not converted to relaxed-binding environment variables'
+    }
+    $mavenArguments = [System.Collections.Generic.List[string]]::new()
+    $mavenArguments.Add('-pl')
+    $mavenArguments.Add('datacenter-service')
+    $mavenArguments.Add('spring-boot:run')
+    Ensure-MavenServiceStartupArguments 'mvn.cmd' $mavenArguments
+    if ($mavenArguments.IndexOf('-Dmaven.test.skip=true') -ne 2 -or $mavenArguments.IndexOf('spring-boot:run') -ne 3) {
+        throw 'managed Maven Spring Boot startup must skip the service repository test compilation'
+    }
+    Ensure-MavenServiceStartupArguments 'mvn.cmd' $mavenArguments
+    if (@($mavenArguments | Where-Object { $_ -eq '-Dmaven.test.skip=true' }).Count -ne 1) {
+        throw 'managed Maven test-skip argument must be idempotent'
     }
     $arguments = @($output, 'spring-boot:run')
     $argumentLine = (@($arguments | ForEach-Object { Quote-Argument ([string]$_) }) -join ' ')

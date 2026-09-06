@@ -234,6 +234,14 @@ function Resolve-ManagedJavaHome {
   return $managedHomePath
 }
 
+function Ensure-MavenServiceStartupArguments([string]$Executable, [System.Collections.Generic.List[string]]$Arguments) {
+  $leaf = [IO.Path]::GetFileName($Executable).ToLowerInvariant()
+  if ($leaf -notin @('mvn', 'mvn.cmd', 'mvn.exe')) { return }
+  $goalIndex = $Arguments.IndexOf('spring-boot:run')
+  if ($goalIndex -lt 0 -or $Arguments.Contains('-Dmaven.test.skip=true')) { return }
+  $Arguments.Insert($goalIndex, '-Dmaven.test.skip=true')
+}
+
 function Start-ManagedServices($Manifest, [string[]]$Suites) {
   New-Item -ItemType Directory -Force $LogDir | Out-Null
   $state = @{ processes = @(); composeProfiles = @($Manifest.composeProfiles) }
@@ -262,6 +270,7 @@ function Start-ManagedServices($Manifest, [string[]]$Suites) {
         $managedEnvironment[$property.Name] = Expand-Value ([string]$property.Value)
       }
     }
+    Ensure-MavenServiceStartupArguments $exe $argumentList
     $stdout = Join-Path $LogDir "$($service.name).out.log"
     $stderr = Join-Path $LogDir "$($service.name).err.log"
     $argumentLine = (@($argumentList | ForEach-Object { Quote-Argument ([string]$_) }) -join ' ')
