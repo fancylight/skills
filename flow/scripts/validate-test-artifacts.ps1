@@ -17,6 +17,20 @@ $repo = [IO.Path]::GetFullPath($SystemTestRepo)
 $changeDir = Join-Path $repo "changes\$ChangeName"
 
 function Add-Error([string]$Message) { $script:errors.Add($Message) }
+function Resolve-ChangeJavaSourceRoot([string]$Repository, [string]$Name) {
+    $testRoot = Join-Path $Repository 'backend-tests\src\test'
+    if (-not (Test-Path -LiteralPath $testRoot -PathType Container)) {
+        Add-Error "Java test source root not found: $testRoot"
+        return $null
+    }
+    $matches = @(Get-ChildItem -LiteralPath $testRoot -Directory -Recurse |
+        Where-Object { $_.Name -eq $Name })
+    if ($matches.Count -ne 1) {
+        Add-Error "Expected exactly one change-scoped Java source directory named '$Name' under ${testRoot}; found $($matches.Count)"
+        return $null
+    }
+    return $matches[0].FullName
+}
 function Require-Path([string]$Path, [string]$Name) {
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
         Add-Error "Missing ${Name}: $Path"
@@ -154,7 +168,10 @@ if (-not (Test-Path -LiteralPath $changeDir -PathType Container)) {
                 TestCasesPath=$testCases; Mode=$Mode; CanonicalRevision=$CanonicalRevision; ManifestPath=$manifest
                 DerivedContractPath=$derivedContract; TestPlanPath=$plan
             }
-            if ($Mode -in @('implementation','result')) { $validatorParameters.JavaSourceRoot = Join-Path $repo 'backend-tests\src\test' }
+            if ($Mode -in @('implementation','result')) {
+                $javaSourceRoot = Resolve-ChangeJavaSourceRoot $repo $ChangeName
+                if ($null -ne $javaSourceRoot) { $validatorParameters.JavaSourceRoot = $javaSourceRoot }
+            }
             if ($Mode -eq 'result') { $validatorParameters.EvidenceRoot = Join-Path $changeDir 'evidence\current' }
             $validatorOutput = @(& $validator @validatorParameters 2>&1)
             if ($LASTEXITCODE -ne 0) { Add-Error "Canonical test-cases validation failed: $($validatorOutput -join ' | ')" }

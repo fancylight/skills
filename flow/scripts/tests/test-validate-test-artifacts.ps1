@@ -53,6 +53,29 @@ try {
     & powershell.exe -NoProfile -File $guard -SystemTestRepo $work -ChangeName valid -Mode design -CanonicalRevision $revision
     if ($LASTEXITCODE -ne 0) { throw 'Expected valid fixture to pass artifact guard.' }
 
+    $validJava = Join-Path $work 'backend-tests\src\test\java\com\example\valid'
+    New-Item -ItemType Directory -Force -Path $validJava | Out-Null
+    Set-Content -LiteralPath (Join-Path $validJava 'ExampleIT.java') -Encoding utf8 -NoNewline -Value @'
+package com.example;
+class ExampleIT {
+    @TestScenarioId("AC-1-S1")
+    void executesScenario() {}
+}
+'@
+    $unrelatedJava = Join-Path $work 'backend-tests\src\test\java\com\example\other-change'
+    New-Item -ItemType Directory -Force -Path $unrelatedJava | Out-Null
+    Set-Content -LiteralPath (Join-Path $unrelatedJava 'OtherIT.java') -Encoding utf8 -NoNewline -Value @'
+package com.example;
+class OtherIT {
+    @TestScenarioId("AC-1-S1")
+    void duplicateFromAnotherChange() {}
+    @TestScenarioId("AC-99-S1")
+    void unrelatedScenario() {}
+}
+'@
+    & powershell.exe -NoProfile -File $guard -SystemTestRepo $work -ChangeName valid -Mode implementation -CanonicalRevision $revision
+    if ($LASTEXITCODE -ne 0) { throw 'Expected implementation guard to scan only the change-scoped Java source directory.' }
+
     New-Fixture 'invalid' $true
     & powershell.exe -NoProfile -File $guard -SystemTestRepo $work -ChangeName invalid -Mode design -CanonicalRevision $revision
     if ($LASTEXITCODE -eq 0) { throw 'Expected polluted DDL fixture to fail artifact guard.' }
