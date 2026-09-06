@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true, Position = 0)]
-    [ValidateSet('status', 'next', 'initialize', 'issue-lease', 'validate-lease', 'accept-result', 'record-verifier', 'start-run', 'record-run', 'retry-harness-failure', 'block')]
+    [ValidateSet('status', 'next', 'initialize', 'issue-lease', 'validate-lease', 'accept-result', 'repair-derived-artifacts', 'record-verifier', 'start-run', 'record-run', 'retry-harness-failure', 'block')]
     [string]$Command,
     [Parameter(Mandatory = $true)] [string]$StatePath,
     [string]$ChangeName,
@@ -251,7 +251,7 @@ if ($Command -eq 'initialize') {
 $state = Read-State
 if ($state.schemaVersion -ne 1 -or $state.phase -notin $phases) { Stop-Controller 'ERROR_STATE_CORRUPT' 'unsupported schema or phase' }
 if ($Command -in @('issue-lease','record-verifier','start-run','record-run','block')) { Require-RevisionLock $state }
-if ($Command -eq 'accept-result') { Require-ImmutableRevisionLock $state }
+if ($Command -in @('accept-result','repair-derived-artifacts')) { Require-ImmutableRevisionLock $state }
 
 switch ($Command) {
     'status' { $state | ConvertTo-Json -Depth 16; exit 0 }
@@ -311,6 +311,36 @@ switch ($Command) {
         $state.revisions.test = $proposed
         $state.scopeVerification = [pscustomobject]@{ result='PASS'; baselineRevision=$actualDiff.baseline; currentRevision=$actualDiff.current; repository=$state.repositories.systemTest; diffHash=$actualDiff.diffHash; changedFiles=@($actualFiles); at=[DateTime]::UtcNow.ToString('o') }
         $state.leases | Where-Object { $_.active } | ForEach-Object { $_.active = $false }; Set-Phase $state 'TEST_IMPLEMENTED' 'accepted trusted scope guard result'; Write-State $state; Write-Output '[FLOW_CONTROLLER] PASS'; exit 0
+    }
+    'repair-derived-artifacts' {
+        Require-Ceiling $state 'implementation'
+        if ($state.phase -ne 'TEST_IMPLEMENTED') { Stop-Controller 'ERROR_TRANSITION' 'derived artifact repair requires TEST_IMPLEMENTED' }
+        if ([string]::IsNullOrWhiteSpace($ProposedTestRevision)) { Stop-Controller 'ERROR_INPUT' 'proposed test revision is required' }
+        $report = Read-StructuredJson $ReportPath 'derived artifact repair report'
+        $oldTestRevision = [string]$state.revisions.test
+        $proposed = Resolve-GitRevision $state.repositories.systemTest $ProposedTestRevision
+        if ($proposed -eq $oldTestRevision -or $proposed -ne (Get-GitHead $state.repositories.systemTest)) { Stop-Controller 'ERROR_REVISION_DRIFT' 'derived artifact repair must create the canonical system-test HEAD' }
+        Assert-GitAncestor $state.repositories.systemTest $oldTestRevision $proposed
+        Assert-HarnessRepairWorktreeClean $state.repositories.systemTest ([string]$state.changeName)
+        $repairDiff = Get-GitDiffInfo $state.repositories.systemTest $oldTestRevision $proposed
+        $allowedPaths = @(
+            "changes/$($state.changeName)/test-cases.generated.json",
+            "changes/$($state.changeName)/test-plan.md"
+        )
+        if ($repairDiff.changedFiles.Count -ne $allowedPaths.Count -or (@($repairDiff.changedFiles | Sort-Object) -join "`n") -ne (@($allowedPaths | Sort-Object) -join "`n")) {
+            Stop-Controller 'ERROR_SCOPE' 'derived artifact repair must change exactly the generated contract and test-plan generated region'
+        }
+        if ($report.result -ne 'PASS' -or $report.mode -ne 'implementation' -or $report.baselineRevision -ne $oldTestRevision -or $report.testRevision -ne $proposed -or $report.canonicalRevision -ne $state.revisions.testBaseline) {
+            Stop-Controller 'ERROR_RESULT' 'derived artifact repair report must be a bound implementation PASS'
+        }
+        $state.revisions.test = $proposed
+        $state.scopeVerification = [pscustomobject]@{ result='PASS'; kind='derived-artifact-repair'; baselineRevision=$repairDiff.baseline; currentRevision=$repairDiff.current; repository=$state.repositories.systemTest; diffHash=$repairDiff.diffHash; changedFiles=@($repairDiff.changedFiles); at=[DateTime]::UtcNow.ToString('o') }
+        $state.verifier = $null
+        Add-History $state $state.phase $state.phase 'accepted canonical derived artifact repair'
+        Write-State $state
+        Write-Output '[FLOW_CONTROLLER] PASS'
+        Write-Output "test_revision: $proposed"
+        exit 0
     }
     'record-verifier' {
         if ([string]::IsNullOrWhiteSpace($VerifyMode)) { Stop-Controller 'ERROR_INPUT' 'verify mode is required' }

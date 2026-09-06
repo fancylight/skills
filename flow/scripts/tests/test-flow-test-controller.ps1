@@ -111,6 +111,19 @@ try {
     Assert-Controller { & $controller accept-result -StatePath $state -ProposedTestRevision $implementationRevision -SutRevision $sutRevision -HarnessRevision $harness -ConfigurationFingerprint $config -ReportPath (Join-Path $root 'implementation-result.json') -ScopeGuardReportPath $scope }
     $accepted = Get-Content $state -Raw | ConvertFrom-Json
     if ($accepted.revisions.test -ne $implementationRevision -or $accepted.scopeVerification.baselineRevision -ne $fixture.design) { throw 'accept-result did not atomically advance test revision from lease base' }
+    $preRepairRevision = $implementationRevision
+    $changeDir = Join-Path $system 'changes/sample-change'
+    Set-Content -LiteralPath (Join-Path $changeDir 'test-cases.generated.json') -Value '{"kind":"derived"}' -Encoding utf8
+    Set-Content -LiteralPath (Join-Path $changeDir 'test-plan.md') -Value '<!-- FLOW_TEST_CASES_GENERATED:START -->generated<!-- FLOW_TEST_CASES_GENERATED:END -->' -Encoding utf8
+    Invoke-Git $system @('add', '.') | Out-Null
+    Invoke-Git $system @('commit', '--quiet', '-m', 'repair derived artifacts') | Out-Null
+    $implementationRevision = (Invoke-Git $system @('rev-parse', 'HEAD') | Select-Object -First 1).Trim()
+    $repairReport = Join-Path $root 'derived-repair.json'
+    [ordered]@{ result='PASS'; mode='implementation'; baselineRevision=$preRepairRevision; testRevision=$implementationRevision; canonicalRevision=$fixture.baseline } | ConvertTo-Json | Set-Content -LiteralPath $repairReport -Encoding utf8
+    Assert-Controller { & $controller repair-derived-artifacts -StatePath $state -ProposedTestRevision $implementationRevision -SutRevision $sutRevision -HarnessRevision $harness -ConfigurationFingerprint $config -ReportPath $repairReport }
+    $repaired = Get-Content $state -Raw | ConvertFrom-Json
+    if ($repaired.revisions.test -ne $implementationRevision -or $repaired.scopeVerification.kind -ne 'derived-artifact-repair') { throw 'repair-derived-artifacts did not advance the locked test revision' }
+    Write-VerifierReport $implementationReport 'implementation' 'verifier-a' $implementationRevision $sutRevision $harness $config 'implementation verification passed' $fixture.design
     Assert-Controller { & $controller record-verifier -StatePath $state -VerifyMode implementation -TestRevision $fixture.design -SutRevision $sutRevision -HarnessRevision $harness -ConfigurationFingerprint $config -ReportPath $implementationReport -VerifierId verifier-a } $false 'ERROR_REVISION_DRIFT' 'old-test-revision-verifier'
     Assert-Controller { & $controller record-verifier -StatePath $state -VerifyMode implementation -TestRevision $implementationRevision -SutRevision $sutRevision -HarnessRevision $harness -ConfigurationFingerprint $config -ReportPath $implementationReport -VerifierId verifier-a }
     Write-VerifierReport $environmentReport 'environment' 'verifier-a' $implementationRevision $sutRevision $harness $config
