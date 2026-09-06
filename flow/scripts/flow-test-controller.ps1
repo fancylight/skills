@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true, Position = 0)]
-    [ValidateSet('status', 'next', 'initialize', 'issue-lease', 'validate-lease', 'accept-result', 'repair-derived-artifacts', 'record-verifier', 'start-run', 'record-run', 'retry-harness-failure', 'block')]
+    [ValidateSet('status', 'next', 'initialize', 'issue-lease', 'validate-lease', 'accept-result', 'repair-derived-artifacts', 'record-verifier', 'start-run', 'record-run', 'retry-harness-failure', 'retry-test-infra-failure', 'block')]
     [string]$Command,
     [Parameter(Mandatory = $true)] [string]$StatePath,
     [string]$ChangeName,
@@ -414,6 +414,41 @@ switch ($Command) {
         Write-Output '[FLOW_CONTROLLER] PASS'
         Write-Output "test_revision: $proposed"
         Write-Output "harness_revision: $HarnessRevision"
+        exit 0
+    }
+    'retry-test-infra-failure' {
+        Require-Ceiling $state 'implementation'
+        if ($state.phase -ne 'TEST_EXECUTED_FAIL' -or $null -ne $state.activeRun) { Stop-Controller 'ERROR_TRANSITION' 'test infrastructure retry requires a completed failed run' }
+        if ($state.revisions.sut -ne $SutRevision -or (Get-GitHead $state.repositories.sut) -ne $state.revisions.sut) { Stop-Controller 'ERROR_REVISION_DRIFT' 'SUT revision changed during test infrastructure repair' }
+        if ($state.revisions.harness -ne $HarnessRevision) { Stop-Controller 'ERROR_REVISION_DRIFT' 'harness revision changed during test infrastructure repair' }
+        if ($state.configurationFingerprint -ne $ConfigurationFingerprint) { Stop-Controller 'ERROR_CONFIGURATION_DRIFT' 'configuration fingerprint changed during test infrastructure repair' }
+        if ([string]::IsNullOrWhiteSpace($ProposedTestRevision)) { Stop-Controller 'ERROR_INPUT' 'new test revision is required' }
+        $failedRun = @($state.runs | Select-Object -Last 1)
+        if ($failedRun.Count -ne 1 -or $failedRun[0].result -ne 'fail' -or $failedRun[0].failureCategory -notin @('TEST_HARNESS','CONFIG_INFRA')) { Stop-Controller 'ERROR_TRANSITION' 'last run is not a retryable test infrastructure failure' }
+        $runnerReport = Read-StructuredJson $ReportPath 'failed runner report'
+        if ($runnerReport.status -ne 'FAIL' -or $runnerReport.classification -notin @('TEST_HARNESS','CONFIG_INFRA') -or $null -eq $runnerReport.cleanup -or -not [bool]$runnerReport.cleanup.succeeded) {
+            Stop-Controller 'ERROR_RESULT' 'only a cleaned TEST_HARNESS or CONFIG_INFRA failure may use test infrastructure retry'
+        }
+        $evidenceRoot = if (Test-Path -LiteralPath $failedRun[0].evidence -PathType Leaf) { Split-Path -Parent $failedRun[0].evidence } else { [string]$failedRun[0].evidence }
+        if (-not (Test-PathWithin $ReportPath $evidenceRoot)) { Stop-Controller 'ERROR_RESULT' 'failed runner report is outside the recorded evidence root' }
+        $oldTestRevision = [string]$state.revisions.test
+        $proposed = Resolve-GitRevision $state.repositories.systemTest $ProposedTestRevision
+        if ($proposed -eq $oldTestRevision -or $proposed -ne (Get-GitHead $state.repositories.systemTest)) { Stop-Controller 'ERROR_REVISION_DRIFT' 'test infrastructure repair must create the canonical system-test HEAD' }
+        Assert-GitAncestor $state.repositories.systemTest $oldTestRevision $proposed
+        Assert-HarnessRepairWorktreeClean $state.repositories.systemTest ([string]$state.changeName)
+        $repairDiff = Get-GitDiffInfo $state.repositories.systemTest $oldTestRevision $proposed
+        foreach ($path in @($repairDiff.changedFiles)) {
+            if ($path -notlike "changes/$($state.changeName)/fixtures/*" -and $path -ne "changes/$($state.changeName)/manifest.yaml" -and $path -notlike "config/*/$($state.changeName)/*" -and $path -notlike "infra/*/$($state.changeName)/*") {
+                Stop-Controller 'ERROR_SCOPE' "test infrastructure repair changed a non-infrastructure file: $path"
+            }
+        }
+        $state.revisions.test = $proposed
+        $state.scopeVerification = [pscustomobject]@{ result='PASS'; kind='test-infrastructure-repair'; baselineRevision=$repairDiff.baseline; currentRevision=$repairDiff.current; repository=$state.repositories.systemTest; diffHash=$repairDiff.diffHash; changedFiles=@($repairDiff.changedFiles); at=[DateTime]::UtcNow.ToString('o') }
+        $state.verifier = $null
+        Set-Phase $state 'TEST_IMPLEMENTED' 'accepted test infrastructure repair after cleaned startup failure'
+        Write-State $state
+        Write-Output '[FLOW_CONTROLLER] PASS'
+        Write-Output "test_revision: $proposed"
         exit 0
     }
     'block' {
