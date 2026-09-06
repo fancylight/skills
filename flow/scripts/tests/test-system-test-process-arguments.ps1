@@ -7,6 +7,10 @@ $functionMatch = [regex]::Match($source, '(?ms)^function Quote-Argument\(\[strin
 if (-not $functionMatch.Success) { throw 'Quote-Argument helper is missing from system-test runner' }
 Invoke-Expression $functionMatch.Value
 
+$convertMatch = [regex]::Match($source, '(?ms)^function Convert-SpringBootRunArgument\(\[string\]\$Value, \[hashtable\]\$Environment\) \{.*?^\}')
+if (-not $convertMatch.Success) { throw 'Convert-SpringBootRunArgument helper is missing from system-test runner' }
+Invoke-Expression $convertMatch.Value
+
 $resetMarker = "if (`$suites -contains 'api') { Reset-ApiReports }"
 $resetIndex = $source.IndexOf($resetMarker, [StringComparison]::Ordinal)
 $startupIndex = $source.IndexOf('Invoke-Up $manifest $suites', [StringComparison]::Ordinal)
@@ -19,14 +23,21 @@ New-Item -ItemType Directory -Path $root -Force | Out-Null
 try {
     $capture = Join-Path $root 'capture arguments.cmd'
     $output = Join-Path $root 'captured arguments.txt'
-    @'
+@'
 @echo off
 > "%~1" echo %~2
->> "%~1" echo %~3
 '@ | Set-Content -LiteralPath $capture -Encoding UTF8
 
-    $expectedProperty = '-Dspring-boot.run.arguments=--server.port=18888 --spring.profiles.active=native'
-    $arguments = @($output, 'spring-boot:run', $expectedProperty)
+    $expectedProperty = '-Dspring-boot.run.arguments=--server.port=18888 --spring.profiles.active=native --management.endpoints.web.exposure.include=health,info,env'
+    $managedEnvironment = @{}
+    $converted = Convert-SpringBootRunArgument $expectedProperty $managedEnvironment
+    if ($null -ne $converted) { throw 'Spring Boot application arguments must not remain on the Maven command line' }
+    if ($managedEnvironment.SERVER_PORT -ne '18888' -or
+        $managedEnvironment.SPRING_PROFILES_ACTIVE -ne 'native' -or
+        $managedEnvironment.MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE -ne 'health,info,env') {
+        throw 'Spring Boot application arguments were not converted to relaxed-binding environment variables'
+    }
+    $arguments = @($output, 'spring-boot:run')
     $argumentLine = (@($arguments | ForEach-Object { Quote-Argument ([string]$_) }) -join ' ')
     $process = Start-Process -FilePath $capture -ArgumentList $argumentLine -PassThru -WindowStyle Hidden
     $process.WaitForExit()
@@ -34,8 +45,8 @@ try {
         throw 'controlled process did not capture arguments'
     }
     $captured = @(Get-Content -LiteralPath $output -Encoding UTF8)
-    if ($captured.Count -ne 2 -or $captured[0] -ne 'spring-boot:run' -or $captured[1] -ne $expectedProperty) {
-        throw 'managed process argument containing spaces was split or changed'
+    if ($captured.Count -ne 1 -or $captured[0] -ne 'spring-boot:run') {
+        throw 'managed process argument list contains an unexpected application argument'
     }
 }
 finally {

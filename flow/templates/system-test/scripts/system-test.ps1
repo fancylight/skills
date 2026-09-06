@@ -207,6 +207,21 @@ function Quote-Argument([string]$Value) {
   return '"' + $Value.Replace('"', '\"') + '"'
 }
 
+function Convert-SpringBootRunArgument([string]$Value, [hashtable]$Environment) {
+  $prefix = '-Dspring-boot.run.arguments='
+  if (-not $Value.StartsWith($prefix, [StringComparison]::Ordinal)) { return $Value }
+  $payload = $Value.Substring($prefix.Length).Trim()
+  if ([string]::IsNullOrWhiteSpace($payload)) { return $null }
+  foreach ($token in @($payload -split '\s+' | Where-Object { $_ })) {
+    if ($token -notmatch '^--([^=]+)=(.*)$') {
+      throw "[TEST_HARNESS] unsupported Spring Boot application argument: $token"
+    }
+    $name = $Matches[1].ToUpperInvariant().Replace('.', '_').Replace('-', '_')
+    $Environment[$name] = $Matches[2]
+  }
+  return $null
+}
+
 function Start-ManagedServices($Manifest, [string[]]$Suites) {
   New-Item -ItemType Directory -Force $LogDir | Out-Null
   $state = @{ processes = @(); composeProfiles = @($Manifest.composeProfiles) }
@@ -222,17 +237,32 @@ function Start-ManagedServices($Manifest, [string[]]$Suites) {
     $exe = if ($service.executableEnv) { [Environment]::GetEnvironmentVariable($service.executableEnv) } else { $service.executable }
     if ([string]::IsNullOrWhiteSpace($exe)) { throw "executable missing for $($service.name)" }
     $argumentList = New-Object System.Collections.Generic.List[string]
+    $managedEnvironment = @{}
     if ($service.argumentsEnvPrefix) { $argumentList.Add([Environment]::GetEnvironmentVariable($service.argumentsEnvPrefix)) }
-    foreach ($arg in $service.arguments) { $argumentList.Add((Expand-Value $arg)) }
+    foreach ($arg in $service.arguments) {
+      $converted = Convert-SpringBootRunArgument (Expand-Value $arg) $managedEnvironment
+      if (-not [string]::IsNullOrWhiteSpace([string]$converted)) { $argumentList.Add($converted) }
+    }
     if ($service.environment) {
       foreach ($property in $service.environment.PSObject.Properties) {
-        [Environment]::SetEnvironmentVariable($property.Name, (Expand-Value ([string]$property.Value)), 'Process')
+        $managedEnvironment[$property.Name] = Expand-Value ([string]$property.Value)
       }
     }
     $stdout = Join-Path $LogDir "$($service.name).out.log"
     $stderr = Join-Path $LogDir "$($service.name).err.log"
     $argumentLine = (@($argumentList | ForEach-Object { Quote-Argument ([string]$_) }) -join ' ')
-    $process = Start-Process -FilePath $exe -ArgumentList $argumentLine -WorkingDirectory (Expand-Value $service.workingDirectory) -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru -WindowStyle Hidden
+    $previousEnvironment = @{}
+    foreach ($name in $managedEnvironment.Keys) {
+      $previousEnvironment[$name] = [Environment]::GetEnvironmentVariable($name, 'Process')
+      [Environment]::SetEnvironmentVariable($name, [string]$managedEnvironment[$name], 'Process')
+    }
+    try {
+      $process = Start-Process -FilePath $exe -ArgumentList $argumentLine -WorkingDirectory (Expand-Value $service.workingDirectory) -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru -WindowStyle Hidden
+    } finally {
+      foreach ($name in $managedEnvironment.Keys) {
+        [Environment]::SetEnvironmentVariable($name, $previousEnvironment[$name], 'Process')
+      }
+    }
     $state.processes += @{ name=$service.name; pid=$process.Id; port=$service.port }
     $state | ConvertTo-Json -Depth 5 | Set-Content -Encoding UTF8 $StateFile
     $ready = $false
