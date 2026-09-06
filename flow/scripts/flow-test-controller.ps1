@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true, Position = 0)]
-    [ValidateSet('status', 'next', 'initialize', 'issue-lease', 'validate-lease', 'accept-result', 'record-verifier', 'start-run', 'record-run', 'block')]
+    [ValidateSet('status', 'next', 'initialize', 'issue-lease', 'validate-lease', 'accept-result', 'record-verifier', 'start-run', 'record-run', 'retry-harness-failure', 'block')]
     [string]$Command,
     [Parameter(Mandatory = $true)] [string]$StatePath,
     [string]$ChangeName,
@@ -93,6 +93,15 @@ function Assert-GitWorktreeClean([string]$Repository) {
     $status = @(Get-GitOutput $Repository @('status', '--porcelain=v1', '--untracked-files=all') | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
     if ($status.Count -gt 0) { Stop-Controller 'ERROR_SCOPE_WORKTREE_DIRTY' 'canonical system-test worktree, index, and untracked files must be clean' }
 }
+function Assert-HarnessRepairWorktreeClean([string]$Repository, [string]$CurrentChangeName) {
+    $status = @(Get-GitOutput $Repository @('status', '--porcelain=v1', '--untracked-files=all') | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    foreach ($line in $status) {
+        $path = ([string]$line).Substring(3).Trim().Replace('\','/')
+        if ($path -notlike "changes/$CurrentChangeName/evidence/*") {
+            Stop-Controller 'ERROR_SCOPE_WORKTREE_DIRTY' "canonical system-test worktree contains non-evidence drift: $path"
+        }
+    }
+}
 function Test-PathWithin([string]$Child, [string]$Parent) {
     $childPath = Get-CanonicalPath $Child; $parentPath = Get-CanonicalPath $Parent
     return $childPath.Equals($parentPath, [StringComparison]::OrdinalIgnoreCase) -or $childPath.StartsWith($parentPath + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)
@@ -104,10 +113,15 @@ function Get-StateIntegrityHash($State) {
         $sha = [Security.Cryptography.SHA256]::Create(); try { return (-join ($sha.ComputeHash($bytes) | ForEach-Object { $_.ToString('x2') })) } finally { $sha.Dispose() }
     } finally { $State.integrityHash = $previous }
 }
+function ConvertFrom-StateJson([string]$Raw) {
+    $convert = Get-Command ConvertFrom-Json
+    if ($convert.Parameters.ContainsKey('DateKind')) { return $Raw | ConvertFrom-Json -DateKind String }
+    return $Raw | ConvertFrom-Json
+}
 function Read-State {
     function Read-ValidStateFile([string]$Path) {
         if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { throw "state file not found: $Path" }
-        $candidate = Get-Content -LiteralPath $Path -Raw -Encoding utf8 | ConvertFrom-Json
+        $candidate = ConvertFrom-StateJson (Get-Content -LiteralPath $Path -Raw -Encoding utf8)
         if ([string]::IsNullOrWhiteSpace($candidate.integrityHash) -or $candidate.integrityHash -ne (Get-StateIntegrityHash $candidate)) { throw "state integrity hash does not match: $Path" }
         return $candidate
     }
@@ -158,6 +172,11 @@ function Get-StringHash([string]$Value) {
     $bytes = [Text.Encoding]::UTF8.GetBytes($Value)
     $sha = [Security.Cryptography.SHA256]::Create(); try { return (-join ($sha.ComputeHash($bytes) | ForEach-Object { $_.ToString('x2') })) } finally { $sha.Dispose() }
 }
+function Get-FileHashValue([string]$Path) {
+    $stream = [IO.File]::OpenRead($Path); $sha = [Security.Cryptography.SHA256]::Create()
+    try { return -join ($sha.ComputeHash($stream) | ForEach-Object { $_.ToString('x2') }) }
+    finally { $sha.Dispose(); $stream.Dispose() }
+}
 function Assert-HarnessCertification([string]$Root, [string]$Path, [string]$ExpectedRevision) {
     if ([string]::IsNullOrWhiteSpace($Root) -or [string]::IsNullOrWhiteSpace($Path)) { Stop-Controller 'ERROR_HARNESS_UNCERTIFIED' 'harness root and certification are required' }
     $canonicalRoot = Get-CanonicalPath $Root
@@ -173,7 +192,7 @@ function Assert-HarnessCertification([string]$Root, [string]$Path, [string]$Expe
     if ($revisionLines.Count -ne 1) { Stop-Controller 'ERROR_HARNESS_UNCERTIFIED' 'formal harness certification verifier did not emit exactly one harness revision' }
     $verifiedRevision = ($revisionLines[0] -replace '^harness_revision:\s*', '').Trim()
     if ($verifiedRevision -ne $ExpectedRevision) { Stop-Controller 'ERROR_HARNESS_UNCERTIFIED' 'formal harness certification revision differs from the expected harness revision' }
-    return [pscustomobject]@{ root=$canonicalRoot; path=$canonicalPath; certificationHash=(Get-FileHash -LiteralPath $canonicalPath -Algorithm SHA256).Hash.ToLowerInvariant() }
+    return [pscustomobject]@{ root=$canonicalRoot; path=$canonicalPath; certificationHash=(Get-FileHashValue $canonicalPath) }
 }
 function Add-History($State, [string]$From, [string]$To, [string]$ReasonText) {
     $State.history += [pscustomobject]@{ at = [DateTime]::UtcNow.ToString('o'); from = $From; to = $To; reason = $ReasonText }
@@ -328,7 +347,44 @@ switch ($Command) {
             if ($state.failureFingerprints -contains $fingerprint) { Stop-Controller 'ERROR_FAILURE_DUPLICATE' 'failure fingerprint already exists' }
             $state.failureFingerprints += $fingerprint; Set-Phase $state 'TEST_EXECUTED_FAIL' 'runner evidence fail'
         }
-        $state.runs += [pscustomobject]@{ runId=$state.activeRun.runId; testRevision=$state.revisions.test; result=$RunResult; evidence=$EvidencePath; at=[DateTime]::UtcNow.ToString('o') }; $state.activeRun = $null; Write-State $state; Write-Output '[FLOW_CONTROLLER] PASS'; exit 0
+        $state.runs += [pscustomobject]@{ runId=$state.activeRun.runId; testRevision=$state.revisions.test; result=$RunResult; evidence=$EvidencePath; scenarioId=$ScenarioId; failureCategory=$FailureCategory; firstEvidence=$FirstEvidence; at=[DateTime]::UtcNow.ToString('o') }; $state.activeRun = $null; Write-State $state; Write-Output '[FLOW_CONTROLLER] PASS'; exit 0
+    }
+    'retry-harness-failure' {
+        Require-Ceiling $state 'implementation'
+        if ($state.phase -ne 'TEST_EXECUTED_FAIL' -or $null -ne $state.activeRun) { Stop-Controller 'ERROR_TRANSITION' 'harness retry requires a completed failed run' }
+        if ($state.revisions.sut -ne $SutRevision -or (Get-GitHead $state.repositories.sut) -ne $state.revisions.sut) { Stop-Controller 'ERROR_REVISION_DRIFT' 'SUT revision changed during harness repair' }
+        if ($state.configurationFingerprint -ne $ConfigurationFingerprint) { Stop-Controller 'ERROR_CONFIGURATION_DRIFT' 'configuration fingerprint changed during harness repair' }
+        if ([string]::IsNullOrWhiteSpace($ProposedTestRevision) -or [string]::IsNullOrWhiteSpace($HarnessRevision)) { Stop-Controller 'ERROR_INPUT' 'new test and harness revisions are required' }
+        $failedRun = @($state.runs | Select-Object -Last 1)
+        if ($failedRun.Count -ne 1 -or $failedRun[0].result -ne 'fail') { Stop-Controller 'ERROR_TRANSITION' 'last run is not a recorded failure' }
+        $runnerReport = Read-StructuredJson $ReportPath 'failed runner report'
+        if ($runnerReport.status -ne 'FAIL' -or $runnerReport.classification -ne 'TEST_HARNESS' -or $null -eq $runnerReport.cleanup -or -not [bool]$runnerReport.cleanup.succeeded) {
+            Stop-Controller 'ERROR_RESULT' 'only a cleaned TEST_HARNESS failure may be retried'
+        }
+        $evidenceRoot = if (Test-Path -LiteralPath $failedRun[0].evidence -PathType Leaf) { Split-Path -Parent $failedRun[0].evidence } else { [string]$failedRun[0].evidence }
+        if (-not (Test-PathWithin $ReportPath $evidenceRoot)) { Stop-Controller 'ERROR_RESULT' 'failed runner report is outside the recorded evidence root' }
+        $oldTestRevision = [string]$state.revisions.test
+        $proposed = Resolve-GitRevision $state.repositories.systemTest $ProposedTestRevision
+        if ($proposed -eq $oldTestRevision -or $proposed -ne (Get-GitHead $state.repositories.systemTest)) { Stop-Controller 'ERROR_REVISION_DRIFT' 'harness repair must create the canonical system-test HEAD' }
+        Assert-GitAncestor $state.repositories.systemTest $oldTestRevision $proposed
+        Assert-HarnessRepairWorktreeClean $state.repositories.systemTest ([string]$state.changeName)
+        $repairDiff = Get-GitDiffInfo $state.repositories.systemTest $oldTestRevision $proposed
+        foreach ($path in @($repairDiff.changedFiles)) {
+            if ($path -notlike 'scripts/*' -and $path -notlike 'self-test/*') { Stop-Controller 'ERROR_SCOPE' "harness repair changed a non-harness file: $path" }
+        }
+        if ($HarnessRevision -eq $state.revisions.harness) { Stop-Controller 'ERROR_HARNESS_UNCERTIFIED' 'harness repair must produce a new certified revision' }
+        $certification = Assert-HarnessCertification $HarnessRoot $HarnessCertificationPath $HarnessRevision
+        $state.revisions.test = $proposed
+        $state.revisions.harness = $HarnessRevision
+        $state.harnessCertification = $certification
+        $state.scopeVerification = [pscustomobject]@{ result='PASS'; kind='certified-harness-repair'; baselineRevision=$repairDiff.baseline; currentRevision=$repairDiff.current; repository=$state.repositories.systemTest; diffHash=$repairDiff.diffHash; changedFiles=@($repairDiff.changedFiles); at=[DateTime]::UtcNow.ToString('o') }
+        $state.verifier = $null
+        Set-Phase $state 'TEST_IMPLEMENTED' 'accepted certified harness repair after TEST_HARNESS failure'
+        Write-State $state
+        Write-Output '[FLOW_CONTROLLER] PASS'
+        Write-Output "test_revision: $proposed"
+        Write-Output "harness_revision: $HarnessRevision"
+        exit 0
     }
     'block' {
         if (Test-SensitiveContent $Reason) { Stop-Controller 'ERROR_SECRET_INPUT' 'block reason contains sensitive material' }

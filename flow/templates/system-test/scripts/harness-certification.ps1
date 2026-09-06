@@ -30,7 +30,12 @@ $scenarioExpectations = @{
   'evidence-missing'=@{ exitCode=1; status='FAIL'; phase='RUNNER_FAILED'; classification='TEST_HARNESS'; cleanupSucceeded=$true; retainedState=$false }
 }
 
-function Get-Hash([string]$Path) { return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant() }
+function Get-Hash([string]$Path) {
+  $stream = [IO.File]::OpenRead($Path)
+  $sha = [Security.Cryptography.SHA256]::Create()
+  try { return -join ($sha.ComputeHash($stream) | ForEach-Object { $_.ToString('x2') }) }
+  finally { $sha.Dispose(); $stream.Dispose() }
+}
 
 function Test-PathWithin([string]$Child, [string]$Parent) {
   $childPath = [IO.Path]::GetFullPath($Child)

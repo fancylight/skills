@@ -24,6 +24,8 @@
 phase 与表中动作不一致时输出 `[FLOW_CONTROLLER] ERROR_TRANSITION` 并停止。`next=BLOCKED` 必须停止；`next=COMPLETE` 才能完成；不得自行选择后续 skill、提升 authorization 或跳过 implementation/environment/result verify。
 runner FAIL 在 `record-run` 前完成失败证据收集与完整性检查，记录后进入 `TEST_EXECUTED_FAIL` / `next=BLOCKED`；不得把失败运行送入只接受 PASS 的 result verifier。
 
+若失败被结构化证据明确归类为 `TEST_HARNESS`，且 cleanup 成功，可执行一次受限的 `retry-harness-failure` 修复迁移。该命令要求业务 revision 与配置指纹保持不变、新测试 revision 只修改 `scripts/**` 和 `self-test/**`、新 harness 完成认证，并保留原失败运行；迁移后回到 `TEST_IMPLEMENTED` 重新执行 implementation verify、environment verify 和唯一一次新 revision runner。业务失败、配置失败、未清理现场或同 revision 均不得使用该迁移。
+
 ## Lease 与结构化结果
 
 - assign 通过 controller 签发 implementation lease；prompt 只传 controller 返回的 `leaseId`、agentId、repository、authorizedPaths、allowed/forbidden capabilities、implementationBaseRevision 和 expiresAt。

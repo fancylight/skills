@@ -202,6 +202,31 @@ try {
     Assert-Controller { & $controller record-verifier -StatePath $runFail.state -VerifyMode result -TestRevision $runFailRevision -SutRevision $runFail.sutRevision -HarnessRevision $runFail.harness -ConfigurationFingerprint $runFail.config -ReportPath $runFailResultReport -VerifierId verifier-a } $false 'ERROR_VERIFIER_REVISION' 'result-after-run-fail'
     Assert-Controller { & $controller start-run -StatePath $runFail.state -TestRevision $runFailRevision -SutRevision $runFail.sutRevision -HarnessRevision $runFail.harness -ConfigurationFingerprint $runFail.config } $false 'ERROR_RUN_DUPLICATE' 'rerun-after-run-fail'
 
+    # A cleaned TEST_HARNESS failure may move to a new certified harness-only revision and must re-enter implementation verification.
+    $retryHarness = Join-Path $root 'retry harness'
+    Copy-Item -LiteralPath $harnessRoot -Destination $retryHarness -Recurse
+    Add-Content -LiteralPath (Join-Path $retryHarness 'scripts\system-test.ps1') -Value '# certified harness repair'
+    $retrySelfTest = Join-Path $retryHarness 'self-test\invoke-harness-self-test.ps1'
+    $retrySelfTestReport = Join-Path $retryHarness 'self-test\retry-self-test.json'
+    $retryCertifier = Join-Path $retryHarness 'scripts\harness-certification.ps1'
+    $retryCertification = Join-Path $retryHarness 'self-test\retry-certification.json'
+    & $retrySelfTest -HarnessRoot $retryHarness -ReportPath $retrySelfTestReport -RuntimeExecutable 'powershell.exe'
+    & $retryCertifier certify -HarnessRoot $retryHarness -CertificationPath $retryCertification -SelfTestReport $retrySelfTestReport -HarnessVersion 'controller-retry-test'
+    $retryHarnessRevision = (& $retryCertifier revision -HarnessRoot $retryHarness | Select-Object -Last 1).Trim()
+    New-Item -ItemType Directory -Path (Join-Path $runFail.repo 'scripts') -Force | Out-Null
+    Copy-Item -LiteralPath (Join-Path $retryHarness 'scripts\system-test.ps1') -Destination (Join-Path $runFail.repo 'scripts\system-test.ps1')
+    New-Item -ItemType Directory -Path (Join-Path $runFail.repo 'self-test') -Force | Out-Null
+    Set-Content -LiteralPath (Join-Path $runFail.repo 'self-test\certification.marker') -Value $retryHarnessRevision -Encoding utf8
+    Invoke-Git $runFail.repo @('add', 'scripts', 'self-test') | Out-Null
+    Invoke-Git $runFail.repo @('commit', '--quiet', '-m', 'certified harness repair') | Out-Null
+    $retryRevision = (Invoke-Git $runFail.repo @('rev-parse', 'HEAD') | Select-Object -First 1).Trim()
+    $failedRunnerReport = Join-Path $runFailEvidence 'runner-result.json'
+    @{ status='FAIL'; classification='TEST_HARNESS'; cleanup=@{ succeeded=$true; retainedState=$false } } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $failedRunnerReport -Encoding utf8
+    Assert-Controller { & $controller retry-harness-failure -StatePath $runFail.state -ProposedTestRevision $retryRevision -SutRevision $runFail.sutRevision -HarnessRevision $retryHarnessRevision -HarnessRoot $retryHarness -HarnessCertificationPath $retryCertification -ConfigurationFingerprint $runFail.config -ReportPath $failedRunnerReport }
+    Assert-Controller { & $controller next -StatePath $runFail.state } $true 'next: VERIFY_IMPLEMENTATION' 'next-after-certified-harness-repair'
+    $retryState = Get-Content -LiteralPath $runFail.state -Raw | ConvertFrom-Json
+    if ($retryState.runs.Count -ne 1 -or $retryState.runs[0].result -ne 'fail' -or $retryState.revisions.test -ne $retryRevision -or $retryState.revisions.harness -ne $retryHarnessRevision) { throw 'harness retry did not preserve failure history or bind new revisions' }
+
     $atomic = New-LeasedCase 'atomic'; $atomicRevision = Commit-Implementation $atomic.repo 'sample-change'; $atomicDiff = Get-DiffFixture $atomic.repo $atomic.fixture.design $atomicRevision; $atomicScope = Join-Path $root 'atomic-scope.json'; $atomicResult = Join-Path $root 'atomic-result.json'; @{ result='PASS'; baselineRevision=$atomic.fixture.design; currentRevision=$atomicRevision; repository=$atomic.repo; changedFiles=$atomicDiff.changedFiles; diffHash=$atomicDiff.diffHash } | ConvertTo-Json | Set-Content $atomicScope -Encoding utf8; @{ result='PASS'; testRevision=$atomicRevision; implementationBaseRevision=$atomic.fixture.design } | ConvertTo-Json | Set-Content $atomicResult -Encoding utf8
     Assert-Controller { & $controller accept-result -StatePath $atomic.state -ProposedTestRevision $atomicRevision -SutRevision $atomic.sutRevision -HarnessRevision $atomic.harness -ConfigurationFingerprint $atomic.config -ReportPath $atomicResult -ScopeGuardReportPath $atomicScope -SimulateWriteFailure } $false 'ERROR_ATOMIC_WRITE' 'accept-write-failure'
     $atomicBefore = (Get-Content $atomic.state -Raw | ConvertFrom-Json).revisions.test; if ($atomicBefore -ne $atomic.fixture.design) { throw 'failed atomic accept changed state' }
@@ -211,7 +236,7 @@ try {
 
     # Backup recovery and corrupted-state guard.
     $tampered = Get-Content $state -Raw | ConvertFrom-Json; $tampered.phase = 'TEST_EXECUTING'; $tampered | ConvertTo-Json -Depth 16 | Set-Content $state -Encoding utf8
-    Assert-Controller { & $controller status -StatePath $state } $true '"phase":  "TEST_RESULT_VERIFIED"' 'backup-recovery'
+    Assert-Controller { & $controller status -StatePath $state } $true 'TEST_RESULT_VERIFIED' 'backup-recovery'
     Set-Content $state '{ bad json' -Encoding utf8; Set-Content "$state.bak" '{ bad backup' -Encoding utf8
     Assert-Controller { & $controller status -StatePath $state } $false 'ERROR_STATE_CORRUPT' 'corrupt-state'
     Write-Output 'flow-test-controller tests passed'
