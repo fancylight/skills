@@ -202,6 +202,11 @@ function Start-Compose([string[]]$Profiles) {
   }
 }
 
+function Quote-Argument([string]$Value) {
+  if ($Value -notmatch '[\s"]') { return $Value }
+  return '"' + $Value.Replace('"', '\"') + '"'
+}
+
 function Start-ManagedServices($Manifest, [string[]]$Suites) {
   New-Item -ItemType Directory -Force $LogDir | Out-Null
   $state = @{ processes = @(); composeProfiles = @($Manifest.composeProfiles) }
@@ -226,7 +231,8 @@ function Start-ManagedServices($Manifest, [string[]]$Suites) {
     }
     $stdout = Join-Path $LogDir "$($service.name).out.log"
     $stderr = Join-Path $LogDir "$($service.name).err.log"
-    $process = Start-Process -FilePath $exe -ArgumentList $argumentList -WorkingDirectory (Expand-Value $service.workingDirectory) -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru -WindowStyle Hidden
+    $argumentLine = (@($argumentList | ForEach-Object { Quote-Argument ([string]$_) }) -join ' ')
+    $process = Start-Process -FilePath $exe -ArgumentList $argumentLine -WorkingDirectory (Expand-Value $service.workingDirectory) -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru -WindowStyle Hidden
     $state.processes += @{ name=$service.name; pid=$process.Id; port=$service.port }
     $state | ConvertTo-Json -Depth 5 | Set-Content -Encoding UTF8 $StateFile
     $ready = $false
@@ -548,6 +554,7 @@ switch ($Command) {
       if ($suites.Count -eq 1 -and $suites[0] -eq 'cdc') {
         Invoke-Suite 'cdc' $manifest
       } else {
+        if ($suites -contains 'api') { Reset-ApiReports }
         if ($manifest.composeProfiles) { Start-Compose @($manifest.composeProfiles); Start-Sleep -Seconds 2 }
         Invoke-Doctor $manifest $suites
         Invoke-WireMockReload
@@ -556,7 +563,6 @@ switch ($Command) {
           Invoke-Seeds $manifest
           New-Item -ItemType File -Force $SeedMarker | Out-Null
         }
-        if ($suites -contains 'api') { Reset-ApiReports }
         foreach ($name in $suites) { Invoke-Suite $name $manifest }
         if ($suites -contains 'api') { $counts = Get-ApiCounts }
         else { $counts.passed = $suites.Count }
