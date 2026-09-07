@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "id": "local",
+  "playbook": "docs/local-integration-playbook.md",
+  "configurationProvider": {
+    "kind": "spring-config-native",
+    "repository": "${ORCH_ROOT}/config-provider",
+    "configurationRepository": "${ORCH_ROOT}/config-provider",
+    "baseUri": "http://127.0.0.1:18888",
+    "configRoot": "config",
+    "serviceRef": "config-provider"
+  },
+  "resources": [
+    {
+      "id": "config-provider",
+      "kind": "configuration-provider",
+      "lifecycle": "managed",
+      "executable": "powershell.exe",
+      "arguments": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "scripts/start-native.ps1"
+      ],
+      "workingDirectory": "${ORCH_ROOT}/config-provider",
+      "port": 18888,
+      "readinessProbe": "config-provider-health",
+      "dependsOn": []
+    },
+    {
+      "id": "database",
+      "kind": "database",
+      "lifecycle": "external",
+      "preflightProbe": "database-connectivity",
+      "dependsOn": []
+    }
+  ],
+  "probes": [
+    {
+      "id": "config-provider-health",
+      "stage": "runtime",
+      "kind": "http",
+      "method": "GET",
+      "url": "http://127.0.0.1:18888/actuator/health",
+      "expectStatus": 200,
+      "failureCategory": "CONFIG_INFRA"
+    },
+    {
+      "id": "database-connectivity",
+      "stage": "preflight",
+      "kind": "tcp",
+      "hostRef": "DATABASE_HOST",
+      "portRef": "DATABASE_PORT",
+      "failureCategory": "DATA_SCHEMA_CONTRACT"
+    },
+    {
+      "id": "sample-sut-health",
+      "stage": "runtime",
+      "kind": "http",
+      "method": "GET",
+      "url": "http://127.0.0.1:17845/actuator/health",
+      "expectStatus": 200,
+      "failureCategory": "CONFIG_INFRA"
+    }
+  ],
+  "evidenceContracts": [
+    {
+      "id": "sample-sut-config-consumption",
+      "kind": "log-regex",
+      "pattern": "CONFIG_CONSUMED\\s+sample-sut/dev"
+    }
+  ]
+}

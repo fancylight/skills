@@ -47,6 +47,9 @@ flow:                       # 可选。控制面协议（见 flow/docs/control-p
   protocol_version: string  # 可选。枚举：legacy | lease-v1
                             # 缺省 = legacy（进行中 change 不中断）
                             # 新建 change 由 init/design 写入 lease-v1（Phase 1+）
+  test_platform:            # 可选。集成测试环境 v2 的稳定入口（分阶段启用）
+    system_test_service: string # services 中 type=system-test 的服务名
+    default_environment: string # system-test 仓 config/environments/<id>.json 的默认 id
 ```
 
 `protocol_version` 也可写在单个 change 的 `task.md` frontmatter（同名字段）；**change 级覆盖根 config**。apply 中途禁止自动改写。词法与租约握手见 [control-plane.md](./control-plane.md)。
@@ -482,6 +485,8 @@ capabilityFingerprint:
 
 ### 11.2 配置契约与 runner 前置
 
+#### 11.2.1 当前 v1 runner 契约
+
 `manifest.yaml` 在 design 时必须声明 `configurationSource`、`requiredEndpoints`、`connectivityProbe` 和 `ownership`；
 来源必须由用户确认，probe 只能为单次最小只读连接或 metadata 检查。失败输出 `[TEST_CONFIGURATION] BLOCKED` 与
 `STOP_AWAIT_HUMAN_CONFIGURATION`，不得自行修配置、切换来源或继续实现。
@@ -490,6 +495,181 @@ manifest 还须记录 `requiredEnvBySuite`、`environmentContract`、`wireMockCo
 `requiredScenarioCount`、`expectedTestMethodCount`、`expectedReportClasses`、`runner.command`（token array）、
 `integrationDecisions`、`excelAssertions` 和 `implementationVerification`。implementation PASS、execution 授权、配置契约
 及 probe 证据一致时，才可进入唯一 runner；runner PASS 不代表 result PASS 或 Flow 完成。
+
+#### 11.2.2 测试环境 v2（P1 resolver 契约）
+
+v2 将共享环境与 change 差异分开：
+
+- system-test 仓 `config/environments/<id>.json` 是 repo 级 environment descriptor；
+- `changes/<change>/manifest.yaml` 保持 JSON-compatible 内容，使用 `schemaVersion: 2`；
+- `resolve-test-environment.ps1` 生成 `changes/<change>/resolved-manifest.json`；
+- resolved manifest 是后续 design/environment/run/result 的唯一解析快照，但 P1 尚未切换现有 runner；
+- v1 顶层字段与 v2 字段不得同时出现。P1 resolver 遇到旧字段返回 `AMBIGUOUS_CONFIGURATION_SCHEMA`，单向迁移在后续阶段实现。
+
+根引用：
+
+```yaml
+flow:
+  test_platform:
+    system_test_service: string
+    default_environment: string
+```
+
+Environment descriptor 使用 JSON：
+
+```json
+{
+  "schemaVersion": 1,
+  "id": "local",
+  "configurationProvider": {
+    "kind": "spring-config-native",
+    "repository": "${ORCH_ROOT}/config-provider",
+    "configurationRepository": "${ORCH_ROOT}/config-provider",
+    "baseUri": "http://127.0.0.1:18888",
+    "configRoot": "config",
+    "serviceRef": "config-provider"
+  },
+  "resources": [
+    {
+      "id": "config-provider",
+      "kind": "configuration-provider",
+      "lifecycle": "managed",
+      "executable": "powershell.exe",
+      "arguments": ["-NoProfile", "-File", "scripts/start-native.ps1"],
+      "workingDirectory": "${ORCH_ROOT}/config-provider",
+      "port": 18888,
+      "readinessProbe": "config-provider-health",
+      "dependsOn": []
+    }
+  ],
+  "probes": [
+    {
+      "id": "config-provider-health",
+      "stage": "runtime",
+      "kind": "http",
+      "method": "GET",
+      "url": "http://127.0.0.1:18888/actuator/health",
+      "expectStatus": 200,
+      "failureCategory": "CONFIG_INFRA"
+    }
+  ],
+  "evidenceContracts": [
+    {
+      "id": "sample-sut-config-consumption",
+      "kind": "log-regex",
+      "pattern": "CONFIG_CONSUMED\\s+sample-sut/dev"
+    }
+  ]
+}
+```
+
+`lifecycle` 只允许 `managed|external`。`reused` 是运行时观测状态，不是设计输入。managed 资源必须声明 token-array
+`arguments`、working directory、port 和 runtime readiness probe；external 资源不得声明 cleanup。
+
+`configurationProvider.kind` 支持 `spring-config-native|spring-config-git`。`repository` 始终表示 Config Server 实现仓；
+`configurationRepository` 表示配置内容仓，省略时与 `repository` 相同。native target 使用
+`<configRoot>/<application>/application-<profile>.yml`；git target 使用
+`<configRoot>/<application>-<profile>.yml`。两仓 revision 必须分别进入 resolved manifest 与 fingerprint。
+
+Change manifest v2 的配置部分：
+
+```json
+{
+  "schemaVersion": 2,
+  "environment": {
+    "id": "local",
+    "descriptor": "config/environments/local.json"
+  },
+  "configuration": {
+    "environmentFile": ".env.local",
+    "ownership": "human",
+    "targets": [
+      {
+        "application": "sample-sut",
+        "profile": "dev",
+        "relativeFile": "config/sample-sut/application-dev.yml",
+        "endpoint": "/sample-sut/dev",
+        "sutEvidence": {
+          "kind": "log-pattern",
+          "patternId": "sample-sut-config-consumption"
+        }
+      }
+    ]
+  },
+  "suts": [],
+  "harness": { "revision": "sha256" },
+  "runner": {
+    "workingDirectory": "${TEST_ROOT}",
+    "command": ["powershell.exe", "-NoProfile", "-File", "scripts/run-suite.ps1"],
+    "failureCategory": "SUT_BUSINESS"
+  }
+}
+```
+
+`configuration.environmentFile` 仅表示环境变量文件，不能再兼作 config provider。probe 必须是结构化对象，禁止自由文本
+command。路径必须 canonical 且位于授权根内；SUT/provider/system-test 必须是可解析 Git revision；配置 target 的
+application/profile/path/endpoint 必须一致。
+
+resolved manifest 至少包含 inputs hash、environment、provider revision、resources、executionOrder、cleanupPlan、probes、
+SUT revisions、审计用 `designInputRevision` 和 `configurationFingerprint`。fingerprint 绑定 manifest、descriptor、provider、
+harness、SUT revision、完整 target 文件 SHA256 及规范化 execution contract hash（provider/resources/order/cleanup/probes/evidence
+contracts/SUT 启动契约/runner）；system-test 当前 revision 由 controller 独立锁定，不能把生成 resolved manifest 前的
+HEAD 纳入 configuration fingerprint，否则产物随设计提交后会天然漂移。产物只记录 secret reference 名称，禁止真实 secret、
+完整 `.env` 或带凭据连接串。
+
+#### 11.2.3 v2 environment preflight（P2）
+
+当 controller `next=VERIFY_ENVIRONMENT` 且 resolved manifest 为 v2 时，调用共享
+`validate-test-environment.ps1`。输入为 resolved manifest、canonical controller state、verifier identity 和 report path。
+
+verifier 必须只读检查：
+
+- controller phase=`TEST_IMPLEMENTATION_VERIFIED`，test/SUT revision 与 canonical Git HEAD 一致；
+- resolved fingerprint 与 controller `configurationFingerprint` 一致；
+- manifest/descriptor hash、provider revision、target 完整文件 hash 未漂移；
+- environment file 位于 system-test 仓，descriptor/target/probe 所需 reference 已由进程环境或该文件提供；
+- managed resource 的 working directory、executable、token-array 中的启动脚本存在，声明端口可绑定；
+- 只执行 `stage=preflight` 的 external TCP/HTTP probe；runtime probe 留给 RUN_ONCE。
+
+P2 不启动 managed provider、中间件或 SUT，不运行 Docker/runner，不记录 environment value。报告固定包含
+`result=PASS|BLOCKED`、`mode=environment`、verifierId、test/SUT/harness revision、configurationFingerprint、安全 summary、
+结构化 steps 和 blockers。只有 PASS 可交给 controller `record-verifier -VerifyMode environment`；BLOCKED/ERROR 停止。
+
+当前 controller state 只建模一个 SUT repository，因此 P2 对多 SUT resolved topology 返回 BLOCKED，后续 controller schema
+升级前不得选择性忽略其他 SUT。
+
+#### 11.2.4 v2 隔离生命周期执行（P3）
+
+`run-resolved-environment.ps1` 只消费 P1 resolved manifest 和调用方提供的 expected fingerprint。执行前重新计算 execution
+contract hash 与 fingerprint；不一致归为 `TEST_HARNESS` 并停止。执行顺序固定为：external preflight / managed resource
+依赖顺序启动 → runtime readiness → Spring Config target application/profile 身份校验 → SUT 启动与 health → 声明的
+`log-regex` 配置消费证据 → manifest runner。
+
+managed 端口已占用时，只有显式 identityProbe 和对应 readiness probe 都 PASS 才可记为 `reused`；reused/external 不进入 cleanup。cleanup 仅逆序停止
+本轮创建并记录的进程。配置消费证据缺失、provider target 不存在或身份不一致归为 `CONFIG_INFRA`；runner 非零退出按
+`runner.failureCategory`（默认 `SUT_BUSINESS`）归因。结果不得包含环境值或原始敏感日志。
+
+P3 引擎已纳入 harness certification。P4 起 `system-test.ps1` 按 manifest schema 分派：v1 原链路不变；v2 要求调用方提供
+controller 锁定的 configuration fingerprint，并生成 `evidence/runs/<run-id>/runtime-result.json`、index 和 structured result。
+standalone PASS 不得提交为 canonical `record-run`。
+
+`ownership=human` 且 Git 忽略的配置中心本地文件允许已有凭据；其他配置仍要求 secret reference。完整文件摘要绑定 fingerprint，任何配置变化（含凭据变化）都会使快照失效；不向报告输出配置值。
+configuration ownership/environmentFile、prepare/cleanup token-array 命令和 identityProbe 均绑定 execution contract。`.env` 仅用于必要运行参数；夹具通过 `FLOW_RESOLVED_MANIFEST` 读取同一配置来源。
+`runner.prepare` 在资源就绪和配置目标校验后、SUT 启动前执行并验证本次契约；非零退出阻断业务用例。`runner.cleanup` 只清理本次夹具；禁止全局清空 WireMock。
+每个 SUT `id` 对应 configuration target `application`，加载证据只检查该服务目标。默认服务启动 120 秒、suite 600 秒；只清理 PID 与精确启动时间匹配的本次进程树。
+v2 standalone 支持 `-ScenarioIds`，由 canonical 派生契约确定 class#method、预期方法数量及 JUnit 报告集合。
+runner.command 使用 `${FLOW_TEST_FILTER}` 与 `${FLOW_TEST_REPORT_DIR}`；空选集、未知 ID、零匹配、缺失/越界报告和 skipped 均失败。
+部分运行报告必须 `fullSuite=false`，独立保存证据，不改全量 controller state，不能登记全量 Flow PASS。
+
+#### 11.2.5 v1 → v2 单向迁移（P4）
+
+`migrate-test-environment-manifest.ps1` 接收 legacy manifest 和人工审核的 `migration-spec.json`，只写一个不存在的新输出文件，
+禁止原地覆盖。迁移器保留 suite、testCasesContract、failureObservability 等非环境字段，仅将旧
+`configuration.source/ownership` 转为 `configuration.environmentFile/ownership`，并从 migration spec 引入 environment、targets、
+SUT、harness 和 runner。缺少显式映射、输入已是 v2、路径越界、输出已存在或包含 literal sensitive value 均阻断。
+
+P4 runtime 在每次创建 provider/SUT/suite 进程后持久化 `{pid, startedAtUtc}`；正常和失败路径逆序清理，中断后 `cleanup`
+只有在 PID 与启动时间均匹配时才停止进程，避免 PID 复用导致误杀。reused/external 仍不写入 ownership state。
 
 ### 11.3 失败归因证据
 
@@ -522,7 +702,7 @@ repositories:
 revisions:
   designRevision: immutable design revision captured at initialize
   testBaseRevision: immutable test revision captured at initialize
-  testBaseline: compatibility alias for the initial test base revision
+  testBaseline: immutable pre-design system-test baseline used by generated sidecar; never replaced by a commit containing that sidecar
   test: current accepted system-test implementation revision; updated only by accept-result
   sut: immutable SUT revision
   harness: immutable harness revision
@@ -586,9 +766,11 @@ scenarios:
 `id` 必须唯一且稳定；`integration: Y` 必须声明 testClass/testMethod/reportClass/filter，并由 Java 测试方法通过稳定
 ID 注解绑定；`integration: N` 不得声明这些可执行字段，只能以 externalEvidence 证明覆盖。未知、重复、缺失或方法/类漂移均拒绝。
 manifest 以 `testCasesContract.path` 引用 `test-cases.generated.json`，不得在根重复维护场景派生字段。sidecar
-确定性承载 source hash/canonical revision、integration Y/N 全映射、required/expected method count、runner filters、
+确定性承载 source hash、初始化前的 `testBaseline` revision、integration Y/N 全映射、required/expected method count、runner filters、
 report classes、evidence index 骨架和 failure observability；test-plan 只在
 `FLOW_TEST_CASES_GENERATED` 标记区显示生成镜像，区外人工说明按字节保留并绑定 outside hash。
+实际 design/implementation commit 由 controller 的 `designRevision`/`test` 单独锁定。禁止要求 sidecar 绑定包含其自身的
+commit；该要求会形成不可收敛的 commit 自引用。
 
 旧 manifest 迁移时保留环境、fixture、WireMock、runner 与授权配置，新增 `testCasesContract.path`，由 canonical
 source 生成 sidecar，并删除根层旧 count/filter/report/integration/evidence/failureObservability 派生字段。

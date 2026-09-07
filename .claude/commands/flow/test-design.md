@@ -25,7 +25,7 @@ version: "0.1.0"
 2. 写 `changes/<change>/test-cases.yaml`（唯一可执行场景源）→ 生成 sidecar / test-plan 标记区
 3. `test-design.md` 覆盖 TDD.1–TDD.10
 4. `test-plan.md` 只写背景与人工说明，不复制可执行表
-5. manifest：configurationSource、requiredEndpoints、connectivityProbe、ownership、testCasesContract 等
+5. 新配置中心环境使用 v2 environment/descriptor、configuration targets/ownership、SUT、runner、harness 与 testCasesContract，并先生成 resolved manifest；v1 才保留 configurationSource、requiredEndpoints、connectivityProbe、ownership 等旧契约。external 中间件不由 runner 管理，WireMock 契约先设计并通过 prepare 验证，夹具连接来自同一配置中心。
 6. 每次写 system-test 前 `test-scope-guard.ps1 -Stage design`
 7. READY 前 `validate-test-cases.ps1 -Generate ...` 与 `validate-test-artifacts.ps1 -Mode design`
 8. 禁止写 JUnit、改业务源码、在 design 写实际 PASS/EXPLAIN 结果

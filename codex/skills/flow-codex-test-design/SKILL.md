@@ -25,6 +25,10 @@ description: 在业务代码已审核提交后，基于概要设计验收、as-b
 
 ## 步骤
 
+新配置中心环境使用共享 v2 manifest：引用平台已登记的 repo 级 descriptor，声明 configuration targets、ownership、SUT 启动契约、runner 与 harness；旧 v1 才使用 configurationSource 等旧字段。先用 core `assets/scripts/resolve-test-environment.ps1` 生成 resolved manifest，再进行设计校验。native 模式可以由启动契约传入 profile/search locations，无须在业务源码新增配置文件。
+本地 dev 配置保存在配置中心；Git 忽略的 human 本地输入允许已有凭据，设计产物只记录来源和完整文件 hash。夹具读取同一配置来源，`.env` 仅用于必要运行参数。配置迁移属于已获授权的平台准备，不在业务 test-design 内生成替代 dev 配置。
+外部中间件登记 external，runner 不启停或重建；WireMock 的方法、路径、参数、鉴权及响应契约提前明确，由 `runner.prepare` 注册并验证本次 mapping，失败阻断后续业务，cleanup 只清理本次资源。
+
 0. 按 `scaffold.md` 解析或初始化 config 中的 system-test 仓；已存在完整仓时只增量更新 change 产物。
 1. 为概要设计每条验收分配稳定 `AC-n`，确定集成 Y/N、Non-Goal 或后续阶段；N 不得伪装为覆盖。
 2. 先创建 `changes/<change_name>/test-cases.yaml`。它是稳定场景 ID、required、集成 Y/N、测试类/方法、
@@ -38,13 +42,13 @@ description: 在业务代码已审核提交后，基于概要设计验收、as-b
    在 canonical source 中有 happy path、核心断言和副作用观测；正向能力缺 happy path，或“未写入”缺观测，均 BLOCKED。
 5. 由 canonical source 推导 sidecar、IDS、幂等 seed/cleanup、环境契约及必要 release SQL 镜像；manifest 不得承担覆盖论证，
    但必须登记 `requiredEnvBySuite`、system-test 仓库相对的 `wireMockContracts`（SUT Feign method/path/query/minimum response）、
-   带 `engine` 的 `fixtureSchema`、`fixtureJavaSources`/`fixtureDynamicSql`、`requiredScenarioCount`、
+   带 `engine` 的 `fixtureSchema`、`fixtureJavaSources`/`fixtureDynamicSql`、
    Excel 语义契约和 `testCasesContract.path`。sidecar 必须登记 `requiredScenarioCount`、`expectedTestMethodCount`、
    精确 `expectedReportClasses`、runner filters、integration Y/N、evidence index 和 `failureObservability`：
    场景 ID、测试类/方法、关联字段、普通/外部证据路径和可判定类别；
    未映射或证据缺失时必须允许 `UNDETERMINED`，不得预设业务缺陷。
-   当设计引用数据库、缓存、SUT 或 WireMock 配置时，另必须登记 `configurationSource`、`requiredEndpoints`、
-   `connectivityProbe` 和 `ownership`；来源只能由用户确认，probe 只能是单次最小只读连接/metadata 检查。
+   当设计引用数据库、缓存、SUT 或 WireMock 配置时，v2 登记 environment、configuration targets、结构化 probes、resources 生命周期及 resolved fingerprint；v1 才登记 `configurationSource`、`requiredEndpoints`、
+   `connectivityProbe` 和 `ownership`。来源只能由用户确认，preflight probe 只能是单次最小只读连接/metadata 检查。
 6. 数据访问风险必须在 plan 中列最终列表 SQL/count、代表性参数、只读 EXPLAIN 命令/阈值/evidence 路径；不可得则 BLOCKED。
 7. 对每一个首次写入、静态校验和提交目标，先执行
    `flow-codex-core/assets/scripts/test-scope-guard.ps1 -AuthorizedRepo <system-test> -TargetPath <target> -Stage design`；任何
@@ -55,10 +59,14 @@ description: 在业务代码已审核提交后，基于概要设计验收、as-b
    `connectivityProbe`。probe 失败必须输出 `[TEST_CONFIGURATION] BLOCKED` 和
    `next: STOP_AWAIT_HUMAN_CONFIGURATION`；不得猜测 schema、改 `.env.local`、安装工具、切换来源或继续实现。
    除该 probe 外，禁止编译、`mvn test`、Docker、doctor、服务启动和 runner。
-9. READY 前先运行 `validate-test-cases.ps1 -Generate -CanonicalRevision <test revision> -ManifestPath <manifest>
+9. READY 前先取得初始化前 system-test 仓当前提交，作为稳定的 `<test baseline revision>`。sidecar 只绑定该基线、
+   `test-cases.yaml` 内容 hash 与 test-plan 人工区 hash；不得尝试绑定包含 sidecar 自身的设计提交，否则会形成不可收敛的
+   commit 自引用。先运行 `validate-test-cases.ps1 -Generate -CanonicalRevision <test baseline revision> -ManifestPath <manifest>
    -DerivedContractPath <test-cases.generated.json> -TestPlanPath <test-plan>`，再运行
    `flow-codex-core/assets/scripts/validate-test-artifacts.ps1 -SystemTestRepo <path> -ChangeName <name> -Mode design
-   -CanonicalRevision <test revision>`。任一
+   -CanonicalRevision <test baseline revision>`。设计产物提交后，controller `initialize` 必须分别记录该 baseline 和实际
+   design revision；后续 verifier 从 controller `revisions.testBaseline` 取得同一参数，并独立校验当前设计/实现 revision。
+   任一
    `[TEST_ARTIFACT_GUARD] ERROR` 均为 BLOCKED，不得提交、写 READY 或进入下一阶段。
    required 场景删除时，另传 previous source/revision、design verifier report、controller state 和受信 verifier identity；
    不得使用自由布尔开关声明 design verify 已通过。

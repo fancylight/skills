@@ -57,6 +57,11 @@ Get-ChildItem -LiteralPath $skillsDir -Directory | ForEach-Object {
 
 # ---- Shared templates (from flow/templates/, replaces old codex duplicates) ----
 
+# The shared controller protocol is authoritative; refresh the runtime reference from it.
+$controllerProtocol = Join-Path $projectRoot 'flow\docs\test-controller.md'
+$coreReferencesDir = Join-Path $TargetDir 'flow-codex-core\references'
+Copy-Item -LiteralPath $controllerProtocol -Destination (Join-Path $coreReferencesDir 'test-controller.md') -Force -WhatIf:$WhatIf
+
 $coreTemplatesDir = Join-Path $TargetDir "flow-codex-core\assets\templates"
 $coreScriptsDir = Join-Path $TargetDir "flow-codex-core\assets\scripts"
 
@@ -128,7 +133,7 @@ if (Test-Path -LiteralPath $sharedTemplatesDir) {
     # codex/scripts/*.ps1 are temporary shims only — always install from the shared source.
     $guardScriptsDir = Join-Path $projectRoot 'flow\scripts'
     New-Item -ItemType Directory -Force -Path $coreScriptsDir -WhatIf:$WhatIf | Out-Null
-    @('validate-test-artifacts.ps1', 'test-scope-guard.ps1', 'validate-domain-artifact.ps1', 'validate-test-cases.ps1', 'flow-test-controller.ps1') | ForEach-Object {
+    @('validate-test-artifacts.ps1', 'test-scope-guard.ps1', 'validate-domain-artifact.ps1', 'validate-test-cases.ps1', 'flow-test-controller.ps1', 'resolve-test-environment.ps1', 'validate-test-environment.ps1', 'migrate-test-environment-manifest.ps1') | ForEach-Object {
         $source = Join-Path $guardScriptsDir $_
         if (-not (Test-Path -LiteralPath $source)) { throw "Required shared guard script not found: $source" }
         $raw = Get-Content -LiteralPath $source -Raw -Encoding UTF8

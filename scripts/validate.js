@@ -21,8 +21,18 @@ const REQUIRED_SCRIPTS = [
   'validate-test-cases.ps1',
   'test-scope-guard.ps1',
   'flow-test-controller.ps1',
+  'resolve-test-environment.ps1',
+  'validate-test-environment.ps1',
+  'migrate-test-environment-manifest.ps1',
 ];
 const REQUIRED_DOCS = ['control-plane.md', 'schema.md', 'test-controller.md'];
+const REQUIRED_SYSTEM_TEST_SCRIPTS = [
+  'system-test.ps1',
+  'run-resolved-environment.ps1',
+  'test-runtime-contract.ps1',
+  'collect-failure-evidence.ps1',
+  'harness-certification.ps1',
+];
 const LEASE_MARKERS = [
   'REVIEW_REQUEST',
   'REVIEW_RESULT',
@@ -216,6 +226,11 @@ function validateSharedScripts() {
     const p = path.join(FLOW_DOCS_DIR, name);
     if (!fs.existsSync(p)) error(`缺少 flow/docs/${name}`);
     else ok(`flow/docs/${name}`);
+  }
+  for (const name of REQUIRED_SYSTEM_TEST_SCRIPTS) {
+    const p = path.join(TEMPLATES_DIR, 'system-test', 'scripts', name);
+    if (!fs.existsSync(p)) error(`缺少 system-test 脚本 ${name}`);
+    else ok(`flow/templates/system-test/scripts/${name}`);
   }
 
   const cfg = path.join(TEMPLATES_DIR, 'config.yaml.tmpl');

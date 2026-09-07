@@ -24,9 +24,11 @@ system-test change 的 manifest 读取。缺失、与用户授权不一致或由
 
 ## 检查
 
-1. `design`：先独立运行 `flow-codex-core/assets/scripts/validate-test-artifacts.ps1 -Mode design
-   -CanonicalRevision <test revision>`，再运行
-   `validate-test-cases.ps1 -Mode design -CanonicalRevision <test revision> -ManifestPath <manifest>
+1. `design`：从 controller `revisions.testBaseline` 读取稳定的 `<test baseline revision>`；当前设计提交由
+   `revisions.designRevision`/`revisions.test` 单独锁定，不能拿它替换 sidecar 基线。先独立运行
+   `flow-codex-core/assets/scripts/validate-test-artifacts.ps1 -Mode design
+   -CanonicalRevision <test baseline revision>`，再运行
+   `validate-test-cases.ps1 -Mode design -CanonicalRevision <test baseline revision> -ManifestPath <manifest>
    -DerivedContractPath <test-cases.generated.json> -TestPlanPath <test-plan>`；guard ERROR 必须列为 ERROR，绝不自动修复。确认
    `test-cases.yaml` 是唯一可执行场景来源，test-plan 没有第二份计数/映射，稳定 ID 无重复/缺失，manifest 计数、
    integration Y/N、report class、filter、evidence、failureObservability 与 source revision/hash 一致；删除 required
@@ -37,10 +39,11 @@ system-test change 的 manifest 读取。缺失、与用户授权不一致或由
    `[TEST_CONFIGURATION] BLOCKED` / `STOP_AWAIT_HUMAN_CONFIGURATION`。
 2. `implementation`：读取设计 PASS、进度文件、review 结果、测试代码、静态实现校验记录与测试仓 Git 状态。
    按 TI.1–TI.8 验证场景/断言落实、无必需 skip、外部桩一致、同一可恢复 revision 和 local-only waiver；运行
-   `validate-test-cases.ps1 -Mode implementation -CanonicalRevision <test revision> -ManifestPath <manifest>
+   `validate-test-cases.ps1 -Mode implementation -CanonicalRevision <test baseline revision from controller> -ManifestPath <manifest>
    -DerivedContractPath <test-cases.generated.json> -TestPlanPath <test-plan> -JavaSourceRoot <java root> -EvidenceRoot <evidence root>`
    校验每个 Java 测试方法以稳定 ID 绑定且无未知、重复或类/方法漂移，
-   并重新核验 sidecar/manifest/report/evidence 的 canonical revision 与 source hash；提供 EvidenceRoot 时普通与外部证据均须存在。
+   并重新核验 sidecar 的稳定 baseline revision、source hash、manifest/report/evidence 与 controller 当前实现 revision；
+   baseline 不随设计或实现提交变化，当前 revision 仍必须通过 controller 独立一致性校验。提供 EvidenceRoot 时普通与外部证据均须存在。
 3. `result`：只在 controller `next=VERIFY_RESULT`（即已记录 runner PASS）时读取 implementation PASS、runner 原始报告、
    evidence、根 `集成测试.md`、manifest 与业务/测试 revision，按 TR.1–TR.8 验证计数、必需 suite、cleanup、SQL evidence
    与结果记录一致。runner FAIL 的 evidence index、failure report、原始报告与归因完整性必须在 `record-run` 前检查；记录后

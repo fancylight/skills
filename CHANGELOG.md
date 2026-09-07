@@ -10,6 +10,23 @@
 
 ### Added
 
+- **v2 standalone 场景选择与本地配置统一**：新增 canonical `-ScenarioIds` 精确过滤和本次 JUnit 报告校验，拒绝空选集、未知 ID、零匹配、越界或 skipped；部分结果 `fullSuite=false`，controller 拒绝将其登记全量 PASS。Git 忽略的 human 本地配置允许已有凭据，完整文件 SHA256 检测变化；日志脱敏后入独立 runs 证据目录。运行时增加 prepare/cleanup 契约、显式身份复用、按 SUT 关联配置证据、120 秒启动及 600 秒 suite 上限、PID/启动时间校验后的进程树清理。共享 helper 纳入 harness certification。
+
+- **集成测试环境 v2 P3 隔离生命周期引擎**：新增 `run-resolved-environment.ps1`，消费锁定 fingerprint 的 resolved manifest，验证 provider target 身份和 SUT 配置消费证据，区分 managed 创建与健康实例复用，只清理本次创建的进程，并按 `CONFIG_INFRA` / `SUT_BUSINESS` 输出结构化结果；伪 provider/SUT/suite 自测覆盖正常、失败归因、复用所有权与敏感值脱敏。现有 v1 `system-test.ps1` 尚未切换。
+- **集成测试环境 v2 P4 接线与迁移**：`system-test.ps1` 现按 manifest schema 保留 v1 或分派 v2，v2 强制 harness certification、controller fingerprint、resolved environment file，并输出结构化 evidence；运行所有权持久化 PID + start time，支持中断后的安全 cleanup。新增只写新文件的显式 migration-spec 迁移器，拒绝猜测 provider/SUT/evidence/runner 契约。
+- **GLM P5 结构 shadow 与 Spring Config git backend**：provider service repo 与 configuration content repo 现分别锁定 revision；支持 git backend 的 `<configRoot>/<application>-<profile>.yml` target。真实 GLM committed snapshot 的配置敏感项被安全门禁阻断，临时引用化 clone resolver PASS。secret 检查补齐 `appSecret`、`secret-key` 与 CRLF 行尾回归；未启动真实服务或业务测试。
+
+- **集成测试环境 v2 P2 preflight**：新增 `flow/scripts/validate-test-environment.ps1`，在
+  `VERIFY_ENVIRONMENT` 阶段只读校验 controller/fingerprint、输入与 Git revision 漂移、配置 target、环境引用、managed
+  executable/start script/端口，并执行 external TCP/HTTP probe；不启动 managed 服务。结构化 PASS 已通过隔离测试由现有
+  controller 接受并推进 `TEST_ENVIRONMENT_VERIFIED`，BLOCKED 覆盖依赖不可用、端口占用、引用缺失和漂移场景。
+
+- **集成测试环境 v2 P1 resolver**：新增 repo 级 environment descriptor 示例与
+  `flow/scripts/resolve-test-environment.ps1`。resolver 在隔离 Git 仓中校验 provider/SUT revision、配置 target、
+  managed/external 生命周期、结构化 probe、资源依赖环、路径越界和敏感值，生成确定性的
+  `resolved-manifest.json` 与 `configurationFingerprint`；P1 尚未切换现有 runner。新增对应隔离 self-test，
+  并接入 Codex/Claude 安装与仓库校验。
+
 - **Claude 完整能力对齐 Codex（Phase 1–5）**：
   - **控制面 lease-v1**：`/flow:apply|assign|report|status` + 新增 `/flow:review`；`child-agent-prompt.md` 按 `protocol_version` 分支；缺省仍 legacy，新建 change design 写 `lease-v1`
   - **多模式 verify**：`format|domain|design|full|release`（+ 过渡 `legacy-api`）；design 强制 domain → DOMAIN_VERIFIED → 方案；assign/archive 门禁对齐

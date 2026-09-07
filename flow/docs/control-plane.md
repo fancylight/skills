@@ -151,8 +151,8 @@ test-receive → test-apply → test-report
 | `ISSUE_IMPLEMENTATION_LEASE` | 签发 test-implementer lease |
 | `AWAIT_IMPLEMENTATION_RESULT` | 仅持租约 agent receive/apply/report |
 | `VERIFY_IMPLEMENTATION` | implementation verifier PASS |
-| `VERIFY_ENVIRONMENT` | 已认证 harness 最小环境验证 |
-| `RUN_ONCE` / `AWAIT_RUN_RESULT` | start-run → runner → record-run |
+| `VERIFY_ENVIRONMENT` | v2 resolved manifest 只读 preflight；v1 已认证 harness 最小环境验证 |
+| `RUN_ONCE` / `AWAIT_RUN_RESULT` | start-run → runner → record-run；v2 runner 绑定 active run fingerprint |
 | `VERIFY_RESULT` | result verifier PASS |
 | `COMPLETE` / `BLOCKED` | 完成或停止 |
 

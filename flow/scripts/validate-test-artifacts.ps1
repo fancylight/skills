@@ -137,9 +137,23 @@ if (-not (Test-Path -LiteralPath $changeDir -PathType Container)) {
                 } elseif ($manifestValue.testAuthorization.grantedBy -ne 'user') {
                     Add-Error "Manifest testAuthorization.grantedBy must be 'user': $manifest"
                 }
-                @('configurationSource', 'requiredEndpoints', 'connectivityProbe', 'ownership') | ForEach-Object {
-                    if ($null -eq $manifestValue.$_ -or [string]::IsNullOrWhiteSpace([string]$manifestValue.$_)) {
+                $configurationFields = if ([int]$manifestValue.schemaVersion -eq 2) { @('environment','configuration','suts','harness','runner') } else { @('configurationSource', 'requiredEndpoints', 'connectivityProbe', 'ownership') }
+                $configurationFields | ForEach-Object {
+                    $fieldValue = $manifestValue.$_
+                    if ($null -eq $fieldValue -or ($fieldValue -is [string] -and [string]::IsNullOrWhiteSpace($fieldValue)) -or ($fieldValue -is [array] -and $fieldValue.Count -eq 0)) {
                         Add-Error "Manifest must declare ${_}: $manifest"
+                    }
+                }
+                if ([int]$manifestValue.schemaVersion -eq 2) {
+                    if ([string]$manifestValue.configuration.ownership -notin @('human','harness') -or @($manifestValue.configuration.targets).Count -eq 0) { Add-Error "v2 configuration requires ownership and targets: $manifest" }
+                    foreach ($legacy in @('configurationSource','requiredEndpoints','connectivityProbe','ownership')) {
+                        if ($manifestValue.PSObject.Properties.Name -contains $legacy) { Add-Error "v2 manifest contains legacy configuration field ${legacy}: $manifest" }
+                    }
+                    $resolvedFile = Join-Path $changeDir 'resolved-manifest.json'
+                    if (-not (Test-Path -LiteralPath $resolvedFile -PathType Leaf)) { Add-Error "v2 design requires a resolved manifest: $resolvedFile" }
+                    else {
+                        $resolved = Get-Content -LiteralPath $resolvedFile -Raw -Encoding utf8 | ConvertFrom-Json
+                        if ([int]$resolved.sourceManifestSchemaVersion -ne 2 -or [string]$resolved.inputs.manifest.sha256 -ne (Get-FileHash -LiteralPath $manifest -Algorithm SHA256).Hash.ToLowerInvariant()) { Add-Error "v2 resolved manifest does not bind the current design manifest: $resolvedFile" }
                     }
                 }
                 if ($null -eq $manifestValue.testCasesContract -or [string]::IsNullOrWhiteSpace([string]$manifestValue.testCasesContract.path)) {

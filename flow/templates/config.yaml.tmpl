@@ -38,3 +38,7 @@ child_agent:
 # 详见 flow/docs/control-plane.md 与 docs/claude-lease-migration.md
 flow:
   protocol_version: "legacy"
+  # 测试环境 v2 分阶段启用；完成 system-test service 与 environment descriptor 注册后取消注释。
+  # test_platform:
+  #   system_test_service: "<type-system-test-service>"
+  #   default_environment: "local"

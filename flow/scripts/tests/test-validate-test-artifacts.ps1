@@ -53,6 +53,18 @@ try {
     & powershell.exe -NoProfile -File $guard -SystemTestRepo $work -ChangeName valid -Mode design -CanonicalRevision $revision
     if ($LASTEXITCODE -ne 0) { throw 'Expected valid fixture to pass artifact guard.' }
 
+    New-Fixture 'valid-v2' $false
+    $v2ManifestPath = Join-Path $work 'changes/valid-v2/manifest.yaml'
+    $v2 = [ordered]@{schemaVersion=2;stage='design';testAuthorization=@{ceiling='design';grantedBy='user'};testCasesContract=@{path='test-cases.generated.json'};environment=@{id='local';descriptor='config/environments/local.json'};configuration=@{ownership='human';targets=@(@{application='sample';profile='dev'})};suts=@(@{id='sample'});harness=@{revision='fixture'};runner=@{command=@('mvn','test')}}
+    $v2 | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $v2ManifestPath -Encoding utf8
+    $v2ResolvedPath = Join-Path $work 'changes/valid-v2/resolved-manifest.json'
+    @{sourceManifestSchemaVersion=2;inputs=@{manifest=@{sha256=(Get-FileHash -LiteralPath $v2ManifestPath).Hash.ToLowerInvariant()}}} | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $v2ResolvedPath -Encoding utf8
+    & powershell.exe -NoProfile -File $guard -SystemTestRepo $work -ChangeName valid-v2 -Mode design -CanonicalRevision $revision
+    if ($LASTEXITCODE -ne 0) { throw 'Expected v2 fixture without legacy configuration fields to pass.' }
+    @{sourceManifestSchemaVersion=2;inputs=@{manifest=@{sha256='drifted'}}} | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $v2ResolvedPath -Encoding utf8
+    & powershell.exe -NoProfile -File $guard -SystemTestRepo $work -ChangeName valid-v2 -Mode design -CanonicalRevision $revision
+    if ($LASTEXITCODE -eq 0) { throw 'Expected resolved v2 input drift to fail.' }
+
     $validJava = Join-Path $work 'backend-tests\src\test\java\com\example\valid'
     New-Item -ItemType Directory -Force -Path $validJava | Out-Null
     Set-Content -LiteralPath (Join-Path $validJava 'ExampleIT.java') -Encoding utf8 -NoNewline -Value @'

@@ -5,7 +5,9 @@
 
 ## 配置与范围
 
-- 声明 `configurationSource`、`requiredEndpoints`、`connectivityProbe`、`ownership`。
+- 新配置中心环境使用 v2 environment/descriptor、configuration targets/ownership、SUT、runner 与 harness；先生成 resolved manifest。只有 v1 声明 `configurationSource`、`requiredEndpoints`、`connectivityProbe`、`ownership`，不得混用。
+- native 模式可在启动契约传入 profile/search locations；human 且 Git 忽略的本地配置允许已有凭据，产物只保存来源和 hash。夹具从同一配置中心取得连接信息。
+- 外部中间件生命周期为 external。WireMock 契约由 runner.prepare 注册并验证，失败阻断，cleanup 不全局清空。
 - 探针只允许对用户确认的来源执行一次最小只读检查；失败输出 `TEST_CONFIGURATION BLOCKED` 并停止。
 - `test-plan.md` 必须记录从根 config 动态解析的 system-test path。
 - fixture 仅使用 IDS 预留范围，seed/cleanup 幂等且可回收。
@@ -14,7 +16,8 @@
 
 - `test-cases.yaml` 使用严格结构化 schema；manifest 只以 `testCasesContract.path` 指向
   `test-cases.generated.json`，不得在根重复场景 count、filter、report、integration、evidence 或 failureObservability。
-- sidecar 必须绑定 canonical test revision/source hash，并包含 integration Y/N、required count、expected method count、
+- sidecar 必须绑定 controller 的初始 `testBaseline` revision 与 source hash；实际设计/实现提交由 controller revision 单独锁定，
+  不得要求 sidecar 绑定包含其自身的提交。sidecar 还必须包含 integration Y/N、required count、expected method count、
   runner filter、report classes、evidence index 骨架和 failure observability 全映射。
 - `requiredEnvBySuite`、`wireMockContracts`、`fixtureSchema` 与 `runner.command`（token array）仍由 manifest 人工区维护。
 - 迁移旧 manifest 时保留上述人工配置与授权，只新增 sidecar pointer，并移除旧 count/filter/report/integration/

@@ -3,6 +3,7 @@ $validator = Join-Path $PSScriptRoot '..\validate-test-cases.ps1'
 $root = Join-Path ([IO.Path]::GetTempPath()) ('flow-test-cases-' + [guid]::NewGuid().ToString('N'))
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 $revision = '1111111111111111111111111111111111111111'
+$designRevision = '3333333333333333333333333333333333333333'
 $previousRevision = '2222222222222222222222222222222222222222'
 $startMarker = '<!-- FLOW_TEST_CASES_GENERATED:START -->'
 $endMarker = '<!-- FLOW_TEST_CASES_GENERATED:END -->'
@@ -139,11 +140,14 @@ try {
     Assert-True ([Convert]::ToBase64String([IO.File]::ReadAllBytes($plan)) -eq [Convert]::ToBase64String($planFirst)) 'generated plan must be byte deterministic'
     $validate = @{} + $base; $validate.EvidenceRoot = $evidence
     Assert-Pass (Invoke-Validator $validate) 'canonical source/manifest/plan/evidence validation'
+    $designRevisionValidation = @{} + $validate
+    $designRevisionValidation.CanonicalRevision = $designRevision
+    Assert-Fail (Invoke-Validator $designRevisionValidation) 'sidecar must remain bound to the immutable pre-design baseline'
 
     $negativeSources = [ordered]@{
         'malformed YAML' = (Get-SourceText).Replace('    action:', '    action')
         'unknown field' = (Get-SourceText).Replace('    acceptance: AC-1', "    acceptance: AC-1`n    mystery: value")
-        'wrong nesting' = (Get-SourceText).Replace("    setup:`n      fixtures: [project]", '    setup: fixture-ready')
+        'wrong nesting' = [regex]::Replace((Get-SourceText), '    setup:\r?\n      fixtures: \[project\]', '    setup: fixture-ready')
         'field type' = (Get-SourceText).Replace('    required: true', '    required: "true"')
         'invalid integration' = (Get-SourceText).Replace('    integration: Y', '    integration: MAYBE')
         'missing external evidence' = (Get-SourceText).Replace('    externalEvidence: [external/contract.json]', '    externalEvidence: []')

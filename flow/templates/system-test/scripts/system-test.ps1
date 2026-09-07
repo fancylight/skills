@@ -16,11 +16,16 @@ param(
   [string]$HarnessSelfTestScenario = '',
   [string]$HarnessSelfTestToken = '',
   [string]$StructuredResultPath = '',
+  [string]$ConfigurationFingerprint = '',
+  [string[]]$ScenarioIds,
   [string]$ManagedJavaHome = '',
   [switch]$HarnessSelfTest
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'test-runtime-contract.ps1')
+$hasScenarioSelection = $PSBoundParameters.ContainsKey('ScenarioIds')
+if ($hasScenarioSelection -and ($ExecutionMode -ne 'standalone' -or @($ScenarioIds).Count -eq 0)) { throw '[TEST_HARNESS] scenario selection requires standalone mode and a nonempty selection' }
 $TestRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 if ([string]::IsNullOrWhiteSpace($OrchRoot)) {
   $OrchRoot = [Environment]::GetEnvironmentVariable('FLOW_ORCH_ROOT')
@@ -573,7 +578,146 @@ function Invoke-Down {
   }
 }
 
+function Invoke-V2Command($Manifest) {
+  $selection = $null
+  if ($hasScenarioSelection) {
+    if ($Command -ne 'run') { throw '[TEST_HARNESS] ScenarioIds is valid only for run' }
+    $selection = Get-TestScenarioSelection (Join-Path $TestRoot "changes\$Change") ([string]$Manifest.testCasesContract.path) $ScenarioIds
+  }
+  if ($HarnessSelfTest) { throw '[TEST_HARNESS] v2 manifest is not valid for the legacy harness self-test adapter' }
+  $resolvedPath = Join-Path $TestRoot "changes\$Change\resolved-manifest.json"
+  if (-not (Test-Path -LiteralPath $resolvedPath -PathType Leaf)) { throw '[TEST_HARNESS] v2 resolved manifest is missing' }
+  try { $resolved = Get-Content -LiteralPath $resolvedPath -Raw -Encoding utf8 | ConvertFrom-Json }
+  catch { throw '[TEST_HARNESS] v2 resolved manifest is invalid' }
+  if ([int]$resolved.sourceManifestSchemaVersion -ne 2 -or [string]::IsNullOrWhiteSpace([string]$resolved.configurationFingerprint)) {
+    throw '[TEST_HARNESS] v2 resolved manifest contract is invalid'
+  }
+  $expectedFingerprint = if ([string]::IsNullOrWhiteSpace($ConfigurationFingerprint)) { [string]$resolved.configurationFingerprint } else { $ConfigurationFingerprint }
+  if ($ExecutionMode -eq 'orchestrated' -and [string]::IsNullOrWhiteSpace($ConfigurationFingerprint)) {
+    throw '[TEST_HARNESS] orchestrated v2 run requires the controller configuration fingerprint'
+  }
+  if ($expectedFingerprint -ne [string]$resolved.configurationFingerprint) { throw '[TEST_HARNESS] v2 configuration fingerprint differs from the authorized run' }
+  if ([IO.Path]::GetFullPath((Join-Path $TestRoot $EnvFile)) -ne [IO.Path]::GetFullPath((Join-Path $TestRoot ([string]$resolved.configuration.environmentFile)))) {
+    throw '[TEST_CONFIGURATION] BLOCKED; requested environment file differs from resolved manifest'
+  }
+
+  $runtimeRunner = Join-Path $PSScriptRoot 'run-resolved-environment.ps1'
+  if (-not (Test-Path -LiteralPath $runtimeRunner -PathType Leaf)) { throw '[TEST_HARNESS] v2 lifecycle runner is missing' }
+  $runId = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmss') + '-' + [guid]::NewGuid().ToString('N').Substring(0,8)
+  $evidenceCurrent = Join-Path $TestRoot "changes\$Change\evidence\runs\$runId"
+  [void](New-Item -ItemType Directory -Path $evidenceCurrent -Force)
+  $runtimeResult = Join-Path $evidenceCurrent 'runtime-result.json'
+  $runtimeState = Join-Path $RuntimeDir 'v2-owned-processes.json'
+
+  if ($Command -in @('down','cleanup')) {
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $runtimeRunner -Command cleanup -OutputPath $runtimeResult -StatePath $runtimeState
+    if ($LASTEXITCODE -ne 0) { throw '[CONFIG_INFRA] v2 cleanup could not stop all owned processes' }
+    Write-Host '[SYSTEM_TEST_CLEANUP] PASS'
+    return
+  }
+  if ($Command -eq 'up') { throw '[TEST_HARNESS] v2 lifecycle is atomic; use run instead of up' }
+  if ($Command -eq 'doctor') {
+    Write-Host '[TEST_CONFIGURATION] PASS'
+    Write-Host "configuration_fingerprint: $expectedFingerprint"
+    Write-Host 'next: use the canonical environment verifier before orchestrated run'
+    return
+  }
+
+  Assert-HarnessCertification
+  $runEnvironment = @{
+    FLOW_RUN_ID=$runId; FLOW_TEST_EVIDENCE_DIR=$evidenceCurrent; FLOW_RESOLVED_MANIFEST=$resolvedPath
+    FLOW_TEST_REPORT_DIR=(Join-Path $evidenceCurrent 'junit'); FLOW_TEST_FILTER=''; FLOW_SCENARIO_IDS=''
+  }
+  if ($null -ne $selection) {
+    $runEnvironment.FLOW_TEST_FILTER = $selection.filter
+    $runEnvironment.FLOW_SCENARIO_IDS = ($selection.scenarioIds -join ',')
+    [IO.File]::WriteAllText((Join-Path $evidenceCurrent 'selection.json'), ($selection | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new($false))
+    if ((@($resolved.runner.command) -join ' ') -notmatch '\$\{FLOW_TEST_FILTER\}') { throw '[TEST_HARNESS] selected runner must consume the canonical FLOW_TEST_FILTER token' }
+  }
+  $savedEnvironment = @{}
+  try {
+    foreach ($key in $runEnvironment.Keys) { $savedEnvironment[$key] = [Environment]::GetEnvironmentVariable($key); [Environment]::SetEnvironmentVariable($key, $runEnvironment[$key]) }
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $runtimeRunner -Command run -ResolvedManifestPath $resolvedPath -ExpectedFingerprint $expectedFingerprint -OutputPath $runtimeResult -StatePath $runtimeState
+    $runtimeExit = $LASTEXITCODE
+  } finally { foreach ($key in $savedEnvironment.Keys) { [Environment]::SetEnvironmentVariable($key, $savedEnvironment[$key]) } }
+  if (-not (Test-Path -LiteralPath $runtimeResult -PathType Leaf)) { throw '[TEST_HARNESS] v2 lifecycle runner did not produce a structured result' }
+  try { $runtimeReport = Get-Content -LiteralPath $runtimeResult -Raw -Encoding utf8 | ConvertFrom-Json }
+  catch { throw '[TEST_HARNESS] v2 lifecycle result is invalid' }
+  $status = if ($runtimeExit -eq 0 -and [string]$runtimeReport.result -eq 'PASS') { 'PASS' } elseif ([string]$runtimeReport.failureCategory -eq 'CONFIG_INFRA') { 'BLOCKED' } else { 'FAIL' }
+  $passed = if ($status -eq 'PASS') { 1 } else { 0 }
+  $failed = if ($status -eq 'PASS') { 0 } else { 1 }
+  $skipped = 0
+  $reportAvailability = 'RUNNER_RESULT'
+  if ($null -ne $selection) {
+    $passed = 0; $failed = 0
+    $hasReports = Test-Path -LiteralPath $runEnvironment.FLOW_TEST_REPORT_DIR -PathType Container
+    $reportAvailability = if (@($runtimeReport.steps | Where-Object { $_.stepId -eq 'cleanup-test-suite' }).Count -eq 0) { 'NOT_EXECUTED' } else { 'UNAVAILABLE' }
+    try {
+      if ($hasReports -or $status -eq 'PASS') {
+        $counts = Get-SelectedTestResults $selection $runEnvironment.FLOW_TEST_REPORT_DIR -AllowNonPassing
+        $passed = $counts.passed; $failed = $counts.failed; $skipped = $counts.skipped
+        $reportAvailability = 'VERIFIED'
+        if ($failed -gt 0 -or $skipped -gt 0) {
+          $status = 'FAIL'
+          if ([string]$runtimeReport.failureCategory -eq 'NONE') { $runtimeReport.failureCategory = if ($skipped -gt 0) { 'TEST_HARNESS' } else { 'SUT_BUSINESS' } }
+        }
+      }
+    } catch {
+      $status = 'FAIL'; $passed = 0; $failed = 0; $reportAvailability = 'INVALID'
+      $runtimeReport.failureCategory = 'TEST_HARNESS'
+      [IO.File]::WriteAllText((Join-Path $evidenceCurrent 'selection-failure.txt'), $_.Exception.Message, [Text.UTF8Encoding]::new($false))
+    }
+  }
+  $indexPath = Join-Path $evidenceCurrent 'index.md'
+  @"
+# System Test Evidence Index
+
+- schema: v2
+- status: $status
+- change_name: $Change
+- execution_mode: $ExecutionMode
+- configuration_fingerprint: $expectedFingerprint
+- classification: $($runtimeReport.failureCategory)
+- runtime_result: runtime-result.json
+- passed: $passed
+- failed: $failed
+- skipped: $skipped
+- report_availability: $reportAvailability
+- flow_completed: false
+- fullSuite: $($null -eq $selection)
+- scenarioIds: $($ScenarioIds -join ',')
+"@ | Set-Content -LiteralPath $indexPath -Encoding utf8
+  if (-not [string]::IsNullOrWhiteSpace($StructuredResultPath)) {
+    $structuredParent = Split-Path -Parent ([IO.Path]::GetFullPath($StructuredResultPath))
+    if (-not (Test-Path -LiteralPath $structuredParent -PathType Container)) { [void](New-Item -ItemType Directory -Path $structuredParent -Force) }
+    $structured = [ordered]@{
+      schemaVersion=1; status=$status; exitCode=$(if ($status -eq 'PASS') { 0 } else { 1 }); phase=$(if ($status -eq 'PASS') { 'RUNNER_COMPLETED' } else { 'RUNNER_FAILED' })
+      classification=[string]$runtimeReport.failureCategory; rawEvidencePath=$indexPath; configurationFingerprint=$expectedFingerprint
+      fullSuite=($null -eq $selection); scenarioIds=@($ScenarioIds); flow_completed=$false
+      cleanup=[ordered]@{ attempted=$true; succeeded=(-not (Test-Path -LiteralPath $runtimeState)); retainedState=(Test-Path -LiteralPath $runtimeState); command=".\scripts\system-test.ps1 cleanup -Change $Change" }
+      counts=[ordered]@{ passed=$passed; failed=$failed; skipped=$skipped; expectedMethodCount=$(if ($selection) { $selection.expectedMethodCount } else { $null }); observedTests=($passed + $failed + $skipped); reportAvailability=$reportAvailability; raw=$runtimeResult }
+    }
+    [IO.File]::WriteAllText([IO.Path]::GetFullPath($StructuredResultPath), ($structured | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new($false))
+  }
+  Write-Host "[SYSTEM_TEST_RESULT] $status"
+  Write-Host "change_name: $Change"
+  Write-Host "execution_mode: $ExecutionMode"
+  Write-Host 'flow_completed: false'
+  Write-Host 'suites: resolved-manifest-runner'
+  Write-Host "passed: $passed"
+  Write-Host "failed: $failed"
+  Write-Host "skipped: $skipped"
+  Write-Host "evidence: $indexPath"
+  Write-Host "classification: $($runtimeReport.failureCategory)"
+  if ($status -ne 'PASS') { throw "[$($runtimeReport.failureCategory)] v2 system-test run did not pass" }
+}
+
 $manifest = Get-Manifest
+if ($hasScenarioSelection -and [int]$manifest.schemaVersion -ne 2) { throw '[TEST_HARNESS] ScenarioIds requires a v2 canonical manifest' }
+if ([int]$manifest.schemaVersion -eq 2) {
+  Invoke-V2Command $manifest
+  exit 0
+}
 if (-not $manifest.configuration -or [string]::IsNullOrWhiteSpace([string]$manifest.configuration.source)) {
   throw '[TEST_CONFIGURATION] BLOCKED; STOP_AWAIT_HUMAN_CONFIGURATION; manifest configuration source is missing'
 }

@@ -24,6 +24,7 @@ function New-GitFixture([string]$Path, [string]$ChangeName) {
     Invoke-Git $Path @('init', '--quiet') | Out-Null
     Invoke-Git $Path @('config', 'user.email', 'controller-tests@example.invalid') | Out-Null
     Invoke-Git $Path @('config', 'user.name', 'controller-tests') | Out-Null
+    Invoke-Git $Path @('config', 'core.autocrlf', 'false') | Out-Null
     Set-Content -LiteralPath (Join-Path $Path 'README.md') -Value 'baseline' -Encoding utf8
     Invoke-Git $Path @('add', '.') | Out-Null
     Invoke-Git $Path @('commit', '--quiet', '-m', 'baseline') | Out-Null
@@ -99,10 +100,19 @@ try {
     Assert-Controller { & $controller issue-lease -StatePath $state -TestRevision $fixture.design -SutRevision $sutRevision -HarnessRevision $harness -ConfigurationFingerprint $config -Role test-implementer -AgentId agent-a }
     $lease = (Get-Content $state -Raw | ConvertFrom-Json).leases[0]
     if ($lease.implementationBaseRevision -ne $fixture.design) { throw 'lease did not record implementation base revision' }
+    if ($lease.agentId -ne 'agent-a' -or -not $lease.active -or [string]::IsNullOrWhiteSpace([string]$lease.leaseId)) {
+        throw "lease identity was not persisted: $($lease | ConvertTo-Json -Depth 6 -Compress)"
+    }
     Assert-Controller { & $controller validate-lease -StatePath $state -LeaseId $lease.leaseId -AgentId agent-a -Role test-implementer -Capabilities write-test-artifact -TargetPath (Join-Path $system 'changes/sample-change/test.java') }
     Assert-Controller { & $controller validate-lease -StatePath $state -LeaseId $lease.leaseId -AgentId agent-a -Role test-implementer -Capabilities start-service -TargetPath (Join-Path $system 'changes/sample-change/test.java') } $false 'ERROR_CAPABILITY_FORBIDDEN' 'forbidden-capability'
     Assert-Controller { & $controller validate-lease -StatePath $state -LeaseId $lease.leaseId -AgentId agent-a -Capabilities write-test-artifact -TargetPath (Join-Path $system 'backend-tests/src/test/foo/sample-change/Test.java') }
     Assert-Controller { & $controller validate-lease -StatePath $state -LeaseId $lease.leaseId -AgentId agent-a -Capabilities write-test-artifact -TargetPath (Join-Path $system 'backend-tests/src/test/sample-change/Test.java') }
+    Assert-Controller { & $controller validate-lease -StatePath $state -LeaseId $lease.leaseId -AgentId agent-a -Capabilities write-test-artifact -TargetPath (Join-Path $system 'backend-tests/pom.xml') }
+    Assert-Controller { & $controller validate-lease -StatePath $state -LeaseId $lease.leaseId -AgentId agent-a -Capabilities write-test-artifact -TargetPath (Join-Path $system 'test-support/src/main/java/sample-change/MongoSupport.java') }
+    Assert-Controller { & $controller validate-lease -StatePath $state -LeaseId $lease.leaseId -AgentId agent-a -Capabilities write-test-artifact -TargetPath (Join-Path $system 'config/local/sample-change/application.yml') }
+    Assert-Controller { & $controller validate-lease -StatePath $state -LeaseId $lease.leaseId -AgentId agent-a -Capabilities write-test-artifact -TargetPath (Join-Path $system 'infra/wiremock/sample-change/mapping.json') }
+    Assert-Controller { & $controller validate-lease -StatePath $state -LeaseId $lease.leaseId -AgentId agent-a -Capabilities write-test-artifact -TargetPath (Join-Path $system 'backend-tests/src/test/java/other-change/Test.java') } $false 'ERROR_SCOPE' 'other-change-test-path'
+    Assert-Controller { & $controller validate-lease -StatePath $state -LeaseId $lease.leaseId -AgentId agent-a -Capabilities write-test-artifact -TargetPath (Join-Path $system 'README.md') } $false 'ERROR_SCOPE' 'repository-root-file'
     $implementationRevision = Commit-Implementation $system 'sample-change'
     $diff = Get-DiffFixture $system $fixture.design $implementationRevision
     Write-VerifierReport $implementationReport 'implementation' 'verifier-a' $implementationRevision $sutRevision $harness $config 'implementation verification passed' $fixture.design
@@ -129,6 +139,9 @@ try {
     Write-VerifierReport $environmentReport 'environment' 'verifier-a' $implementationRevision $sutRevision $harness $config
     Assert-Controller { & $controller record-verifier -StatePath $state -VerifyMode environment -TestRevision $implementationRevision -SutRevision $sutRevision -HarnessRevision $harness -ConfigurationFingerprint $config -ReportPath $environmentReport -VerifierId verifier-a }
     Assert-Controller { & $controller start-run -StatePath $state -TestRevision $implementationRevision -SutRevision $sutRevision -HarnessRevision $harness -ConfigurationFingerprint $config }
+    $partialEvidence = Join-Path $evidence 'partial-index.md'
+    Set-Content -LiteralPath $partialEvidence -Value 'fullSuite: false' -Encoding utf8
+    Assert-Controller { & $controller record-run -StatePath $state -RunResult pass -EvidencePath $partialEvidence -TestRevision $implementationRevision -SutRevision $sutRevision -HarnessRevision $harness -ConfigurationFingerprint $config } $false 'ERROR_PARTIAL_RUN' 'partial-run-cannot-complete-flow'
     Assert-Controller { & $controller record-run -StatePath $state -RunResult pass -EvidencePath $evidence -TestRevision $implementationRevision -SutRevision $sutRevision -HarnessRevision $harness -ConfigurationFingerprint $config }
     Write-VerifierReport $resultReport 'result' 'verifier-a' $implementationRevision $sutRevision $harness $config
     Assert-Controller { & $controller record-verifier -StatePath $state -VerifyMode result -TestRevision $implementationRevision -SutRevision $sutRevision -HarnessRevision $harness -ConfigurationFingerprint $config -ReportPath $resultReport -VerifierId verifier-a }

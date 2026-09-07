@@ -106,6 +106,20 @@ function Test-PathWithin([string]$Child, [string]$Parent) {
     $childPath = Get-CanonicalPath $Child; $parentPath = Get-CanonicalPath $Parent
     return $childPath.Equals($parentPath, [StringComparison]::OrdinalIgnoreCase) -or $childPath.StartsWith($parentPath + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)
 }
+function Get-ImplementationAuthorizedPaths([string]$CurrentChangeName) {
+    return @(
+        "changes/$CurrentChangeName/**",
+        'backend-tests/pom.xml',
+        "backend-tests/src/test/$CurrentChangeName/**",
+        "backend-tests/src/test/**/$CurrentChangeName/**",
+        "test-support/src/main/**/$CurrentChangeName/**",
+        "config/**/$CurrentChangeName/**",
+        "infra/**/$CurrentChangeName/**"
+    )
+}
+function Get-EffectiveLeaseAuthorizedPaths($State, $Lease) {
+    return @(@($Lease.authorizedPaths) + @(Get-ImplementationAuthorizedPaths ([string]$State.changeName)) | Sort-Object -Unique)
+}
 function Get-StateIntegrityHash($State) {
     $previous = $State.integrityHash; $State.integrityHash = ''
     try {
@@ -267,7 +281,7 @@ switch ($Command) {
         if (Test-SensitiveContent $AgentId) { Stop-Controller 'ERROR_SECRET_INPUT' 'agent id contains sensitive material' }
         if (@($state.leases | Where-Object { $_.active -and $_.role -eq $Role }).Count -gt 0) { Stop-Controller 'ERROR_LEASE_ACTIVE' 'an implementation lease is already active' }
         $implementationBaseRevision = Get-GitHead $state.repositories.systemTest
-        $lease = [pscustomobject]@{ leaseId = [guid]::NewGuid().ToString(); role = $Role; agentId = $AgentId; phase = 'TEST_IMPLEMENTING'; repository = $state.repositories.systemTest; implementationBaseRevision = $implementationBaseRevision; authorizedPaths = @("changes/$($state.changeName)/**", "backend-tests/src/test/$($state.changeName)/**", "backend-tests/src/test/**/$($state.changeName)/**"); allowedCapabilities = @('read','write-test-artifact','test-compile'); forbiddenCapabilities = @('start-service','run-integration','modify-business'); expiresAt = [DateTime]::UtcNow.AddMinutes($LeaseMinutes).ToString('o'); active = $true }
+        $lease = [pscustomobject]@{ leaseId = [guid]::NewGuid().ToString(); role = $Role; agentId = $AgentId; phase = 'TEST_IMPLEMENTING'; repository = $state.repositories.systemTest; implementationBaseRevision = $implementationBaseRevision; authorizedPaths = @(Get-ImplementationAuthorizedPaths ([string]$state.changeName)); allowedCapabilities = @('read','write-test-artifact','test-compile'); forbiddenCapabilities = @('start-service','run-integration','modify-business'); expiresAt = [DateTime]::UtcNow.AddMinutes($LeaseMinutes).ToString('o'); active = $true }
         $state.leases += $lease; Set-Phase $state 'TEST_IMPLEMENTING' 'issue implementation lease'; Write-State $state; Write-Output '[FLOW_CONTROLLER] PASS'; $lease | ConvertTo-Json -Depth 6; exit 0
     }
     'validate-lease' {
@@ -280,7 +294,8 @@ switch ($Command) {
         }
         if (-not (Test-PathWithin $TargetPath $lease[0].repository)) { Stop-Controller 'ERROR_CANONICAL_PATH' 'target path is outside the canonical repository' }
         $relative = (Get-CanonicalPath $TargetPath).Substring((Get-CanonicalPath $lease[0].repository).Length + 1).Replace('\','/')
-        if (-not (@($lease[0].authorizedPaths | Where-Object { $relative -like $_ }).Count -gt 0)) { Stop-Controller 'ERROR_SCOPE' 'target path is outside the lease allowlist' }
+        $effectiveAuthorizedPaths = @(Get-EffectiveLeaseAuthorizedPaths $state $lease[0])
+        if (-not (@($effectiveAuthorizedPaths | Where-Object { $relative -like $_ }).Count -gt 0)) { Stop-Controller 'ERROR_SCOPE' 'target path is outside the lease allowlist' }
         Write-Output '[FLOW_CONTROLLER] PASS'; Write-Output "lease_id: $LeaseId"; exit 0
     }
     'accept-result' {
@@ -304,8 +319,9 @@ switch ($Command) {
         $reportedFiles = @($scope.changedFiles | ForEach-Object { ([string]$_).Trim().Replace('\','/') } | Where-Object { $_ })
         $actualFiles = @($actualDiff.changedFiles)
         if ($reportedFiles.Count -ne $actualFiles.Count -or (@($reportedFiles | Sort-Object) -join "`n") -ne (@($actualFiles | Sort-Object) -join "`n")) { Stop-Controller 'ERROR_SCOPE_CHANGED_FILES' 'scope guard did not report the exact canonical Git changed-file set' }
+        $effectiveAuthorizedPaths = @(Get-EffectiveLeaseAuthorizedPaths $state $activeLease[0])
         foreach ($path in $actualFiles) {
-            if ($path -match '(^|/)\.\.(/|$)' -or -not (@($activeLease[0].authorizedPaths | Where-Object { $path -like $_ }).Count -gt 0)) { Stop-Controller 'ERROR_SCOPE' "actual changed file is outside the lease allowlist: $path" }
+            if ($path -match '(^|/)\.\.(/|$)' -or -not (@($effectiveAuthorizedPaths | Where-Object { $path -like $_ }).Count -gt 0)) { Stop-Controller 'ERROR_SCOPE' "actual changed file is outside the lease allowlist: $path" }
         }
         if ([string]$scope.diffHash -ne $actualDiff.diffHash) { Stop-Controller 'ERROR_SCOPE_DIFF_HASH' 'scope diffHash does not match controller-computed canonical Git diff' }
         $state.revisions.test = $proposed
@@ -371,6 +387,13 @@ switch ($Command) {
         if ([string]::IsNullOrWhiteSpace($TestRevision) -or [string]::IsNullOrWhiteSpace($SutRevision) -or [string]::IsNullOrWhiteSpace($HarnessRevision) -or [string]::IsNullOrWhiteSpace($ConfigurationFingerprint) -or $state.activeRun.testRevision -ne $TestRevision -or $state.activeRun.sutRevision -ne $SutRevision -or $state.activeRun.harnessRevision -ne $HarnessRevision -or $state.activeRun.configurationFingerprint -ne $ConfigurationFingerprint) { Stop-Controller 'ERROR_REVISION_DRIFT' 'runner result revisions or configuration differ from persisted run' }
         if (Test-SensitiveContent $EvidencePath) { Stop-Controller 'ERROR_SECRET_INPUT' 'evidence path contains sensitive material' }
         if ([string]::IsNullOrWhiteSpace($RunResult) -or -not (Test-Path -LiteralPath $EvidencePath)) { Stop-Controller 'ERROR_INPUT' 'run result and evidence path are required' }
+        if ($RunResult -eq 'pass') {
+            $evidenceIndex = if (Test-Path -LiteralPath $EvidencePath -PathType Container) { Join-Path $EvidencePath 'index.md' } else { $EvidencePath }
+            if (Test-Path -LiteralPath $evidenceIndex -PathType Leaf) {
+                $evidenceText = Get-Content -LiteralPath $evidenceIndex -Raw -Encoding utf8
+                if ($evidenceText -match '(?im)(?:"?fullSuite"?\s*:\s*false|execution_mode\s*:\s*standalone)') { Stop-Controller 'ERROR_PARTIAL_RUN' 'standalone or selected-scenario evidence cannot register a full Flow PASS' }
+            }
+        }
         if ($RunResult -eq 'pass') { Set-Phase $state 'TEST_EXECUTED_PASS' 'runner evidence pass' }
         else {
             $fingerprint = Get-Fingerprint $state

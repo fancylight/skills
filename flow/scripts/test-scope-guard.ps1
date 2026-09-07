@@ -17,7 +17,7 @@ if ($target.StartsWith($repo + [IO.Path]::DirectorySeparatorChar, [StringCompari
     $relative = $target.Substring($repo.Length + 1).Replace('\', '/')
 }
 $allowed = switch ($Stage) {
-    'design' { @('changes/*/test-design.md', 'changes/*/test-plan.md', 'changes/*/test-cases.yaml', 'changes/*/test-cases.generated.json', 'changes/*/manifest.yaml', 'changes/*/fixtures/*') }
+    'design' { @('changes/*/test-design.md', 'changes/*/test-plan.md', 'changes/*/test-cases.yaml', 'changes/*/test-cases.generated.json', 'changes/*/manifest.yaml', 'changes/*/resolved-manifest.json', 'changes/*/fixtures/*') }
     'apply' { @('changes/*/*', 'backend-tests/*', 'test-support/*', 'config/*', 'scripts/*', 'infra/*') }
     'execution' { @('changes/*/evidence/*', 'changes/*/fixtures/*', 'reports/*', '.runtime/*', 'backend-tests/target/*') }
     'result' { @('changes/*/evidence/*', 'changes/*/test-result.md') }
@@ -37,7 +37,10 @@ $operationAllowed = if ($Action -eq 'read') {
 } elseif ($Action -eq 'test') {
     $insideRepo -and $commandAllowed -and $Stage -notin @('design', 'review', 'result')
 } elseif ($Action -eq 'commit') {
-    $insideRepo -and $commandAllowed -and $Stage -in @('apply', 'execution', 'result')
+    $insideRepo -and $commandAllowed -and (
+        ($Stage -eq 'design' -and $matches) -or
+        $Stage -in @('apply', 'execution', 'result')
+    )
 } else {
     $matches -and $commandAllowed -and $Stage -ne 'review'
 }

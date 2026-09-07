@@ -3,7 +3,7 @@ name: "Flow: Test"
 description: "Root orchestration entry for integration tests — reads flow-test-controller next and runs exactly one allowed action"
 category: Workflow
 tags: [workflow, orchestration, multi-agent, testing]
-version: "0.4.0"
+version: "0.7.0"
 ---
 
 根集成测试编排入口。协议：`control-plane.md` §4 + controller 脚本 `~/.claude/commands/flow/scripts/flow-test-controller.ps1`。
@@ -30,7 +30,7 @@ version: "0.4.0"
 | ISSUE_IMPLEMENTATION_LEASE | `/flow:test-assign`（controller issue-lease） |
 | AWAIT_IMPLEMENTATION_RESULT | 等待持租约 agent receive/apply/report |
 | VERIFY_IMPLEMENTATION | `/flow:test-verify implementation` |
-| VERIFY_ENVIRONMENT | 认证 harness 最小环境验证 + record-verifier environment |
+| VERIFY_ENVIRONMENT | v2：`validate-test-environment.ps1` 只读 preflight；v1：认证 harness 最小探针；PASS 后 record-verifier environment |
 | RUN_ONCE / AWAIT_RUN_RESULT | `/flow:system-test` orchestrated → record-run |
 | VERIFY_RESULT | `/flow:test-verify result` |
 | COMPLETE / BLOCKED | 完成或停止 |
@@ -50,3 +50,5 @@ version: "0.4.0"
 - Goal 只能执行 controller 返回的一个动作
 - runner PASS ≠ Flow complete；须 result verify PASS
 - 不在根上下文编写测试代码
+- v2 preflight 只执行 external TCP/HTTP probe，检查 managed 端口与启动构件但不启动进程；BLOCKED 时不得调用 controller 或 runner
+- v2 RUN_ONCE 由认证 `system-test.ps1` 按 schema 分派，并必须传入 controller 锁定的 configuration fingerprint；standalone PASS 不得提交为 canonical RUN_ONCE 结果

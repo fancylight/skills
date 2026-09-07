@@ -9,7 +9,9 @@ description: 在测试实现生命周期独立验证后编排 Flow 集成测试 
 
 ## 前置（硬门禁）
 
-每轮只执行 controller `next` 返回的一个动作。`BLOCKED` 立即停止，`COMPLETE` 才输出完成；不得根据本文步骤、用户“尽量完成”或 skill 建议自行选择后续 skill。`VERIFY_ENVIRONMENT` 时只消费认证 harness 对固定 configuration source 的结构化 PASS 并调用 `record-verifier -VerifyMode environment`；`RUN_ONCE` 才委托 system-test。
+每轮只执行 controller `next` 返回的一个动作。`BLOCKED` 立即停止，`COMPLETE` 才输出完成；不得根据本文步骤、用户“尽量完成”或 skill 建议自行选择后续 skill。`VERIFY_ENVIRONMENT` 对 v2 resolved manifest 调用 core
+`assets/scripts/validate-test-environment.ps1`；v1 继续消费认证 harness 的最小配置探针。只有结构化 PASS 才调用
+`record-verifier -VerifyMode environment`；`RUN_ONCE` 才委托 system-test。
 
 1. 根角色为 `orchestrator`，并提供 `change_name`。
 2. `flow-codex-verify` 全量 §A+§B 无 ERROR。
@@ -20,6 +22,24 @@ description: 在测试实现生命周期独立验证后编排 Flow 集成测试 
    `next: STOP_AWAIT_USER_AUTHORIZATION`，不得委托 runner。
 6. config 可解析 system-test 仓，且 manifest、test-design、test-plan、fixtures 存在。
 7. 不接受 task 勾选、TEST_DESIGN READY、用户要求根代跑或 local-only 替代 implementation PASS。
+
+## VERIFY_ENVIRONMENT
+
+当 `changes/<change>/resolved-manifest.json` 存在且 `sourceManifestSchemaVersion=2`：
+
+1. 以 canonical state path、resolved manifest、独立 `VerifierId` 和结构化 report path 调用
+   `validate-test-environment.ps1`；
+2. verifier 只读检查输入 hash、test/provider/SUT revision、配置 target、环境引用、managed executable/start script/端口，
+   并只执行 descriptor 中 `stage=preflight` 的 external TCP/HTTP probe；
+3. verifier BLOCKED/ERROR 时停止，不调用 controller、不启动 config provider、SUT、Docker 或 runner；
+4. verifier PASS 后，用 report 内完全一致的 test/SUT/harness revision 与 configuration fingerprint 调用 controller
+   `record-verifier -VerifyMode environment`；
+5. controller 推进到 `TEST_ENVIRONMENT_VERIFIED` 后本轮结束，下一轮才可执行 `RUN_ONCE`。
+
+v1 manifest 没有 resolved manifest 时保持现有认证 harness 探针，不把 v2 verifier 结果伪造给旧配置契约。
+
+v2 `RUN_ONCE` 由认证后的 `system-test.ps1` 按 schema 分派到 `run-resolved-environment.ps1`，并传入 controller state 中完全一致的
+`ConfigurationFingerprint`。standalone PASS 仍不得提交为 canonical `record-run` 结果。
 
 ## 编排
 

@@ -15,6 +15,16 @@
 
 manifest 的 `configuration.source` 是唯一配置来源，`configuration.ownership` 只能是 `human` 或 `harness`。人工配置探针失败只输出 `[TEST_CONFIGURATION] BLOCKED` 与 `STOP_AWAIT_HUMAN_CONFIGURATION`；平台配置失败路由到独立 harness 修复，不猜测密码、不扫描或切换配置来源。PASS、FAIL、BLOCKED 都执行 cleanup 并保留原始报告索引。
 
+上段 `configuration.source` 仅适用于 v1。v2 以配置中心 `configuration.provider/targets` 为唯一配置来源，
+`environmentFile` 仅承载必要运行参数；Git 忽略的 human 本地配置可保留既有凭据，完整文件 hash 绑定快照。
+测试夹具从 `FLOW_RESOLVED_MANIFEST` 定位同一配置中心，不复制连接账号。共享细则见 core 安装模板 `system-test/README.md`。
+外部中间件只执行探针，不由 runner 启停或重建；managed 复用必须通过显式 identityProbe 和健康检查。
+`runner.prepare` 负责本次 WireMock mapping 注册与响应契约验证，失败停止后续业务；cleanup 只回收本次数据、mapping、文件和已验证所属进程树。
+
+独立 v2 运行可追加 `-ScenarioIds SMOKE-1`，过滤器与 JUnit 集合来自 canonical 派生契约，runner.command 消费
+`${FLOW_TEST_FILTER}`、`${FLOW_TEST_REPORT_DIR}`。空选集、未知 ID、零匹配、缺报告、越界或 skipped 均失败。
+部分运行 `fullSuite=false`，不能登记全量 PASS；standalone 不写 controller。
+
 可选 `-OrchRoot` 或环境变量 `FLOW_ORCH_ROOT`（默认测试仓父目录 = Flow 编排根）。
 
 `<suite>` 默认 manifest 的 `defaultSuites` 首项或 `api`。
@@ -23,6 +33,9 @@ manifest 的 `configuration.source` 是唯一配置来源，`configuration.owner
 仓不存在时：先跑 `flow-codex-test-design`（会从 skills 模板 scaffold），不要临时拼凑命令。
 
 ## 证据路径
+
+下表为 v1 路径。v2 每次运行使用 `changes/<change>/evidence/runs/<run-id>/`，其中 `index.md`、`runtime-result.json`、
+`selection.json`（选场景时）、`junit/`、`logs/` 和业务证据均属于本次运行；不得覆盖旧全量证据。standalone 不覆盖根镜像。
 
 | 类型 | 路径（相对测试仓） |
 |------|----------------------|
@@ -48,6 +61,8 @@ manifest 的 `configuration.source` 是唯一配置来源，`configuration.owner
 ## 发版 SQL 变更后重测
 
 业务仓提交或 integration 窗口内重跑 release SQL 时：
+
+以下动作仅在本次计划明确授权执行发版 SQL 时适用。只读验证或明确禁止业务 DDL 的 smoke 不执行这些写入；缺失 schema 记录具体阻断。
 
 1. 确认 `fixtures/release/` 与服务仓 SQL 一致。
 2. 本地 DB 重跑变更脚本后再声称 green。

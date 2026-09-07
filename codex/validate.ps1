@@ -148,7 +148,7 @@ Get-ChildItem -LiteralPath $skillsDir -Recurse -File -Filter '*.md' -ErrorAction
 }
 
 $sharedScriptsDir = Join-Path $projectRoot 'flow\scripts'
-@('validate-test-artifacts.ps1', 'test-scope-guard.ps1') | ForEach-Object {
+@('validate-test-artifacts.ps1', 'test-scope-guard.ps1', 'resolve-test-environment.ps1', 'validate-test-environment.ps1', 'migrate-test-environment-manifest.ps1') | ForEach-Object {
     $scriptPath = Join-Path $sharedScriptsDir $_
     if (-not (Test-Path -LiteralPath $scriptPath)) {
         $errors += "Missing integration-test guard script: $scriptPath"
@@ -237,6 +237,28 @@ else {
         $errors += "PowerShell parse error in system-test runner: $systemTestRunner"
     }
 }
+$resolvedEnvironmentRunner = Join-Path $sharedTemplatesDir 'system-test\scripts\run-resolved-environment.ps1'
+if (-not (Test-Path -LiteralPath $resolvedEnvironmentRunner)) {
+    $errors += "Missing resolved environment runner: $resolvedEnvironmentRunner"
+}
+else {
+    $parseErrors = $null
+    [void][System.Management.Automation.Language.Parser]::ParseFile($resolvedEnvironmentRunner, [ref]$null, [ref]$parseErrors)
+    if ($parseErrors.Count -gt 0) { $errors += "PowerShell parse error in resolved environment runner: $resolvedEnvironmentRunner" }
+}
+$environmentDescriptorExample = Join-Path $sharedTemplatesDir 'system-test\config\environments\local.example.json'
+if (-not (Test-Path -LiteralPath $environmentDescriptorExample -PathType Leaf)) {
+    $errors += "Missing test environment descriptor example: $environmentDescriptorExample"
+}
+else {
+    try {
+        $environmentDescriptor = Get-Content -LiteralPath $environmentDescriptorExample -Raw -Encoding utf8 | ConvertFrom-Json
+        if ($environmentDescriptor.schemaVersion -ne 1 -or [string]::IsNullOrWhiteSpace([string]$environmentDescriptor.configurationProvider.kind) -or @($environmentDescriptor.resources).Count -eq 0 -or @($environmentDescriptor.probes).Count -eq 0 -or @($environmentDescriptor.evidenceContracts).Count -eq 0) {
+            $errors += "Invalid test environment descriptor example: $environmentDescriptorExample"
+        }
+    }
+    catch { $errors += "Test environment descriptor example is not valid JSON: $environmentDescriptorExample" }
+}
 $harnessCertifier = Join-Path $sharedTemplatesDir 'system-test\scripts\harness-certification.ps1'
 $harnessSelfTest = Join-Path $sharedTemplatesDir 'system-test\self-test\invoke-harness-self-test.ps1'
 $harnessSelfTestAdapter = Join-Path $sharedTemplatesDir 'system-test\self-test\harness-self-test-adapter.ps1'
@@ -253,7 +275,11 @@ $sharedScriptTests = @(
     'test-validate-domain-artifact.ps1',
     'test-domain-verifier-replay.ps1',
     'test-flow-test-controller.ps1',
-    'test-validate-test-cases.ps1'
+    'test-validate-test-cases.ps1',
+    'test-resolve-test-environment.ps1',
+    'test-validate-test-environment.ps1',
+    'test-run-resolved-environment.ps1',
+    'test-migrate-test-environment-manifest.ps1'
 )
 $codexOnlyScriptTests = @(
     'test-distributable-surface.ps1',
