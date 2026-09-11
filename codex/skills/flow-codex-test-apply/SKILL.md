@@ -5,6 +5,8 @@ description: 在 system-test 仓按已验证的 test-design、test-plan 和 mani
 
 # Codex Flow 集成测试编码
 
+质量要求：读取 ../flow-codex-core/assets/templates/engineering-quality.md 的「实现与审核、测试与排障」。沿用现有结果与授权机制，不增加阶段。
+
 读取 core platform、checkpoints、`../flow-codex-core/references/test-controller.md`、test-design、test-plan 与 manifest。
 
 先要求 controller `next=AWAIT_IMPLEMENTATION_RESULT`。每次写入、test-compile、静态发现或提交前同时执行 controller `validate-lease` 和 scope guard；lease 的 agent、capability、repository、path 或 implementationBaseRevision 任一不匹配即停止。agent 口述 PASS 不推进 state。

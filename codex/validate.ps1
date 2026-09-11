@@ -149,6 +149,16 @@ Get-ChildItem -LiteralPath $skillsDir -Recurse -File -Filter '*.md' -ErrorAction
 }
 
 $sharedScriptsDir = Join-Path $projectRoot 'flow\scripts'
+foreach ($name in @('engineering-quality.md','java-need-braces.xml')) {
+    if (-not (Test-Path -LiteralPath (Join-Path $sharedTemplatesDir $name))) { $errors += "Missing engineering quality resource: $name" }
+}
+$javaChecker = Join-Path $sharedScriptsDir 'check-java-style.ps1'
+if (-not (Test-Path -LiteralPath $javaChecker)) { $errors += 'Missing independent Java style checker' }
+else {
+    $javaParseErrors = $null
+    [void][System.Management.Automation.Language.Parser]::ParseFile($javaChecker,[ref]$null,[ref]$javaParseErrors)
+    if ($javaParseErrors.Count -gt 0) { $errors += 'PowerShell parse error in Java style checker' }
+}
 @('validate-test-artifacts.ps1', 'test-scope-guard.ps1', 'resolve-test-environment.ps1', 'validate-test-environment.ps1', 'migrate-test-environment-manifest.ps1') | ForEach-Object {
     $scriptPath = Join-Path $sharedScriptsDir $_
     if (-not (Test-Path -LiteralPath $scriptPath)) {

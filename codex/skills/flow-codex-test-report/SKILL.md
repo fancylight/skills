@@ -5,6 +5,8 @@ description: 在审核、冒烟和可恢复提交完成后记录 st-api 集成�
 
 # Codex Flow 集成测试汇报
 
+质量要求：读取 ../flow-codex-core/assets/templates/engineering-quality.md 的「测试与排障、文档与汇报」。沿用现有结果与授权机制，不增加阶段。
+
 读取 core platform、checkpoints、`../flow-codex-core/references/test-controller.md`、task template 和 task-update-rules。
 
 要求 REPORT_LEASE_GRANTED、root_path、change_name、spec_id、commit_hash、进度文件和静态实现校验摘要。只有 review PASS、

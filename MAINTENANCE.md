@@ -161,3 +161,5 @@ node scripts/validate.js
 本版仅支持 Codex，前文双宿主同步要求对本版新增行为暂停适用。不要改写或卸载既有 Claude 安装；旧版通过独立 checkout/安装保留，禁止共享新版资源。feedback 专用内容与 apply 流程冻结；新增交付约定不得经共享平台规则改变 feedback。技能安装使用临时目录先验证；业务项目 Agent 入口及测试仓接线必须显式更新。
 
 验证应分开确定性脚本测试、模型语义回放和真实业务运行。缺少模型运行能力时报告 UNVERIFIED，不能用文本匹配代替语义通过。
+
+从干净提交打包前，比较候选安装结果与现有全局安装的文件清单及规范化文本。全局版本已存在、源仓尚未提交的必要规则须先审查并纳入发布基线，不能通过删除它们消除差异，也不能混入整个脏工作区。Codex 质量分发回归见 `codex/scripts/tests/test-engineering-quality-distribution.ps1`，检查器行为回归见 `flow/scripts/tests/test-check-java-style.ps1`。

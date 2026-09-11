@@ -5,6 +5,8 @@ description: 为 Codex 编排 Flow 领域发现与后续设计。首次根调用
 
 # Codex Flow 设计
 
+质量要求：读取 ../flow-codex-core/assets/templates/engineering-quality.md 的「设计与验证、文档与汇报」。沿用现有结果与授权机制，不增加阶段。
+
 读取 `../flow-codex-core/references/platform.md` 和 `references/openspec-readiness.md`。根模式先使用
 core 的 `domain-model.md.tmpl` 完成领域发现；未经独立 domain verify，不生成方案设计产物。
 
@@ -40,7 +42,7 @@ core 的 `domain-model.md.tmpl` 完成领域发现；未经独立 domain verify�
    - 生成 `概要设计.md` 前读取 `../flow-codex-core/assets/templates/overview-design.md.tmpl`。
    - 在概要设计的「领域事实引用」中列出已验证 Fact ID、影响 Decision ID、方案消费位置、正向要求和反例/禁止行为；业务规则、数据访问契约和验收项必须引用这些 Fact ID，不得新增未验证的业务推断。
    - 生成 `操作链路.md` 前读取 `../flow-codex-core/assets/templates/操作链路.md.tmpl`；在步骤 5.5 的 `as-built` 基础上补 `new` / `changed` 步骤，每步填 `owning spec`（与 Spec 矩阵一致）。
-   - **概要设计强制节**（在「服务拆分」之前，顺序固定）：
+   - **概要设计必需内容**（可集中于正文之后的追溯部分；保留标题与语义，兼容原布局）：
      - `## 领域概念`、`## 歧义裁决`、`## 审核 pass / 写库决策表`（条件 mandatory）、`## 集成 / 联调范围`、`## 数据访问契约`（条件 mandatory）
      - 领域概念：先查 KB 功能域；有则 `来源: kb` + KB 引用，无则 `来源: change` + `kb_action: 待沉淀|无需`
      - 涉及合同、审核节点、预警类型、身份/权限码等必须先查 KB；不得用实现别名代替未定义词条

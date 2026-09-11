@@ -220,3 +220,5 @@ Claude Code 将上述 skill 名替换为 `/flow:*` 命令，审核内联在执�
 本版仅验证 Codex，不更新或卸载 Claude。旧 Claude 使用旧版独立安装，不能共享新版资源。重装后建议新开会话，从已有需求文件和 Git 状态恢复，不重建 spec、不清空 controller。安装技能不会自动更新业务项目入口或测试仓；将 `flow/templates/codex/flow-delivery-entry.md.tmpl` 合并到业务 AGENTS.md，GLM 执行接线单独交付。
 
 GPT-6 与 GPT-5.6 Sol 共用规则，模型效果以真实回放为准；未运行的模型不声明兼容。
+
+候选版本保留当前已安装的工程质量规则与独立 NeedBraces 检查器。安装前可运行 `codex/scripts/tests/test-engineering-quality-distribution.ps1 -BaselineDir <现有技能目录>`，核对 apply/feedback 内容和质量资源不被回退；最新发布边界见 [MVP 验证](docs/validation/flow-flexible-delivery-mvp.md)。

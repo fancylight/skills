@@ -5,6 +5,8 @@ description: 只读验证 Flow 集成测试的 canonical test-cases、派生 sid
 
 # Codex Flow 集成测试验证
 
+质量要求：读取 ../flow-codex-core/assets/templates/engineering-quality.md 的「测试与排障」。沿用现有结果与授权机制，不增加阶段。
+
 作为根编排 agent 或独立只读审核 agent 执行。读取
 `../flow-codex-core/references/platform.md`、[检查清单](references/test-verify-checklist.md)
 、`../flow-codex-core/references/test-controller.md`

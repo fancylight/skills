@@ -5,6 +5,8 @@ description: 调查线上用户反馈或生产问题，产出结构化调查报�
 
 # Codex Flow 反馈调查
 
+质量要求：读取 ../flow-codex-core/assets/templates/engineering-quality.md 的「测试与排障」。沿用现有结果与授权机制，不增加阶段。
+
 读取 `../flow-codex-core/references/platform.md`、`references/workflow.md`、
 `references/cdp.md`、`references/discover-kb.md`。
 

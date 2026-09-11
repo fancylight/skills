@@ -1,5 +1,7 @@
 # Flow 验证检查清单
 
+质量检查依据同目录 engineering-quality.md：按本次验证模式审查适用内容，客观矛盾不得通过；不以标题、字数或表格数量证明质量。标题按语义定位，支持原布局和正文后置追溯布局，不要求存量文档迁移。
+
 > **受众**：业务项目中执行 `flow-codex-verify`、Codex `flow-codex-archive` 或 Claude `/flow:archive` 步骤 0 的 Agent。
 > **不是**跨服务 api.md 契约比对（Claude `flow:verify` / flow-verify 专责）。
 > skills 仓库维护者改本文件后须同步 verify/archive skill（见仓库根 MAINTENANCE.md）。

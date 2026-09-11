@@ -5,6 +5,8 @@ description: 使用 system-test manifest runner 执行 Flow change 的 API/UI/E2
 
 # Codex Flow 系统测试执行
 
+质量要求：读取 ../flow-codex-core/assets/templates/engineering-quality.md 的「测试与排障」。沿用现有结果与授权机制，不增加阶段。
+
 读取 core platform、`../flow-codex-core/references/test-controller.md`、runtime-contract 和 local-pitfalls。不得修改业务服务代码、整体 mock SUT，或操作 manifest
 预留 ID 外的数据。
 

@@ -5,6 +5,8 @@ description: 使用 OpenSpec 实现唯一一个已接收的 Flow spec，并完�
 
 # Codex Flow 编码
 
+质量要求：读取 ../flow-codex-core/assets/templates/engineering-quality.md 的「实现与审核」。沿用现有结果与授权机制，不增加阶段。
+
 读取 `../flow-codex-core/references/platform.md` 和
 `../flow-codex-core/references/checkpoints.md`.
 
