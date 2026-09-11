@@ -1,0 +1,4 @@
+interface:
+  display_name: "Flow 交付校验"
+  short_description: "只读核对整个需求或修复的交付范围、设计偏差、根文档及提交证据"
+  default_prompt: "使用 $flow-codex-check 只读检查当前需求的实际交付，不补走编排流程。"

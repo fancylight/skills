@@ -21,24 +21,10 @@ description: 在提交后记录一个已完成的 Flow spec，并更新根追踪
 1. 只更新根 `.flow/changes/<change_name>/task.md` 中选中的 spec。
 2. 标记完成日期和 commit hash，重新计算选中服务的状态和 frontmatter 日期。
 3. 仅在存在 DDL、配置或数据访问契约风险时更新 `发版记录.md`；后者在「SQL 风险与 EXPLAIN 证据」登记查询入口、风险形态、最终列表 SQL/分页 count 的 evidence 路径、环境、验收结论、豁免（如有）与回滚方案，不能以源码路径或「待补」代替。
-4. **同步接口到 Apifox**：读取根 `开发文档.md` **§3.2.4** 接口表格，按 `dev-doc-update-rules.md` 处理：
-   - 已有 Apifox 链接 + ✏️修改 → MCP 更新接口定义
-   - 待录入 + 🆕新增 → MCP 创建接口
-   - 待录入 + ✏️修改 → 提示先手动创建
-   - **兜底：表格状态不匹配任何分支时，禁止静默跳过，必须在汇报中逐条列出并提示人工确认**
-   **POST 接口 requestBody 格式**：必须用 jsonSchema 模式（`type: "application/json"` + `parameters: []` + 字段放 `jsonSchema.properties`），禁止用 `type: "json"` + `parameters[]` 写法（UI 不渲染）。
-   MCP 不可用时降级跳过。同步后将「待录入/待补充」替换为实际链接（格式 `https://app.apifox.com/link/project/{projectId}/apis/api-{entityId}`）。
-5. **回写开发文档.md**：先读 `dev-doc-update-rules.md` 与 `dev-doc-maintenance.md`（尤其 §4.1/§4.2/§4.3），再从本 spec 的 OpenSpec `design.md` 与 commit **改写**为人读内容：
-   - §3.2.4 本 spec 相关接口行（「服务」列 = 可部署服务名）
-   - §3.2.2 存储语义（字段语义 + 兼容；完整 SQL 放 §4.2，禁止「见发版记录」）
-   - §3.2.3 数据流转（服务/接口路径级；禁止类名流水）
-   - §3.2.1 业务规则（有收敛时）
-   - §4.1 补全/拆分本 spec 涉及的**可部署服务**行（禁止用 git 仓库名冒充服务）
-   - §4.2 **直接写入** DDL/SQL 或配置；无则写「无」；禁止「详见发版记录 / openspec / 本地路径」
-   - §4.3 只写**业务验收语义**；禁止测试类名、本机地址、启动清单、commit hash、spec id
-   禁止写入 spec 名、`c{n}-`、本地路径、类名堆砌、完整 JSON。
+4. 本 spec 涉及接口时，按 `dev-doc-update-rules.md` 的 Apifox 状态表与 requestBody 契约同步；无法匹配的条目逐一说明，MCP 不可用时明确待同步，不静默跳过。将实际返回链接写回接口表。
+5. 按 `dev-doc-update-rules.md` 的触发表回写受影响的开发文档章节；写作尺度、可部署服务、自包含 SQL 和业务验收表达以 `dev-doc-maintenance.md` 为准，不复制另一套规则或完整 OpenSpec。
 6. 向进度文件追加结构化汇报，含 **【开发文档】** 变更摘要。
 7. 返回简短的知识库维护建议。
 8. 返回 `[REPORT] complete`，让根 agent 释放租约。
 
-不要与其他执行 agent 并发汇报。
+不要与其他执行 agent 并发汇报。REPORT complete 仅表示本次回写完成，不表示根仓已提交；返回本次根文件列表，由根按 ../flow-codex-core/references/delivery.md 提交并执行 flow-codex-check。不要由执行 agent 抢先提交其他 report 的根文件。

@@ -5,7 +5,7 @@ description: 通过 Codex 子 agent 派发 Flow specs。用户要求分配、委
 
 # Codex Flow 派发
 
-作为根编排 agent 执行。读取 `../flow-codex-core/references/platform.md`、
+完整编排入口；不因用户只要求修复已有 spec 而自动派发。先按 ../flow-codex-core/references/delivery.md 判断路径并确认当前项目允许子 agent；不允许时不得启动或恢复子 agent，也不得以本 skill 推导授权。作为根编排 agent 执行。读取 `../flow-codex-core/references/platform.md`、
 `../flow-codex-core/references/checkpoints.md` 和 `references/scheduler.md`。使用
 `../flow-codex-core/assets/templates/child-agent-prompt.md`.
 
@@ -28,6 +28,6 @@ description: 通过 Codex 子 agent 派发 Flow specs。用户要求分配、委
    agent。最多允许三轮驳回。
 5. 收到 `REPORT_REQUEST` 时，只向一个执行 agent 发放串行报告租约，恢复它并等待
    `[REPORT] complete`。
-6. 更新根调度状态，继续派发新解锁的 specs。
+6. 更新根调度状态；由根按 ../flow-codex-core/references/delivery.md 串行完成根文档提交与 flow-codex-check，分别报告服务和根仓提交。继续派发新解锁的 specs。
 
 不要在根上下文中实现服务代码。

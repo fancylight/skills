@@ -14,6 +14,12 @@ description: Codex Flow 适配层的内部公共资源和平台规则。仅在�
 - 执行任一集成测试 skill 或持续 Goal 时，读取 `references/test-controller.md`。
 - 从 `assets/templates/` 加载模板。所有路径均相对于当前 skill 目录。
 
+## 按任务加载
+
+- 需求实施、原范围修复及交付收尾：读取 `references/delivery.md`；不应用于 feedback。
+- 执行已有集成用例：读取 `references/test-execution.md`；正式 controller 约束保留。
+- `flow-codex-check` 只读核对当前交付，不要求先补走 checkpoints 中的派发/汇报。
+
 ## 平台规则
 
 不要调用 Claude 专属命令语法，也不要依赖用户主目录下的命令目录。公开 skills 使用自身说明和

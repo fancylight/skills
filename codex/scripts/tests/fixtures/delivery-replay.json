@@ -1,0 +1,56 @@
+{
+  "kind": "synthetic-contract-replay",
+  "instructions": "Use each case in a fresh session with the candidate skills and only its input. Keep expected findings hidden from the evaluated model. Record actual outputs, model, effort, tool availability, revisions, duration and file changes. These cases are not a model PASS by themselves.",
+  "cases": [
+    {
+      "id": "reopen-committed-spec",
+      "input": {"request": "需求尚未完成，修复 c1 的空结果处理，不新增范围", "task": "c1 [x] commit A; 根需求未完成", "spec": "空输入应返回空列表", "implementation": "空输入抛异常"},
+      "expected": ["重开 c1", "后续提交保留 A", "不新增 spec", "更新受影响完成标记"]
+    },
+    {
+      "id": "new-scope",
+      "input": {"request": "新增月度导出", "spec": "c1 仅提供日级查询；导出不在验收范围", "task": "c1 已完成"},
+      "expected": ["识别新增范围", "不能把导出冒充原缺陷修复", "设计与服务责任明确后实施"]
+    },
+    {
+      "id": "extra-files",
+      "input": {"request": "只读检查 c1 空结果修复的待提交文件", "diff": ["M src/Query.java", "M test/QueryTest.java", "A repair-history/c1/proposal.md", "A logs/local-run.log"], "spec": "空输入返回空列表", "filePurpose": {"repair-history/c1/proposal.md": "原 proposal 的完整副本", "logs/local-run.log": "本次临时输出"}},
+      "expected": ["指出无必要用途的副本与日志", "不自动删除", "不把所有测试文件判为无意义"]
+    },
+    {
+      "id": "cross-service-contract",
+      "input": {"request": "检查整个需求", "design": "状态 2 表示待重算", "provider": "返回 status=2", "consumer": "只处理 status==1，其余都作为无效丢弃", "reviews": "两仓分别 PASS"},
+      "expected": ["跨服务状态语义偏差 FAIL", "分别定位 provider/consumer", "不能相加单仓 PASS 得出整体通过"]
+    },
+    {
+      "id": "stale-root-doc",
+      "input": {"request": "检查 c1 交付", "approvedChange": "允许空输入并返回空列表", "specAndCode": "已正确实现并测试", "rootDevDoc": "空输入报错"},
+      "expected": ["根文档不一致 FAIL", "不为了旧文档撤销已批准行为"]
+    },
+    {
+      "id": "root-commit-missing",
+      "input": {"request": "修复任务收尾", "serviceCommit": "B", "rootRepo": "独立 .flow Git 仓", "rootStatus": "本次开发文档已修改未提交；另有无关需求脏文件", "authorization": "实施默认本地提交，不 push"},
+      "expected": ["只提交本次根文档", "不夹带其他需求", "分别报告服务和根提交"]
+    },
+    {
+      "id": "post-review-change",
+      "input": {"request": "只读检查交付", "review": "PASS on revision A", "target": "B", "diffAtoB": "新增 src/NewConsumer.java，无审核或测试依据"},
+      "expected": ["旧 review 不覆盖新增实现", "标出适用证据缺口", "不伪造新 review PASS"]
+    },
+    {
+      "id": "stale-runtime-evidence",
+      "input": {"request": "检查运行验收", "targetSut": "B", "runtimeEvidence": "SMOKE-1 PASS，SUT=A，fullSuite=false"},
+      "expected": ["证据不适用于 B", "部分场景不能证明全量", "不自动启动服务或重跑"]
+    },
+    {
+      "id": "direct-repair",
+      "input": {"request": "直接修复 c1 已明确的空结果 bug", "design": "完整且已确认", "dependencies": "无未决契约，无并发写入", "task": "原范围", "history": "没有 assign/report"},
+      "expected": ["说明简化依据", "不补造派发历史", "仍维护文件、验证、校验交付", "自查不冒充独立审核"]
+    },
+    {
+      "id": "fresh-session",
+      "input": {"request": "升级技能后继续此需求", "task": "c1 已提交 A，c2 未完成", "git": "c1 现为 B，存在修复提交", "oldChat": "说 c1 已通过测试", "evidence": "只有针对 A 的记录"},
+      "expected": ["从当前文件和 Git 恢复", "不重建需求或清空 controller", "核对 B 的证据适用性", "不因 c2 未完成否定 c1 的局部检查"]
+    }
+  ]
+}

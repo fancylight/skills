@@ -155,3 +155,9 @@ node scripts/validate.js
 - 不要在 **MAINTENANCE.md** 里重复粘贴 `dev-doc-maintenance.md` 全文（业务规则以 `flow/templates/` 为唯一细则源）
 - 不要让业务项目的 `开发文档.md` 承载 spec 名、审核返修、Flow 测试分层等编排信息
 - 不要删除 [AGENTS.md](./AGENTS.md) / [CLAUDE.md](./CLAUDE.md)——它们是宿主约定入口；内容应薄，框架在 README
+
+## Codex 灵活交付版本维护范围
+
+本版仅支持 Codex，前文双宿主同步要求对本版新增行为暂停适用。不要改写或卸载既有 Claude 安装；旧版通过独立 checkout/安装保留，禁止共享新版资源。feedback 专用内容与 apply 流程冻结；新增交付约定不得经共享平台规则改变 feedback。技能安装使用临时目录先验证；业务项目 Agent 入口及测试仓接线必须显式更新。
+
+验证应分开确定性脚本测试、模型语义回放和真实业务运行。缺少模型运行能力时报告 UNVERIFIED，不能用文本匹配代替语义通过。

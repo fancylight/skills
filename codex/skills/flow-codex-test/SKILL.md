@@ -7,6 +7,8 @@ description: 在测试实现生命周期独立验证后编排 Flow 集成测试 
 
 作为根编排 agent 执行。读取 core platform、`../flow-codex-core/references/test-controller.md` 与 `integration-test-result.md.tmpl`。
 
+执行已有用例先读取 ../flow-codex-core/references/test-execution.md；复用适用的项目执行路径，不重新设计测试或维护环境。
+
 ## 前置（硬门禁）
 
 每轮只执行 controller `next` 返回的一个动作。`BLOCKED` 立即停止，`COMPLETE` 才输出完成；不得根据本文步骤、用户“尽量完成”或 skill 建议自行选择后续 skill。`VERIFY_ENVIRONMENT` 对 v2 resolved manifest 调用 core

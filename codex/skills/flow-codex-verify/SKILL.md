@@ -21,10 +21,12 @@ description: 只读检查 Flow 的领域事实、根产物格式、设计 SQL �
 | **格式复验** | 默认 / `verify_mode=format` | §A | design 后可选 | 仅当调用方声明为门禁时 |
 | **领域事实** | `verify_mode=domain` | §G | DOMAIN_DRAFT → 方案设计前强制 | 方案设计 |
 | **设计合规** | `verify_mode=design` | §A + §C + §D + §E + §F.1–§F.3 + Fact ID 消费 | solution design 完成 → **assign 前强制** | assign |
-| **全量 verify** | `verify_mode=full` | §A + §B | test 前 | test |
+| **完成度检查** | `verify_mode=full` | §A + §B | test 前 | test |
 | **发布 verify** | `verify_mode=release` | §A + §B + §F | 集成测试后 → archive 前强制 | archive |
 
 格式复验时 §B / §C / §D / §E / §F / §G 未完成属正常，不得因此报 ERROR。全量 verify **不**默认跑 §C / §D / §E / §F / §G。domain 模式只跑 §G；design 模式 **不**跑 §B、§G 或运行时 F.4；release 模式不跑 §C / §D / §E / §G。
+
+设计/test-design 与代码审核职责分开：本技能的 full/release 是既有完成度与发布检查，不表示整体交付已通过。最终文件、提交和证据适用性由 flow-codex-check 核对。
 
 ## 检查范围
 

@@ -139,3 +139,11 @@
 
 - Claude Code 原版保留在 `.claude/` + `install.sh`
 - 双平台共用 `.flow/` 协议与 OpenSpec
+
+## Codex 灵活交付（Unreleased）
+
+- 原范围修复重开 spec，允许后续 Git 提交；交付责任集中到 core/delivery，新增只读 flow-codex-check 与 Git 文件范围盘点。
+- 根文档收尾及本地提交明确归根或直接实施者；新增项目入口模板，安装不自动迁移业务文件。
+- 执行已有测试优先复用项目路径；feedback/apply 保持原行为，本版不适配 Claude。
+
+验证（2026-09-11）：仅含本轮暂存改动的导出副本通过 `codex/validate.ps1`、`test-delivery-scope.py` 和临时安装；apply/feedback 文件与修改前逐文件一致。10 个冻结案例仅为回放输入与期望，GPT-6 / GPT-5.6 Sol 实际模型回放均为 UNVERIFIED，不能据此声明模型兼容。未覆盖全局技能安装及其他业务项目迁移。

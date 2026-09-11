@@ -40,7 +40,7 @@
 ### 核心约定
 
 - **文件通信**：根与执行 Agent 通过 `.flow/` 下文件协作，不依赖同一对话或进程。
-- **粒度**：`1 task = 1 spec = 1 executor = 1 commit`（spec = 根 task 单仓 OpenSpec change；跨仓 c 递增，禁止多仓 bundle）。
+- **粒度**：每个 spec 对应单仓 OpenSpec change；一次实施尽量一个提交，原范围返修允许后续提交（spec = 根 task 单仓 OpenSpec change；跨仓 c 递增，禁止多仓 bundle）。
 - **task.md 完成状态**：仅由汇报阶段写入（Claude：`flow:report`；Codex：`flow-codex-report`）。
 
 ---
@@ -212,3 +212,11 @@ Claude Code 将上述 skill 名替换为 `/flow:*` 命令，审核内联在执�
 ## 参与维护
 
 修改 skills 或模板前请阅读 [MAINTENANCE.md](./MAINTENANCE.md)。提交前运行对应平台的校验脚本。
+
+## Codex 灵活交付版本
+
+保留既定产物与完整编排，原范围修复允许重开 spec 后直接实施。交付责任见 [delivery](codex/skills/flow-codex-core/references/delivery.md)；新增 `flow-codex-check` 可在任意阶段只读检查实际范围、根文档和提交证据，实施完成前自动使用。
+
+本版仅验证 Codex，不更新或卸载 Claude。旧 Claude 使用旧版独立安装，不能共享新版资源。重装后建议新开会话，从已有需求文件和 Git 状态恢复，不重建 spec、不清空 controller。安装技能不会自动更新业务项目入口或测试仓；将 `flow/templates/codex/flow-delivery-entry.md.tmpl` 合并到业务 AGENTS.md，GLM 执行接线单独交付。
+
+GPT-6 与 GPT-5.6 Sol 共用规则，模型效果以真实回放为准；未运行的模型不声明兼容。

@@ -29,6 +29,6 @@ description: 根据 OpenSpec 设计对一个 Flow spec 实现执行独立只读�
    - 检查 Mapper 契约测试覆盖 JOIN 键和禁止形态；在可运行 EXPLAIN 前不接受「性能已验证」声明，并要求测试/发布计划覆盖最终列表 SQL 与分页 count。
 4. test 模式额外检查：AC→场景→方法→断言覆盖、无理由 skip、fixtures 预留 ID 合规；审核测试实现正确性，
    不替代 test-design lifecycle verify。
-5. 不要编辑文件、提交或扩大范围。
+5. 检查本次新增/删除/修改文件是否有需求或必要交付用途，识别越界实现、重复 spec 和临时证据混入；按 ../flow-codex-core/references/delivery.md 列出需同步的根设计/开发文档位置。只报告，不修文档。review 结论仅覆盖本次审核版本，不能证明后续提交或 report 已收尾。不要编辑文件、提交或扩大范围。
 6. 没有可执行问题时返回 `[REVIEW_RESULT] PASS`。
 7. 否则返回 `[REVIEW_RESULT] REJECT`，并附带简短的问题列表、文件和行号。

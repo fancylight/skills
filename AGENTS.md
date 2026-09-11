@@ -19,7 +19,7 @@
 
 ---
 
-## Codex 生命周期（必须遵守）
+## Codex 完整编排生命周期
 
 ```text
 根：flow-codex-design
@@ -59,7 +59,7 @@ Discover 自动查已有 feedback、KB 选篇、`{root}/.flow/cdp` playbook（�
 
 硬性规则（详见 [codex/PLAN.md](./codex/PLAN.md)、[codex/skills/flow-codex-core/references/platform.md](./codex/skills/flow-codex-core/references/platform.md)）：
 
-- `1 spec = 1 executor = 1 commit`（spec = 根 task 单仓 OpenSpec change，非多仓 bundle）
+- 每个 spec 对应单仓 OpenSpec change，一次实施尽量一个提交；原范围修复重开原 spec 并追加提交，不因已提交而新增 spec。
 - 根 task 每个 c{n} = 1 git repo = 1 OpenSpec change；跨仓须 c 递增拆分
 - 仅**不同仓库**之间可并行写入；同一仓库禁止并发写入 Agent
 - 根追踪文件（`task.md` 等）**串行**更新，禁止并发 report
@@ -124,3 +124,9 @@ Discover 自动查已有 feedback、KB 选篇、`{root}/.flow/cdp` playbook（�
 4. 更新 [CHANGELOG.md](./CHANGELOG.md)
 
 Claude Code 完整指令见 [docs/claude-code.md](./docs/claude-code.md)（经 [CLAUDE.md](./CLAUDE.md) 路由）。
+
+## Codex 灵活实施与交付
+
+需求实施先读 codex/skills/flow-codex-core/references/delivery.md。符合条件的原范围修复可直接实施；完整编排不隐含子 agent 授权。实施收尾自动使用 flow-codex-check，亦可单独只读调用。feedback 不受此入口影响。
+
+本版新能力仅支持 Codex；Claude 保留旧版独立安装，不与新版共享运行资源。

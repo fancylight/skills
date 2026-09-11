@@ -24,7 +24,7 @@
 |------|------|
 | Git 仓库 | 恰好 1 个 |
 | OpenSpec | 恰好 1 个 change 目录（`<repo>/openspec/changes/<spec-id>/`） |
-| 派发 | 1 executor 处理上述一个 change → 理想 1 commit |
+| 派发 | 1 executor 处理上述一个 change；一次实施理想 1 commit，原范围修复允许后续提交，不因提交数新增 spec |
 | task 开发顺序 | 每行括号内 **恰好 1 个服务名** |
 
 **禁止**：`c4（service-a + service-b）`、一个根 c 下多个仓库各 commit、概要设计里一行 spec 绑多个 repo。

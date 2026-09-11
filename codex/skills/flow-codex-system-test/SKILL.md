@@ -8,6 +8,8 @@ description: 使用 system-test manifest runner 执行 Flow change 的 API/UI/E2
 读取 core platform、`../flow-codex-core/references/test-controller.md`、runtime-contract 和 local-pitfalls。不得修改业务服务代码、整体 mock SUT，或操作 manifest
 预留 ID 外的数据。
 
+执行已有用例先读取 ../flow-codex-core/references/test-execution.md；复用适用的项目执行路径，不重新设计测试或维护环境。
+
 ## 输入与定位
 
 要求 `change_name`、`testAuthorization` 和 design verify 已核验的配置契约。v2 使用 `environment`、
