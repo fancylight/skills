@@ -10,6 +10,8 @@ description: 调查线上用户反馈或生产问题，产出结构化调查报�
 读取 `../flow-codex-core/references/platform.md`、`references/workflow.md`、
 `references/cdp.md`、`references/discover-kb.md`。
 
+浏览器操作优先使用当前环境提供的 **Edge 控制工具**；CDP 仅在用户明确指定，或 Edge 控制不可用 / 无法完成所需操作时作为备用，具体选择规则见 `references/cdp.md`。`.flow/cdp/` 保留为既有操作手册目录，不代表必须使用 CDP。
+
 **定位**：独立事件流调查工具。输入原始反馈，输出 `.flow/feedback/{id}/` 下的调查报告。**禁止**在本 skill 内修改业务代码、写入 `task.md` 或创建 OpenSpec change。**禁止**自动执行写库 SQL。
 
 ## 输入

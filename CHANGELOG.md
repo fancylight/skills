@@ -8,6 +8,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Codex feedback 浏览器操作优先使用 Edge 控制工具，CDP 降为用户指定或 Edge 控制不可用 / 无法完成操作时的备用方式。保留 `.flow/cdp/` 手册兼容，通过 Codex 专属模板移除默认远程调试要求；Claude 不变。
+
 ### Added
 
 - **v2 standalone 场景选择与本地配置统一**：新增 canonical `-ScenarioIds` 精确过滤和本次 JUnit 报告校验，拒绝空选集、未知 ID、零匹配、越界或 skipped；部分结果 `fullSuite=false`，controller 拒绝将其登记全量 PASS。Git 忽略的 human 本地配置允许已有凭据，完整文件 SHA256 检测变化；日志脱敏后入独立 runs 证据目录。运行时增加 prepare/cleanup 契约、显式身份复用、按 SUT 关联配置证据、120 秒启动及 600 秒 suite 上限、PID/启动时间校验后的进程树清理。共享 helper 纳入 harness certification。
