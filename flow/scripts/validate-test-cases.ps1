@@ -13,7 +13,8 @@ param(
     [string]$DesignVerifierReportPath,
     [string]$ControllerStatePath,
     [string]$TrustedVerifierIdentity,
-    [switch]$Generate
+    [switch]$Generate,
+    [switch]$ExportJson
 )
 
 $ErrorActionPreference = 'Stop'
@@ -465,6 +466,27 @@ if ($errors.Count -gt 0) {
     Write-Output '[TEST_CASES_RESULT] ERROR'
     $errors | ForEach-Object { Write-Output "- $_" }
     exit 1
+}
+if ($ExportJson) {
+    function Convert-ExportValue($Value) {
+        if (Test-HasField $Value '__yamlList') { return ,@(Get-Field $Value '__yamlList') }
+        if ($Value -is [System.Collections.IDictionary]) {
+            $output = [ordered]@{}
+            foreach ($key in $Value.Keys) { $output[$key] = Convert-ExportValue $Value[$key] }
+            return $output
+        }
+        if ($Value -is [System.Collections.IEnumerable] -and $Value -isnot [string]) {
+            return ,@($Value | ForEach-Object { Convert-ExportValue $_ })
+        }
+        if ($Value -is [pscustomobject]) {
+            $output = [ordered]@{}
+            foreach ($property in $Value.PSObject.Properties) { $output[$property.Name] = Convert-ExportValue $property.Value }
+            return $output
+        }
+        return $Value
+    }
+    Convert-ExportValue $document | ConvertTo-Json -Depth 30
+    exit 0
 }
 Write-Output '[TEST_CASES_RESULT] PASS'
 Write-Output "source_sha256: $sourceHash"

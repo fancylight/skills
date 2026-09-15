@@ -127,6 +127,8 @@ Claude Code 完整指令见 [docs/claude-code.md](./docs/claude-code.md)（经 [
 
 ## Codex 灵活实施与交付
 
+默认支持单对话依次完成全部阶段，不强制多对话。首轮质量及本地执行闭环见 codex/skills/flow-codex-core/references/first-delivery.md；独立预期不等于独立 agent，自查须如实标注。
+
 需求实施先读 codex/skills/flow-codex-core/references/delivery.md。符合条件的原范围修复可直接实施；完整编排不隐含子 agent 授权。实施收尾自动使用 flow-codex-check，亦可单独只读调用。feedback 不受此入口影响。
 
 本版新能力仅支持 Codex；Claude 保留旧版独立安装，不与新版共享运行资源。

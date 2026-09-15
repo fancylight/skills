@@ -1,9 +1,11 @@
 ---
 name: flow-codex-review
-description: 根据 OpenSpec 设计对一个 Flow spec 实现执行独立只读审核。作为根编排 agent 启动的同级审核 agent 使用。
+description: 从原要求、业务预期和 OpenSpec 对一个 Flow spec 实现执行只读审核。单对话标明自查；用户授权独立审核时由独立审核者执行。
 ---
 
 # Codex Flow 审核
+
+先按 `../flow-codex-core/references/first-delivery.md` 从原要求及样本推导预期和反例，再核对作者设计与实现。单对话允许本阶段只读自查，输出标明 self；不将其包装为独立审核。
 
 质量要求：读取 ../flow-codex-core/assets/templates/engineering-quality.md 的「实现与审核；test 模式另读测试与排障」。沿用现有结果与授权机制，不增加阶段。
 

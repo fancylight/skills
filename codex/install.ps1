@@ -49,8 +49,14 @@ Get-ChildItem -LiteralPath $skillsDir -Directory | ForEach-Object {
         Remove-Item -LiteralPath $destination -Recurse -Force -WhatIf:$WhatIf
     }
     New-Item -ItemType Directory -Force -Path $destination -WhatIf:$WhatIf | Out-Null
-    Get-ChildItem -LiteralPath $_.FullName -Force | ForEach-Object {
-        Copy-Item -LiteralPath $_.FullName -Destination $destination -Recurse -Force -WhatIf:$WhatIf
+    $skillSourceRoot = $_.FullName
+    Get-ChildItem -LiteralPath $skillSourceRoot -File -Recurse -Force | Where-Object {
+        $_.FullName -notmatch '[\\/]__pycache__[\\/]' -and $_.Extension -ne '.pyc'
+    } | ForEach-Object {
+        $relativeFile = $_.FullName.Substring($skillSourceRoot.Length + 1)
+        $targetFile = Join-Path $destination $relativeFile
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $targetFile) -WhatIf:$WhatIf | Out-Null
+        Copy-Item -LiteralPath $_.FullName -Destination $targetFile -Force -WhatIf:$WhatIf
     }
     Write-Output "Installed $($_.Name) -> $destination"
 }
@@ -61,6 +67,9 @@ Get-ChildItem -LiteralPath $skillsDir -Directory | ForEach-Object {
 $controllerProtocol = Join-Path $projectRoot 'flow\docs\test-controller.md'
 $coreReferencesDir = Join-Path $TargetDir 'flow-codex-core\references'
 Copy-Item -LiteralPath $controllerProtocol -Destination (Join-Path $coreReferencesDir 'test-controller.md') -Force -WhatIf:$WhatIf
+if (-not $WhatIf) {
+    Add-Content -LiteralPath (Join-Path $coreReferencesDir 'test-controller.md') -Encoding UTF8 -Value "`nCodex 单对话执行方式见 first-delivery.md；保持本协议所有状态、授权、租约与版本约束。"
+}
 
 $coreTemplatesDir = Join-Path $TargetDir "flow-codex-core\assets\templates"
 $coreScriptsDir = Join-Path $TargetDir "flow-codex-core\assets\scripts"

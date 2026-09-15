@@ -5,6 +5,8 @@ description: 只读检查 Flow 的领域事实、根产物格式、设计 SQL �
 
 # Codex Flow 验证
 
+按 `../flow-codex-core/references/first-delivery.md` 核对业务依据；独立抽查要求直接查原始事实而非复述设计，单对话可执行并标明 self。用户另要求独立审核时，作者自查不能替代。
+
 质量要求：读取 ../flow-codex-core/assets/templates/engineering-quality.md 的「设计与验证、文档与汇报（只检查当前 verify_mode 适用项）」。沿用现有结果与授权机制，不增加阶段。
 
 读取 `../flow-codex-core/references/platform.md` 与

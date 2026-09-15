@@ -5,10 +5,12 @@ description: 为 Codex 编排 Flow 领域发现与后续设计。首次根调用
 
 # Codex Flow 设计
 
+按 `../flow-codex-core/references/first-delivery.md` 保留独立预期和关键反例；业务场景在设计中前置，执行由实施者的项目测试承担。默认单对话分阶段自查，明确非独立审核；用户要求独立验证时才以取得独立结论作为对应条件，不能伪造。
+
 质量要求：读取 ../flow-codex-core/assets/templates/engineering-quality.md 的「设计与验证、文档与汇报」。沿用现有结果与授权机制，不增加阶段。
 
 读取 `../flow-codex-core/references/platform.md` 和 `references/openspec-readiness.md`。根模式先使用
-core 的 `domain-model.md.tmpl` 完成领域发现；未经独立 domain verify，不生成方案设计产物。
+core 的 `domain-model.md.tmpl` 完成领域发现；未经 domain verify，不生成方案设计产物。单对话可以执行语义自查，须标明 self；已授权独立审核时保持独立验证路径。
 
 ## 根模式
 

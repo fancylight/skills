@@ -5,6 +5,8 @@ description: 只读验证 Flow 集成测试的 canonical test-cases、派生 sid
 
 # Codex Flow 集成测试验证
 
+单对话按 core/references/test-controller.md 以真实当前身份完成分阶段自查。result 阶段若项目已有 local-delivery.json，应向 validate-test-artifacts.ps1 传 LocalDeliveryPlan、LocalDeliveryEvidence、PythonExecutable，合并只读核验结果；该检查不执行测试，也不替代正式门禁。
+
 质量要求：读取 ../flow-codex-core/assets/templates/engineering-quality.md 的「测试与排障」。沿用现有结果与授权机制，不增加阶段。
 
 作为根编排 agent 或独立只读审核 agent 执行。读取

@@ -1,6 +1,6 @@
 ---
 name: flow-codex-apply
-description: 使用 OpenSpec 实现唯一一个已接收的 Flow spec，并完成独立代码审核、测试和一次服务提交。在 flow-codex-receive 后使用。
+description: 使用 OpenSpec 实现一个已接收的 Flow spec，完成审核、测试和提交；默认单对话自查，授权委派时使用独立审核。在 flow-codex-receive 后使用。
 ---
 
 # Codex Flow 编码
@@ -11,6 +11,8 @@ description: 使用 OpenSpec 实现唯一一个已接收的 Flow spec，并完�
 `../flow-codex-core/references/checkpoints.md`.
 
 ## 实现
+
+单对话模式按 `../flow-codex-core/references/first-delivery.md` 执行：当前执行者完成本 spec 后先自查，再测试、提交和维护根文档；不等待不存在的 REVIEW_REQUEST/REPORT_REQUEST 接收者，不调用要求租约的 report。下方中继流程仅用于已授权委派。跨层风险尽早运行项目小链路，原范围修复只重验受影响部分。
 
 1. 要求明确提供 `change_name` 和 `spec_id`。
 2. 编辑前重新检查期望分支和干净基线。

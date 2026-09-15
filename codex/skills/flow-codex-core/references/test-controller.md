@@ -1,5 +1,7 @@
 # 集成测试 Controller 协议
 
+Codex 单对话执行方式见 first-delivery.md；保持本协议所有状态、授权、租约与版本约束。
+
 集成测试自动化的唯一 machine state 位于编排根
 `.flow/changes/<change>/automation-state.yaml`。只用安装后的
 `assets/scripts/flow-test-controller.ps1` 读取或写入；manifest、task、agent 口述和 Goal 建议都不能直接改变 phase、授权或 revision。

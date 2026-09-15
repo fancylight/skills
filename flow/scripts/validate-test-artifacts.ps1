@@ -8,7 +8,10 @@ param(
     [ValidateSet('design', 'implementation', 'result')]
     [string]$Mode,
     [Parameter(Mandatory = $true)]
-    [string]$CanonicalRevision
+    [string]$CanonicalRevision,
+    [string]$LocalDeliveryPlan,
+    [string]$LocalDeliveryEvidence,
+    [string]$PythonExecutable
 )
 
 $ErrorActionPreference = 'Stop'
@@ -189,6 +192,28 @@ if (-not (Test-Path -LiteralPath $changeDir -PathType Container)) {
             if ($Mode -eq 'result') { $validatorParameters.EvidenceRoot = Join-Path $changeDir 'evidence\current' }
             $validatorOutput = @(& $validator @validatorParameters 2>&1)
             if ($LASTEXITCODE -ne 0) { Add-Error "Canonical test-cases validation failed: $($validatorOutput -join ' | ')" }
+        }
+    }
+}
+
+if ($LocalDeliveryPlan -or $LocalDeliveryEvidence) {
+    if ($Mode -ne 'result' -or -not $LocalDeliveryPlan -or -not $LocalDeliveryEvidence -or -not $PythonExecutable) {
+        Add-Error 'Local delivery check requires result mode, plan, evidence directory and PythonExecutable'
+    } else {
+        $runnerCandidates = @(
+            (Join-Path $PSScriptRoot '../../codex/skills/flow-codex-check/scripts/local-delivery.py'),
+            (Join-Path $PSScriptRoot '../../../flow-codex-check/scripts/local-delivery.py')
+        )
+        $localRunner = @($runnerCandidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf }) | Select-Object -First 1
+        if (-not $localRunner) { Add-Error 'Local delivery checker not installed' }
+        else {
+            try {
+                $localPlanValue = Get-Content -LiteralPath $LocalDeliveryPlan -Raw -Encoding UTF8 | ConvertFrom-Json
+                $localSource = [IO.Path]::GetFullPath((Join-Path (Split-Path -Parent ([IO.Path]::GetFullPath($LocalDeliveryPlan))) $localPlanValue.testCases))
+                if ($localSource -ne [IO.Path]::GetFullPath($testCases)) { throw 'Local plan must bind this change canonical test-cases.yaml' }
+                $localOutput = @(& $PythonExecutable $localRunner check --plan $LocalDeliveryPlan --output $LocalDeliveryEvidence --validator (Join-Path $PSScriptRoot 'validate-test-cases.ps1') 2>&1)
+                if ($LASTEXITCODE -ne 0) { Add-Error "Local delivery evidence rejected: $($localOutput -join ' | ')" }
+            } catch { Add-Error "Local delivery checker failed: $($_.Exception.Message)" }
         }
     }
 }

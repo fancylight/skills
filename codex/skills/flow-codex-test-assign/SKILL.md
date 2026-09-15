@@ -5,6 +5,8 @@ description: 向 system-test 仓派发 st-api 集成测试 spec。仅在当前�
 
 # Codex Flow 集成测试派发
 
+默认单对话按 core/references/test-controller.md 把真实测试租约交给当前执行者继续 receive/apply/report，不创建 agent；多 agent 派发仅在用户授权时使用。
+
 作为根编排 agent 执行。读取 core platform、checkpoints、`../flow-codex-core/references/test-controller.md`、scheduler 与 test-child-agent-prompt。
 
 ## 派发前检查

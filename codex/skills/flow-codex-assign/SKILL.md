@@ -1,6 +1,6 @@
 ---
 name: flow-codex-assign
-description: 通过 Codex 子 agent 派发 Flow specs。用户要求分配、委托、开始编码或执行根 `.flow/changes/<change>/task.md` 中的一个或多个 spec 时使用。
+description: 按依赖安排 Flow specs，默认当前对话串行实施，仅经用户授权才委派子 agent。用户要求分配、委托、开始编码或执行根 task 中的 spec 时使用。
 ---
 
 # Codex Flow 派发
@@ -10,6 +10,8 @@ description: 通过 Codex 子 agent 派发 Flow specs。用户要求分配、委
 `../flow-codex-core/assets/templates/child-agent-prompt.md`.
 
 ## 派发前检查
+
+单对话模式：按 core/references/delivery.md 完成下列范围、设计、依赖和分支检查，然后由当前执行者逐 spec 接收并实施；跳过下方工具发现、子 agent 派发及租约中继，不伪造独立审核。只有已授权委派才使用多 agent 派发段。
 
 1. 要求根角色为 `orchestrator`，并明确提供 `change_name` 和选中的 specs。
 2. 读取根追踪元数据和依赖状态，不要读取服务业务代码。

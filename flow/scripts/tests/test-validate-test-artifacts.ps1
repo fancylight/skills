@@ -1,4 +1,5 @@
 $ErrorActionPreference = 'Stop'
+$powershellExecutable = (Get-Process -Id $PID).Path
 $scriptRoot = Split-Path -Parent $PSScriptRoot
 $guard = Join-Path $scriptRoot 'validate-test-artifacts.ps1'
 $testCasesValidator = Join-Path $scriptRoot 'validate-test-cases.ps1'
@@ -50,7 +51,7 @@ scenarios:
 
 try {
     New-Fixture 'valid' $false
-    & powershell.exe -NoProfile -File $guard -SystemTestRepo $work -ChangeName valid -Mode design -CanonicalRevision $revision
+    & $powershellExecutable -NoProfile -File $guard -SystemTestRepo $work -ChangeName valid -Mode design -CanonicalRevision $revision
     if ($LASTEXITCODE -ne 0) { throw 'Expected valid fixture to pass artifact guard.' }
 
     New-Fixture 'valid-v2' $false
@@ -59,10 +60,10 @@ try {
     $v2 | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $v2ManifestPath -Encoding utf8
     $v2ResolvedPath = Join-Path $work 'changes/valid-v2/resolved-manifest.json'
     @{sourceManifestSchemaVersion=2;inputs=@{manifest=@{sha256=(Get-FileHash -LiteralPath $v2ManifestPath).Hash.ToLowerInvariant()}}} | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $v2ResolvedPath -Encoding utf8
-    & powershell.exe -NoProfile -File $guard -SystemTestRepo $work -ChangeName valid-v2 -Mode design -CanonicalRevision $revision
+    & $powershellExecutable -NoProfile -File $guard -SystemTestRepo $work -ChangeName valid-v2 -Mode design -CanonicalRevision $revision
     if ($LASTEXITCODE -ne 0) { throw 'Expected v2 fixture without legacy configuration fields to pass.' }
     @{sourceManifestSchemaVersion=2;inputs=@{manifest=@{sha256='drifted'}}} | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $v2ResolvedPath -Encoding utf8
-    & powershell.exe -NoProfile -File $guard -SystemTestRepo $work -ChangeName valid-v2 -Mode design -CanonicalRevision $revision
+    & $powershellExecutable -NoProfile -File $guard -SystemTestRepo $work -ChangeName valid-v2 -Mode design -CanonicalRevision $revision
     if ($LASTEXITCODE -eq 0) { throw 'Expected resolved v2 input drift to fail.' }
 
     $validJava = Join-Path $work 'backend-tests\src\test\java\com\example\valid'
@@ -85,21 +86,21 @@ class OtherIT {
     void unrelatedScenario() {}
 }
 '@
-    & powershell.exe -NoProfile -File $guard -SystemTestRepo $work -ChangeName valid -Mode implementation -CanonicalRevision $revision
+    & $powershellExecutable -NoProfile -File $guard -SystemTestRepo $work -ChangeName valid -Mode implementation -CanonicalRevision $revision
     if ($LASTEXITCODE -ne 0) { throw 'Expected implementation guard to scan only the change-scoped Java source directory.' }
 
     New-Fixture 'invalid' $true
-    & powershell.exe -NoProfile -File $guard -SystemTestRepo $work -ChangeName invalid -Mode design -CanonicalRevision $revision
+    & $powershellExecutable -NoProfile -File $guard -SystemTestRepo $work -ChangeName invalid -Mode design -CanonicalRevision $revision
     if ($LASTEXITCODE -eq 0) { throw 'Expected polluted DDL fixture to fail artifact guard.' }
 
     New-Fixture 'unsafe-cleanup' $false
     Set-Content -LiteralPath (Join-Path $work 'changes\unsafe-cleanup\fixtures\cleanup.sql') -Encoding utf8 -NoNewline -Value "-- fixture marker reserved by IDS`nDELETE FROM t;"
-    & powershell.exe -NoProfile -File $guard -SystemTestRepo $work -ChangeName unsafe-cleanup -Mode design -CanonicalRevision $revision
+    & $powershellExecutable -NoProfile -File $guard -SystemTestRepo $work -ChangeName unsafe-cleanup -Mode design -CanonicalRevision $revision
     if ($LASTEXITCODE -eq 0) { throw 'Expected cleanup without WHERE to fail artifact guard.' }
 
     New-Fixture 'missing-authorization' $false
     Set-Content -LiteralPath (Join-Path $work 'changes\missing-authorization\manifest.yaml') -Encoding utf8 -NoNewline -Value '{"stage":"design","testCasesContract":{"path":"test-cases.generated.json"}}'
-    & powershell.exe -NoProfile -File $guard -SystemTestRepo $work -ChangeName missing-authorization -Mode design -CanonicalRevision $revision
+    & $powershellExecutable -NoProfile -File $guard -SystemTestRepo $work -ChangeName missing-authorization -Mode design -CanonicalRevision $revision
     if ($LASTEXITCODE -eq 0) { throw 'Expected manifest without testAuthorization to fail artifact guard.' }
     Write-Output 'validate-test-artifacts positive and pollution/DDL negative cases passed.'
 } finally {

@@ -379,6 +379,12 @@ if (-not $journeyTemplateFound) {
     $errors += "Missing journey template (operation journey .tmpl with J{n} sections) in $sharedTemplatesDir"
 }
 
+@('flow-codex-core/references/first-delivery.md', 'flow-codex-check/scripts/local-delivery.py') | ForEach-Object {
+    if (-not (Test-Path -LiteralPath (Join-Path $skillsDir $_) -PathType Leaf)) {
+        $errors += "Missing local delivery resource: $_"
+    }
+}
+
 if ($errors.Count -gt 0) {
     $errors | ForEach-Object { Write-Error $_ }
     exit 1
