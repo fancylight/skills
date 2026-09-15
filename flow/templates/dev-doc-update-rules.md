@@ -1,5 +1,7 @@
 # 开发文档增量更新规则
 
+遵守同目录 engineering-quality.md 的「文档与汇报」。增量更新是修订受影响正文，不是追加另一个“当前修订”；同时检查并移除相反的旧结论。
+
 > **受众**：业务项目中执行 `flow-codex-report` / `/flow:report` 的 Agent。
 > skills 仓库维护者改本文件后须同步 report skill，并跑 `codex/validate.ps1`（见仓库根 MAINTENANCE.md §3.3）。
 >

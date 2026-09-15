@@ -5,6 +5,8 @@ description: 在业务代码已审核提交后，基于概要设计验收、as-b
 
 # Codex Flow 集成测试设计
 
+质量要求：读取 ../flow-codex-core/assets/templates/engineering-quality.md 的「测试与排障」。沿用现有结果与授权机制，不增加阶段。
+
 作为根编排 agent 执行。读取 `../flow-codex-core/references/platform.md`、
 `../flow-codex-core/references/test-controller.md`、
 `references/manifest-checklist.md`、`references/scaffold.md` 和已安装模板中的

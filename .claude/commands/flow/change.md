@@ -6,6 +6,8 @@ tags: [workflow, orchestration, multi-agent, change-management]
 version: "0.1.0"
 ---
 
+质量要求：读取 ~/.claude/commands/flow/templates/engineering-quality.md 的「设计与验证、文档与汇报」。沿用现有结果与授权机制，不增加阶段。
+
 根 agent 处理大需求进行中的业务变更。更新概要设计和 task.md，写入变更通知供子 agent 下次 receive 时感知。
 
 **输入**：`/flow:change [change-name]`

@@ -6,6 +6,8 @@ tags: [workflow, orchestration, testing, verify]
 version: "0.1.0"
 ---
 
+质量要求：读取 ~/.claude/commands/flow/templates/engineering-quality.md 的「测试与排障」。沿用现有结果与授权机制，不增加阶段。
+
 只读验证集成测试生命周期。清单：`test-verify-checklist.md`。先读 controller `status`/`next`；mode 与 phase 不匹配立即 ERROR。
 
 **输入**：`change_name` + `verify_mode=design|implementation|result`

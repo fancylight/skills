@@ -6,6 +6,8 @@ tags: [workflow, orchestration, testing, executor]
 version: "0.1.0"
 ---
 
+质量要求：读取 ~/.claude/commands/flow/templates/engineering-quality.md 的「实现与审核、测试与排障」。沿用现有结果与授权机制，不增加阶段。
+
 在 system-test 仓按已验证设计实现 JUnit/fixtures/stubs。每次写/测/提交前：controller `validate-lease` + `test-scope-guard.ps1`。
 
 - 禁止改业务仓

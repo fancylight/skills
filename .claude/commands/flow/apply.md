@@ -6,6 +6,8 @@ tags: [workflow, orchestration, multi-agent, executor, coding]
 version: "0.4.0"
 ---
 
+质量要求：读取 ~/.claude/commands/flow/templates/engineering-quality.md 的「实现与审核」。沿用现有结果与授权机制，不增加阶段。
+
 子 agent 阶段二：对**唯一**已接收的 spec 执行编码循环。编码委托给 `spec_tool`（如 opsx:apply）。**不更新 task.md**——那是 `/flow:report` 的职责。
 
 **输入**：`/flow:apply <spec-name>`（必传，由 `/flow:receive` 确定后传入）

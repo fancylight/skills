@@ -16,6 +16,7 @@ const FLOW_DOCS_DIR = path.join(ROOT, 'flow', 'docs');
 
 const REQUIRED_FRONTMATTER = ['name', 'description', 'category', 'tags', 'version'];
 const REQUIRED_SCRIPTS = [
+  'check-java-style.ps1',
   'validate-domain-artifact.ps1',
   'validate-test-artifacts.ps1',
   'validate-test-cases.ps1',

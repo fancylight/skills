@@ -6,6 +6,8 @@ tags: [workflow, orchestration, testing, runner]
 version: "0.2.0"
 ---
 
+质量要求：读取 ~/.claude/commands/flow/templates/engineering-quality.md 的「测试与排障」。沿用现有结果与授权机制，不增加阶段。
+
 执行 manifest runner 并收集证据。orchestrated：须 `next=RUN_ONCE` → `start-run` → run → `record-run`；v2 run 必须把 active run 锁定的 configuration fingerprint 传入 runner。standalone 不写 controller、不完成 Flow。
 
 ceiling < execution、配置契约缺失/探针失败 → 拒绝并 `STOP_AWAIT_USER_AUTHORIZATION`。

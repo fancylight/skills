@@ -6,6 +6,8 @@ tags: [workflow, orchestration, multi-agent, verify]
 version: "0.4.0"
 ---
 
+质量要求：读取 ~/.claude/commands/flow/templates/engineering-quality.md 的「设计与验证、文档与汇报（只检查当前 verify_mode 适用项）」。沿用现有结果与授权机制，不增加阶段。
+
 对明确指定的 `change_name` 执行只读检查，输出结构化报告。清单 SoT：`~/.claude/commands/flow/templates/verify-checklist.md`。领域脚本：`~/.claude/commands/flow/scripts/validate-domain-artifact.ps1`。
 
 - **ERROR**：阻断 `/flow:test`（full）、`/flow:archive`（release）或 `/flow:assign`（design）

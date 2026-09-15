@@ -5,6 +5,8 @@ description: 将已批准的需求变更应用到现有 Flow 产物和受影响�
 
 # Codex Flow 需求变更
 
+质量要求：读取 ../flow-codex-core/assets/templates/engineering-quality.md 的「设计与验证、文档与汇报」。沿用现有结果与授权机制，不增加阶段。
+
 读取 `../flow-codex-core/references/platform.md`。要求明确指定需求，写入前说明影响范围。更新根概要
 设计、任务追踪、依赖关系和受影响服务的 OpenSpec 产物。重新检查受影响 specs 的 OpenSpec
 readiness。读取 ../flow-codex-core/references/delivery.md：原范围修复按 task-md-maintenance.md §3.3 重开原 spec，只有新增范围才用 §3.4 新增 spec；保留旧 Git 提交，以后续提交修复。

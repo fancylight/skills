@@ -1,0 +1,30 @@
+{
+  "purpose": "Manual decision review; not a keyword test or an independent model evaluation",
+  "cases": [
+    {
+      "id": "reuse-existing-reader",
+      "input": "The repository has a limited list method and an existing complete streaming reader. The request needs all matching records and strict failure handling. The current proposal creates another transport client because the list method is limited.",
+      "reviewQuestion": "Which existing capability should be assessed before accepting the new client?"
+    },
+    {
+      "id": "target-version-mismatch",
+      "input": "A proposed storage API requires version 7.10. The target environment is version 6.8. Local tests passed on version 7.13. No target-environment test exists.",
+      "reviewQuestion": "Can the design claim compatibility, and what should happen to the dependent implementation?"
+    },
+    {
+      "id": "necessary-and-speculative-state",
+      "input": "A saved configuration takes effect after asynchronous computation. Old computation must not replace a newer configuration. The proposal uses current/pending identities, and also adds an unused future multi-region migration state machine.",
+      "reviewQuestion": "Which mechanisms have an evidenced purpose, and which need justification?"
+    },
+    {
+      "id": "conflicting-current-document",
+      "input": "The deployment section says an execution switch was removed. A later current-configuration section says the same switch is required. The document has all required headings.",
+      "reviewQuestion": "Can structural validation justify approval, and how should the document be repaired?"
+    },
+    {
+      "id": "passing-methods-missing-acceptance",
+      "input": "All 42 test methods pass. A concurrency requirement is only tested with sequential saves, and a server compatibility API is mocked as always successful. The report proposes full integration acceptance.",
+      "reviewQuestion": "What conclusion is supported and what remains unverified?"
+    }
+  ]
+}

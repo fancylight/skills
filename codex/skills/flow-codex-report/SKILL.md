@@ -5,6 +5,8 @@ description: 在提交后记录一个已完成的 Flow spec，并更新根追踪
 
 # Codex Flow 汇报
 
+质量要求：读取 ../flow-codex-core/assets/templates/engineering-quality.md 的「文档与汇报」。沿用现有结果与授权机制，不增加阶段。
+
 读取 `../flow-codex-core/references/platform.md`、
 `../flow-codex-core/references/checkpoints.md`、
 `../flow-codex-core/assets/templates/task-md-maintenance.md`、

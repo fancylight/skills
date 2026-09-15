@@ -4,6 +4,21 @@
 
 本仓库**不是业务项目**，而是 skills 源码与共享协议（`.flow/`）的定义处。业务项目（如 `glm`）在根目录初始化 `.flow/` 后，安装并调用这里的 skills。
 
+## 工程质量
+
+设计、编码、审核、测试和汇报共用 [工程质量约束](flow/templates/engineering-quality.md)。先核对既有实现及目标环境，再判断新增能力；审核不能仅检查与设计一致。概要设计先解释当前方案，追溯信息后置；历史布局仍可使用。
+
+Java 变更保留项目已有规范检查，并用 [独立 NeedBraces 检查器](flow/scripts/check-java-style.ps1) 检查本次文件。它只保证控制语句的大括号，不代表完整阿里 Java 规范检查，不修改业务 POM。工具固定 Checkstyle 14.1.0，可从 [官方发布页](https://github.com/checkstyle/checkstyle/releases/tag/checkstyle-14.1.0)取得 all.jar，放在用户缓存 `.cache/flow-tools/checkstyle/14.1.0/`，或传入 `-CheckstyleJar`；使用独立 JDK 21+，不升级业务项目 JDK。检查器不会自动下载或安装依赖。
+
+```powershell
+# Files 为本次明确的仓库相对路径；每次使用空的独立报告目录。
+./flow/scripts/check-java-style.ps1 -RepositoryPath <repo> -BaseRevision <commit> -Files <file.java> -ReportDirectory <report-dir> -JavaExecutable <jdk21-java>
+```
+
+新文件检查全部违例；已有文件通过基线和 Git 行映射识别历史违例，Git 已识别的重命名也保留基线。未被 Git 识别的新增路径按新文件检查，可在正常暂存后重新检查重命名。结果及原始 XML 保留在报告目录：PASS/NOT_APPLICABLE 退出0，新增违例 FAIL 退出1，工具、输入或解析问题 UNVERIFIED 退出2。Java 相关审核不能把 FAIL/UNVERIFIED 当作规范通过。
+
+维护时运行 `flow/scripts/tests/test-check-java-style.ps1`（传入可用的 `-JavaExecutable`）和 `codex/validate.ps1`。安装器分发共享规则、脚本和配置，不修改个人全局 AGENTS.md；全局规则由用户单独维护。
+
 ---
 
 ## 架构总览

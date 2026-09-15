@@ -121,7 +121,7 @@
 | [flow/docs/schema.md](./flow/docs/schema.md) §10 | 协议字段 |
 
 你改 `flow-codex-design` / `flow-codex-report` / `flow-codex-verify`（及 Claude 侧 design/report/archive）时，须与上表**保持一致**。  
-分工一句话：**概要设计 = Agent 编排；开发文档 = 人读交付**（勿互相照搬）。
+分工一句话：**概要设计 = 可读的方案说明与后置追溯；开发文档 = 人读交付**（勿互相照搬）。
 
 ---
 

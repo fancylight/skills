@@ -1,5 +1,7 @@
 # 开发文档维护规范
 
+写作和修订先遵守同目录 engineering-quality.md 的「文档与汇报」：当前方案直接写入正文，历史记录不覆盖正文结论。
+
 > **受众**：在**业务项目**中执行 Flow 的 Agent（`flow-codex-design`、`flow:design`、`flow-codex-report`、`flow:report`、`flow-codex-verify`）。
 > **不是** skills 仓库维护文档——维护 `skills` 项目请读仓库根 [MAINTENANCE.md](../../MAINTENANCE.md)（路径相对于业务项目时忽略；在 skills 仓库内为 `/MAINTENANCE.md`）。
 >

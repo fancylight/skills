@@ -6,6 +6,8 @@ tags: [workflow, orchestration, multi-agent, design]
 version: "0.4.0"
 ---
 
+质量要求：读取 ~/.claude/commands/flow/templates/engineering-quality.md 的「设计与验证、文档与汇报」。沿用现有结果与授权机制，不增加阶段。
+
 设计阶段。根模式：**先领域模型，经独立 domain verify 后**才生成方案产物。清单/模板：`~/.claude/commands/flow/templates/`；脚本：`~/.claude/commands/flow/scripts/`。
 
 ---
@@ -45,7 +47,7 @@ version: "0.4.0"
 
    创建/修复：`概要设计.md`、`开发文档.md`、`task.md`、`发版记录.md`、`操作链路.md`（补 new/changed + owning spec）。
 
-   概要设计强制节（在「服务拆分」前）：`## 领域概念`、`## 歧义裁决`、`## 审核 pass / 写库决策表`、`## 集成 / 联调范围`、`## 数据访问契约`（条件 mandatory；无此类查询写「无」）。
+   概要设计必需内容（可集中于正文之后的追溯部分；保留标题与语义，兼容原布局）：`## 领域概念`、`## 歧义裁决`、`## 审核 pass / 写库决策表`、`## 集成 / 联调范围`、`## 数据访问契约`（条件 mandatory；无此类查询写「无」）。
 
    「领域事实引用」列出已验证 Fact ID 与方案消费位置。业务规则/SQL/验收必须引用 Fact ID。
 

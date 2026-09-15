@@ -6,6 +6,8 @@ tags: [workflow, feedback, investigation]
 version: "0.2.0"
 ---
 
+质量要求：读取 ~/.claude/commands/flow/templates/engineering-quality.md 的「测试与排障」。沿用现有结果与授权机制，不增加阶段。
+
 线上反馈调查。输入原始反馈，产出 `.flow/feedback/{id}/` 调查报告。**不修代码、不写 task.md、不建 spec**。**禁止**自动执行写库 SQL。
 
 **输入**：`/flow:feedback "简短标题"`  

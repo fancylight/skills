@@ -6,6 +6,8 @@ tags: [workflow, orchestration, multi-agent, review]
 version: "0.1.0"
 ---
 
+质量要求：读取 ~/.claude/commands/flow/templates/engineering-quality.md 的「实现与审核；test 模式另读测试与排障」。沿用现有结果与授权机制，不增加阶段。
+
 根据设计产物对**一个** Flow spec 实现执行独立只读审核。由根编排在收到 `[REVIEW_REQUEST]` 后调度（Agent tool 或本命令）；**不是**执行子 agent 的内联职责（lease-v1）。
 
 协议：`~/.claude/commands/flow/docs/control-plane.md`。输出格式对齐 `~/.claude/commands/flow/templates/review-agent-prompt.md` 与 Codex `review-format`。

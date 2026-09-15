@@ -8,7 +8,13 @@
 
 ## [Unreleased]
 
+### Changed
+
+- 全局短原则与 Flow 分阶段质量检查分层：共享工程质量约束覆盖复用、目标环境、必要复杂度、编码规范、真实验收和文档当前结论；Codex 与 Claude 入口引用同一来源。移除审核只检查设计一致性的限制，概要设计改为业务说明先行、追溯材料后置，兼容既有布局。
+
 ### Added
+
+- 独立 Java NeedBraces 检查器：固定 Checkstyle 14.1.0/JDK 21+，按指定文件与 Git 基线分离新增和历史违例；输出原始 XML 与 PASS/FAIL/UNVERIFIED/NOT_APPLICABLE，不修改业务 POM。新增真实工具回归及安装分发验证。
 
 - **v2 standalone 场景选择与本地配置统一**：新增 canonical `-ScenarioIds` 精确过滤和本次 JUnit 报告校验，拒绝空选集、未知 ID、零匹配、越界或 skipped；部分结果 `fullSuite=false`，controller 拒绝将其登记全量 PASS。Git 忽略的 human 本地配置允许已有凭据，完整文件 SHA256 检测变化；日志脱敏后入独立 runs 证据目录。运行时增加 prepare/cleanup 契约、显式身份复用、按 SUT 关联配置证据、120 秒启动及 600 秒 suite 上限、PID/启动时间校验后的进程树清理。共享 helper 纳入 harness certification。
 

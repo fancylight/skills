@@ -5,6 +5,8 @@ description: 根据 OpenSpec 设计对一个 Flow spec 实现执行独立只读�
 
 # Codex Flow 审核
 
+质量要求：读取 ../flow-codex-core/assets/templates/engineering-quality.md 的「实现与审核；test 模式另读测试与排障」。沿用现有结果与授权机制，不增加阶段。
+
 读取 `../flow-codex-core/references/platform.md` 和 `references/review-format.md`。这是内部只读
 辅助 skill。
 

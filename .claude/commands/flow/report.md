@@ -6,6 +6,8 @@ tags: [workflow, orchestration, multi-agent, executor]
 version: "0.4.0"
 ---
 
+质量要求：读取 ~/.claude/commands/flow/templates/engineering-quality.md 的「文档与汇报」。沿用现有结果与授权机制，不增加阶段。
+
 子 agent 完成编码后提交结构化汇报。**`/flow:report` 是 task.md 的唯一写入者**——根 agent（assign）和编码阶段（apply）均不更新 spec 完成状态。
 
 **输入**：`/flow:report` 无参数，自动收集当前工作信息。

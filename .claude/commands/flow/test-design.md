@@ -6,6 +6,8 @@ tags: [workflow, orchestration, testing, design]
 version: "0.1.0"
 ---
 
+质量要求：读取 ~/.claude/commands/flow/templates/engineering-quality.md 的「测试与排障」。沿用现有结果与授权机制，不增加阶段。
+
 业务代码已审核提交后，设计可独立实施的集成测试。以 `test-cases.yaml` 为唯一场景源。模板：`test-design.md.tmpl`、`test-plan.md.tmpl`、`test-cases.yaml.tmpl`。脚本：`validate-test-cases.ps1`、`validate-test-artifacts.ps1`、`test-scope-guard.ps1`。
 
 对照 Codex `flow-codex-test-design` 语义；Claude 用 `powershell -File ~/.claude/commands/flow/scripts/...`。
