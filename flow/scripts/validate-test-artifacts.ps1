@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
     [string]$SystemTestRepo,
@@ -135,8 +135,8 @@ if (-not (Test-Path -LiteralPath $changeDir -PathType Container)) {
                 if ($manifestValue.stage -ne 'design') { Add-Error "Manifest stage must be 'design': $manifest" }
                 if ($null -eq $manifestValue.testAuthorization) {
                     Add-Error "Manifest must record testAuthorization: $manifest"
-                } elseif ($manifestValue.testAuthorization.ceiling -ne 'design') {
-                    Add-Error "Design manifest testAuthorization.ceiling must be 'design': $manifest"
+                } elseif ($manifestValue.testAuthorization.ceiling -notin @('design','implementation','execution','result')) {
+                    Add-Error "Manifest testAuthorization.ceiling is invalid: $manifest"
                 } elseif ($manifestValue.testAuthorization.grantedBy -ne 'user') {
                     Add-Error "Manifest testAuthorization.grantedBy must be 'user': $manifest"
                 }
@@ -183,7 +183,7 @@ if (-not (Test-Path -LiteralPath $changeDir -PathType Container)) {
         else {
             $validatorParameters = @{
                 TestCasesPath=$testCases; Mode=$Mode; CanonicalRevision=$CanonicalRevision; ManifestPath=$manifest
-                DerivedContractPath=$derivedContract; TestPlanPath=$plan
+                DerivedContractPath=$derivedContract; TestPlanPath=$plan; RequireBusiness=$true
             }
             if ($Mode -in @('implementation','result')) {
                 $javaSourceRoot = Resolve-ChangeJavaSourceRoot $repo $ChangeName

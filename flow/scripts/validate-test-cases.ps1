@@ -1,7 +1,7 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)] [string]$TestCasesPath,
-    [ValidateSet('design', 'implementation', 'result')] [string]$Mode = 'design',
+    [ValidateSet('business', 'design', 'implementation', 'result')] [string]$Mode = 'design',
     [string]$CanonicalRevision,
     [string]$ManifestPath,
     [string]$DerivedContractPath,
@@ -14,7 +14,9 @@ param(
     [string]$ControllerStatePath,
     [string]$TrustedVerifierIdentity,
     [switch]$Generate,
-    [switch]$ExportJson
+    [switch]$ExportJson,
+    [switch]$RequireBusiness,
+    [switch]$PreserveRequiredCoverage
 )
 
 $ErrorActionPreference = 'Stop'
@@ -121,9 +123,9 @@ function Read-StrictTestCases([string]$Path) {
         if ($indent -eq 4) {
             if ($null -eq $current -or $trimmed -notmatch '^([A-Za-z][A-Za-z0-9]*)\s*:\s*(.*)$') { throw "line $lineNumber has invalid scenario nesting" }
             $key = $Matches[1]; $value = $Matches[2]
-            $allowed = @('acceptance','required','suite','integration','testClass','testMethod','reportClass','filter','externalEvidence','setup','action','assertions','cleanup','observability')
+            $allowed = @('acceptance','required','suite','integration','business','testClass','testMethod','reportClass','filter','externalEvidence','setup','action','assertions','cleanup','observability')
             if ($key -notin $allowed) { throw "line $lineNumber contains unknown scenario field '$key'" }
-            if ($key -in @('setup','action','assertions','observability')) {
+            if ($key -in @('business','setup','action','assertions','observability')) {
                 if (-not [string]::IsNullOrWhiteSpace($value)) { throw "line $lineNumber field '$key' must be a structured mapping" }
                 $mapping = [ordered]@{}
                 Add-UniqueField $current $key $mapping $lineNumber
@@ -145,6 +147,7 @@ function Read-StrictTestCases([string]$Path) {
             if ($null -eq $current -or [string]::IsNullOrWhiteSpace($section) -or $trimmed -notmatch '^([A-Za-z][A-Za-z0-9]*)\s*:\s*(.*)$') { throw "line $lineNumber has invalid nested mapping" }
             $key = $Matches[1]; $value = $Matches[2]
             $allowedBySection = @{
+                business = @('purpose','preconditions','inputs','steps','expected','oracle','counterexamples','evidenceBoundary')
                 setup = @('fixtures'); action = @('method','path'); assertions = @('response','database','sideEffects'); observability = @('correlationField','allowedEvidence')
             }
             if ($key -notin $allowedBySection[$section]) { throw "line $lineNumber contains unknown '$section' field '$key'" }
@@ -198,9 +201,11 @@ function Test-DocumentSchema($Document) {
     $map = Get-ScenarioMap $Document
     foreach ($scenario in $scenarios) {
         $id = [string](Get-Field $scenario 'id')
-        $fields = @('id','acceptance','required','suite','integration','externalEvidence','setup','action','assertions','cleanup','observability')
+        $fields = @('id','acceptance','required','integration')
+        if ($Mode -ne 'business') { $fields += @('suite','externalEvidence','setup','action','assertions','cleanup','observability') }
         Assert-RequiredFields $scenario $fields "scenario $id"
-        foreach ($field in @('id','acceptance','suite')) {
+        $textFields = @('id','acceptance'); if ($Mode -ne 'business') { $textFields += 'suite' }
+        foreach ($field in $textFields) {
             $value = Get-Field $scenario $field
             if ($value -isnot [string] -or (Test-Unfinished ([string]$value))) { Add-ValidationError "scenario $id has invalid or unfinished $field" }
         }
@@ -208,6 +213,16 @@ function Test-DocumentSchema($Document) {
         if ((Get-Field $scenario 'required') -isnot [bool]) { Add-ValidationError "scenario $id required must be boolean" }
         $integration = [string](Get-Field $scenario 'integration')
         if ($integration -notin @('Y','N')) { Add-ValidationError "scenario $id integration must be Y or N" }
+        $business = Get-Field $scenario 'business'
+        if ($null -ne $business -or $RequireBusiness -or $Mode -eq 'business') {
+            $businessFields = @('purpose','preconditions','inputs','steps','expected','oracle','counterexamples','evidenceBoundary')
+            Assert-RequiredFields $business $businessFields "scenario $id business"
+            foreach ($field in $businessFields) {
+                $value = Get-Field $business $field
+                if ($value -isnot [string] -or (Test-Unfinished ([string]$value))) { Add-ValidationError "scenario $id business.$field must describe a concrete business case" }
+            }
+        }
+        if ($Mode -eq 'business') { continue }
         if ($integration -eq 'Y') {
             foreach ($field in @('testClass','testMethod','reportClass','filter')) {
                 if (-not (Test-HasField $scenario $field) -or (Get-Field $scenario $field) -isnot [string] -or (Test-Unfinished ([string](Get-Field $scenario $field)))) {
@@ -288,20 +303,43 @@ function Get-PlanParts([string]$Path) {
     $newline = if ([Text.Encoding]::UTF8.GetString($bytes).Contains("`r`n")) { "`r`n" } else { "`n" }
     return [pscustomobject]@{ bytes=$bytes; prefix=$prefix; middle=$middle; suffix=$suffix; outsideHash=(Get-Sha256Bytes $outside); newline=$newline }
 }
+function Convert-PlanText($Value) {
+    return ([string]$Value).Replace('&', '&amp;').Replace('<', '&lt;').Replace('>', '&gt;').Replace('|', '&#124;').Replace('`', '&#96;').Replace('*', '&#42;').Replace('_', '&#95;').Replace('[', '&#91;').Replace(']', '&#93;')
+}
 function Get-GeneratedPlanText($Document) {
     $lines = [System.Collections.Generic.List[string]]::new()
-    [void]$lines.Add('| 场景 ID | 验收 | Required | Integration | Suite | Java 绑定 | Action | Filter | Report | Evidence |')
-    [void]$lines.Add('|---|---|---|---|---|---|---|---|---|---|')
-    foreach ($scenario in @((Get-Field $Document 'scenarios') | Sort-Object { [string](Get-Field $_ 'id') })) {
-        $id = [string](Get-Field $scenario 'id'); $action = Get-Field $scenario 'action'; $observability = Get-Field $scenario 'observability'
-        $ordinary = @(Get-StringList (Get-Field $observability 'allowedEvidence') "scenario $id observability.allowedEvidence" $true) -join ', '; $external = @(Get-StringList (Get-Field $scenario 'externalEvidence') "scenario $id externalEvidence" $true) -join ', '
-        $evidence = if ([string]::IsNullOrWhiteSpace($external)) { $ordinary } else { "$ordinary; external: $external" }
-        $required = ([string](Get-Field $scenario 'required')).ToLowerInvariant()
-        $java = if ((Get-Field $scenario 'integration') -eq 'Y') { "$((Get-Field $scenario 'testClass'))#$((Get-Field $scenario 'testMethod'))" } else { 'external-only' }
-        $actionText = "$((Get-Field $action 'method')) $((Get-Field $action 'path'))"
-        $filter = if ((Get-Field $scenario 'integration') -eq 'Y') { [string](Get-Field $scenario 'filter') } else { '-' }
-        $report = if ((Get-Field $scenario 'integration') -eq 'Y') { [string](Get-Field $scenario 'reportClass') } else { '-' }
-        [void]$lines.Add("| $id | $((Get-Field $scenario 'acceptance')) | $required | $((Get-Field $scenario 'integration')) | $((Get-Field $scenario 'suite')) | $java | $actionText | $filter | $report | $evidence |")
+    [void]$lines.Add('### 业务用例（设计预期，待执行）')
+    [void]$lines.Add('')
+    [void]$lines.Add('以下由 test-cases.yaml 派生。业务审核检查输入、独立预期及反例；技术契约齐全不等于覆盖合理，设计审核通过不等于运行通过。')
+    $sorted = @((Get-Field $Document 'scenarios') | Sort-Object { [string](Get-Field $_ 'id') })
+    $labels = [ordered]@{ purpose='验证目的'; preconditions='规则配置与前提'; inputs='具体输入'; steps='业务操作'; expected='预期最终结果'; oracle='独立预期依据与推导'; counterexamples='关键反例与边界'; evidenceBoundary='集成范围与证据边界' }
+    foreach ($scenario in $sorted) {
+        $id = Convert-PlanText (Get-Field $scenario 'id')
+        [void]$lines.Add('')
+        [void]$lines.Add("#### $id")
+        [void]$lines.Add('')
+        [void]$lines.Add("验收：$(Convert-PlanText (Get-Field $scenario 'acceptance'))；必需：$(Get-Field $scenario 'required')；集成：$(Get-Field $scenario 'integration')；状态：待执行。")
+        [void]$lines.Add('')
+        $business = Get-Field $scenario 'business'
+        if ($null -eq $business) { [void]$lines.Add('业务用例缺失：存量技术映射须补充业务输入和独立预期后重新审核。') }
+        else {
+            foreach ($key in $labels.Keys) { [void]$lines.Add("- $($labels[$key])：$(Convert-PlanText (Get-Field $business $key))") }
+        }
+    }
+    if ($Mode -ne 'business') {
+        [void]$lines.Add('')
+        [void]$lines.Add('### 技术附录（执行绑定与证据契约）')
+        [void]$lines.Add('')
+        [void]$lines.Add('| Scenario ID | Suite | Java binding | Action | Filter | Report class | Evidence |')
+        [void]$lines.Add('|---|---|---|---|---|---|---|')
+        foreach ($scenario in $sorted) {
+            $id = [string](Get-Field $scenario 'id'); $action = Get-Field $scenario 'action'; $o = Get-Field $scenario 'observability'
+            $ordinary = @(Get-StringList (Get-Field $o 'allowedEvidence') "scenario $id observability.allowedEvidence" $true) -join ', '
+            $external = @(Get-StringList (Get-Field $scenario 'externalEvidence') "scenario $id externalEvidence" $true) -join ', '
+            $java = if ((Get-Field $scenario 'integration') -eq 'Y') { "$(Get-Field $scenario 'testClass')#$(Get-Field $scenario 'testMethod')" } else { 'external-only' }
+            $cells = @($id, (Get-Field $scenario 'suite'), $java, "$(Get-Field $action 'method') $(Get-Field $action 'path')", (Get-Field $scenario 'filter'), (Get-Field $scenario 'reportClass'), "$ordinary; external: $external")
+            [void]$lines.Add('| ' + (($cells | ForEach-Object { Convert-PlanText $_ }) -join ' | ') + ' |')
+        }
     }
     return ($lines -join "`n")
 }
@@ -431,18 +469,34 @@ $previousDocument = $null
 if ($PreviousTestCasesPath) {
     try { $previousDocument = Read-StrictTestCases $PreviousTestCasesPath; [void](Test-DocumentSchema $previousDocument) }
     catch { Add-ValidationError "previous test-cases strict YAML parse failed: $($_.Exception.Message)" }
-    if ($null -ne $previousDocument) { Test-RequiredRemovalEvidence $previousDocument $scenarioMap (Get-FileSha256 $PreviousTestCasesPath) $sourceHash }
+    if ($null -ne $previousDocument) {
+        if ($PreserveRequiredCoverage) {
+            foreach ($previousScenario in @(Get-Field $previousDocument 'scenarios')) {
+                if ((Get-Field $previousScenario 'required') -ne $true) { continue }
+                $id = [string](Get-Field $previousScenario 'id')
+                if (-not $scenarioMap.ContainsKey($id) -or (Get-Field $scenarioMap[$id] 'required') -ne $true -or
+                    ((Get-Field $previousScenario 'integration') -eq 'Y' -and (Get-Field $scenarioMap[$id] 'integration') -ne 'Y')) {
+                    Add-ValidationError "required scenario removed or coverage weakened: $id"
+                }
+            }
+        } else { Test-RequiredRemovalEvidence $previousDocument $scenarioMap (Get-FileSha256 $PreviousTestCasesPath) $sourceHash }
+    }
 }
 
-$needsDerived = $Generate -or $ManifestPath -or $DerivedContractPath -or $TestPlanPath
+$needsDerived = $Mode -ne 'business' -and ($Generate -or $ManifestPath -or $DerivedContractPath -or $TestPlanPath)
 if ($needsDerived) { Assert-Revision $CanonicalRevision 'canonical revision' }
 $manifest = if ($ManifestPath) { Read-JsonFile $ManifestPath 'manifest' } else { $null }
 if ($ManifestPath) { Test-ManifestPointer $manifest $DerivedContractPath }
 $planParts = if ($TestPlanPath) { Get-PlanParts $TestPlanPath } else { $null }
-$derived = if ($null -ne $document -and $null -ne $planParts -and $CanonicalRevision) { New-DerivedContract $document $sourceHash $CanonicalRevision $planParts.outsideHash } else { $null }
+$derived = if ($Mode -ne 'business' -and $null -ne $document -and $null -ne $planParts -and $CanonicalRevision) { New-DerivedContract $document $sourceHash $CanonicalRevision $planParts.outsideHash } else { $null }
 $generatedPlan = if ($null -ne $document) { Get-GeneratedPlanText $document } else { $null }
 
-if ($Generate) {
+if ($Mode -eq 'business' -and ($ManifestPath -or $DerivedContractPath -or $JavaSourceRoot -or $EvidenceRoot)) { Add-ValidationError 'business mode only validates/previews business cases; do not supply execution or sidecar inputs' }
+if ($Generate -and $Mode -eq 'business') {
+    if (-not $TestPlanPath) { Add-ValidationError 'business preview requires TestPlanPath' }
+    if ($errors.Count -eq 0) { Write-GeneratedPlanRegion $TestPlanPath $generatedPlan $planParts; $planParts = Get-PlanParts $TestPlanPath }
+}
+if ($Generate -and $Mode -ne 'business') {
     if (-not $ManifestPath -or -not $DerivedContractPath -or -not $TestPlanPath) { Add-ValidationError 'generation requires ManifestPath, DerivedContractPath, and TestPlanPath' }
     if ($errors.Count -eq 0) {
         Write-GeneratedPlanRegion $TestPlanPath $generatedPlan $planParts

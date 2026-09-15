@@ -1,7 +1,5 @@
 # 集成测试 Controller 协议
 
-Codex 单对话执行方式见 first-delivery.md；保持本协议所有状态、授权、租约与版本约束。
-
 集成测试自动化的唯一 machine state 位于编排根
 `.flow/changes/<change>/automation-state.yaml`。只用安装后的
 `assets/scripts/flow-test-controller.ps1` 读取或写入；manifest、task、agent 口述和 Goal 建议都不能直接改变 phase、授权或 revision。
@@ -12,6 +10,7 @@ Codex 单对话执行方式见 first-delivery.md；保持本协议所有状态�
 
 | `next` | 唯一允许动作 | Skill |
 |---|---|---|
+| `STOP_AWAIT_USER_AUTHORIZATION` | 停在当前阶段；收到真实追加授权后调用 grant-authorization | 当前对话 |
 | `VERIFY_DESIGN` | 记录结构化 design verifier PASS | `flow-codex-test-verify design` |
 | `ISSUE_IMPLEMENTATION_LEASE` | 签发一个 test-implementer lease | `flow-codex-test-assign` |
 | `AWAIT_IMPLEMENTATION_RESULT` | 仅持租约 agent receive/apply/report | `flow-codex-test-receive/apply/report` |
@@ -27,6 +26,54 @@ phase 与表中动作不一致时输出 `[FLOW_CONTROLLER] ERROR_TRANSITION` 并
 runner FAIL 在 `record-run` 前完成失败证据收集与完整性检查，记录后进入 `TEST_EXECUTED_FAIL` / `next=BLOCKED`；不得把失败运行送入只接受 PASS 的 result verifier。
 
 若失败被结构化证据明确归类为 `TEST_HARNESS`，且 cleanup 成功，可执行一次受限的 `retry-harness-failure` 修复迁移。该命令要求业务 revision 与配置指纹保持不变、新测试 revision 只修改 `scripts/**` 和 `self-test/**`、新 harness 完成认证，并保留原失败运行；迁移后回到 `TEST_IMPLEMENTED` 重新执行 implementation verify、environment verify 和唯一一次新 revision runner。业务失败、配置失败、未清理现场或同 revision 均不得使用该迁移。
+
+## 初始授权与追加授权
+
+manifest 的 `testAuthorization` 是**初始用户授权**，`stage: design` 不限制 ceiling 只能是 design。用户只授权设计时记 design；已明确授权实现、执行或结果验收时如实记对应上限。controller `initialize` 的 Authorization 必须与已有 manifest 一致。初始化后有效上限唯一读取 `authorization.maxPhase`，初始 manifest 保持不变，避免修改 manifest 导致 v2 配置指纹失效。
+
+初始化高于 design 时，以及所有追加授权，必须提供 `-ReportPath <grant.json>`。内容如下（不是用户批准模板，必须从真实已收到的授权填写，不得自行编造）：
+
+```json
+{
+  "schemaVersion": 1,
+  "grantedBy": "user",
+  "requestRef": "真实任务/消息定位",
+  "requestText": "用户授权相应测试阶段的原话片段（无凭据）",
+  "changeName": "当前change",
+  "previousCeiling": "design",
+  "ceiling": "execution",
+  "testRevision": "当前锁定测试提交",
+  "sutRevision": "当前锁定SUT提交",
+  "harnessRevision": "当前锁定harness revision",
+  "configurationFingerprint": "当前锁定配置指纹"
+}
+```
+
+初始化报告 `previousCeiling` 为 `none`；追加报告为当前 ceiling。报告保存在既有编排证据目录，不能污染测试仓提交。controller 保存原话、引用、报告 hash 及绑定版本的 grants 审计记录；它校验结构与绑定，**不能认证一段文字真的来自用户**，当前 agent 仍须从实际对话确认授权，不能把报告生成当成授权。
+
+```powershell
+& <controller> grant-authorization -StatePath <state> -Authorization execution -ReportPath <grant.json> -TestRevision <locked-test> -SutRevision <locked-sut> -HarnessRevision <locked-harness> -ConfigurationFingerprint <locked-config>
+```
+
+只允许严格提升；无报告、非用户来源、缺原话/引用、陈旧绑定、降级/重放均拒绝。提升只更新授权和审计，不改 phase、revision、baseline、配置、租约、verifier、失败或运行证据；运行失败仍须按原失败规则处理。已有明确授权持续有效，不要求每个入口重新询问。`next` 发现下一动作超出上限时返回 `STOP_AWAIT_USER_AUTHORIZATION`，追加后重新读 next，仍不能跳过门禁。
+
+## 存量设计补充与重新审核（实施前）
+
+适用于已有 `TEST_DESIGN_DRAFT` / `TEST_DESIGN_VERIFIED`、尚未签发任何实施租约且没有运行的设计。用户要求复核时，reopen-design 是显式设计入口：next=STOP_AWAIT_USER_AUTHORIZATION 只拦截超出上限的下一阶段，不阻断已授权的设计复核。新业务用例规则不使旧 design PASS 自动变为新规则PASS。默认单对话完成；不新增 phase、不重建 state，不补造历史。
+
+1. 用当前锁定 test/SUT/harness/config 调 `reopen-design -Reason <本次复核原因>`。controller 把旧 revision/verifier 保存到 designRevisions，清除当前 verifier，并回到已有 `TEST_DESIGN_DRAFT`。纯只读诊断无须调用；准备补充/正式重新审核时调用。
+2. 由 test-design 在原 `test-cases.yaml` 补充业务内容，先业务预览与审核补齐，再检查技术设计可否验证，更新同一个 test-plan 生成区及 sidecar。继续使用原 `revisions.testBaseline`；配置未变时不重新 resolve。不得改变用户已确认的业务结果以适应旧技术设计。
+3. 本迁移仅允许当前 change 的 test-cases.yaml、test-cases.generated.json、test-design.md、test-plan.md；manifest、resolved manifest、夹具、配置、业务与测试代码均保持锁定。它用于补充/复核现有设计；若业务审核发现必须改这些技术契约，明确报告超出本迁移范围，保留待处理状态，不能夹带或清空状态绕过。required 场景不得删除、降为非必需或把原Y改N。
+4. 完成静态产物校验并提交后，用旧锁定 `-TestRevision` 和新 `-ProposedTestRevision` 调 `accept-design-revision`，其余锁参数不变。controller 检查真实Git祖先/HEAD、干净工作区、文件范围、必需场景保留和最新静态design门禁；仅推进测试/design/implementation-base revision，稳定 testBaseline 不变，phase仍为DRAFT。
+5. 用新测试revision重新运行 `flow-codex-test-verify design`，对原需求和业务预期做真实语义自查。只有当前新报告可记录；旧报告因版本不同拒绝。只获 design 授权时复核后仍等待授权，不执行 JUnit 或 runner。
+
+```powershell
+& <controller> reopen-design -StatePath <state> -Reason '业务用例复核' -TestRevision <old-test> -SutRevision <sut> -HarnessRevision <harness> -ConfigurationFingerprint <config>
+# 更新允许的设计产物，校验并提交；不要手改state
+& <controller> accept-design-revision -StatePath <state> -TestRevision <old-test> -ProposedTestRevision <new-test> -SutRevision <sut> -HarnessRevision <harness> -ConfigurationFingerprint <config>
+```
+
+若无需修改产物，reopen 后可在同一revision重新审核；旧记录仍保留。进入实施或执行后的范围变更不使用该入口，不抹去既有租约/运行以伪装成首次设计。
 
 ## Lease 与结构化结果
 
@@ -44,3 +91,5 @@ runner FAIL 在 `record-run` 前完成失败证据收集与完整性检查，记
 v2 standalone smoke 不写 controller。场景选择的 `fullSuite=false` 证据及 `execution_mode: standalone` 证据不能交给 `record-run` 登记全量 PASS；证据保存在独立 `evidence/runs/<run-id>/`，不覆盖已记录的全量失败。
 
 持续 Goal 只允许：读取 `controller next` → 执行该动作一次 → 将结构化结果交回 controller。用户“尽量完成”不扩大授权。任何命令失败、revision/configuration/capability 漂移或重复 failure fingerprint 都停止，不自动恢复、切换配置、重跑或调用任意后续 skill。
+
+Codex 单对话执行方式见 first-delivery.md；保持本协议所有状态、授权、租约与版本约束。

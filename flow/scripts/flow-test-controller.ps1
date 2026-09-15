@@ -1,7 +1,7 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [Parameter(Mandatory = $true, Position = 0)]
-    [ValidateSet('status', 'next', 'initialize', 'issue-lease', 'validate-lease', 'accept-result', 'repair-derived-artifacts', 'record-verifier', 'start-run', 'record-run', 'retry-harness-failure', 'retry-test-infra-failure', 'block')]
+    [ValidateSet('status', 'next', 'initialize', 'grant-authorization', 'reopen-design', 'accept-design-revision', 'issue-lease', 'validate-lease', 'accept-result', 'repair-derived-artifacts', 'record-verifier', 'start-run', 'record-run', 'retry-harness-failure', 'retry-test-infra-failure', 'block')]
     [string]$Command,
     [Parameter(Mandatory = $true)] [string]$StatePath,
     [string]$ChangeName,
@@ -243,6 +243,25 @@ function Get-Fingerprint($State) {
     $sha = [Security.Cryptography.SHA256]::Create(); try { return (-join ($sha.ComputeHash($bytes) | ForEach-Object { $_.ToString('x2') })) } finally { $sha.Dispose() }
 }
 
+function Read-AuthorizationGrant($State, [string]$Previous) {
+    $grant = Read-StructuredJson $ReportPath 'user authorization grant'
+    if ($grant.schemaVersion -ne 1 -or $grant.grantedBy -ne 'user' -or $grant.previousCeiling -ne $Previous -or
+        $grant.ceiling -ne $Authorization -or $grant.changeName -ne $State.changeName -or
+        $grant.testRevision -ne $State.revisions.test -or $grant.sutRevision -ne $State.revisions.sut -or
+        $grant.harnessRevision -ne $State.revisions.harness -or $grant.configurationFingerprint -ne $State.configurationFingerprint -or
+        [string]::IsNullOrWhiteSpace([string]$grant.requestRef) -or [string]::IsNullOrWhiteSpace([string]$grant.requestText)) {
+        Stop-Controller 'ERROR_AUTHORIZATION' 'grant must contain an explicit user request and match change, previous/new ceiling and locked revisions/configuration'
+    }
+    # Audit record, not a signature or a substitute for actual user authorization.
+    return [pscustomobject]@{ at=[DateTime]::UtcNow.ToString('o'); previousCeiling=$Previous; ceiling=$Authorization; grantedBy='user'; requestRef=[string]$grant.requestRef; requestText=[string]$grant.requestText; reportSha256=(Get-FileHashValue $ReportPath); testRevision=$State.revisions.test; sutRevision=$State.revisions.sut; harnessRevision=$State.revisions.harness; configurationFingerprint=$State.configurationFingerprint }
+}
+function Assert-DesignRevisionWindow($State) {
+    Require-Ceiling $State 'design'
+    if ($State.phase -notin @('TEST_DESIGN_DRAFT','TEST_DESIGN_VERIFIED') -or @($State.leases).Count -gt 0 -or @($State.runs).Count -gt 0 -or $null -ne $State.activeRun) {
+        Stop-Controller 'ERROR_TRANSITION' 'design revision is only supported before implementation leasing and execution'
+    }
+}
+
 if ($Command -eq 'initialize') {
     if ([string]::IsNullOrWhiteSpace($ChangeName) -or [string]::IsNullOrWhiteSpace($SystemTestRepo) -or [string]::IsNullOrWhiteSpace($SutRepo) -or [string]::IsNullOrWhiteSpace($TestBaselineRevision) -or [string]::IsNullOrWhiteSpace($TestRevision) -or [string]::IsNullOrWhiteSpace($SutRevision) -or [string]::IsNullOrWhiteSpace($HarnessRevision) -or [string]::IsNullOrWhiteSpace($ConfigurationFingerprint)) { Stop-Controller 'ERROR_INPUT' 'initialize requires change, repositories, baseline/current revisions, harness certification, and configuration fingerprint' }
     if ((Test-SensitiveContent $ChangeName) -or (Test-SensitiveContent $ConfigurationFingerprint)) { Stop-Controller 'ERROR_SECRET_INPUT' 'initialize input contains sensitive material' }
@@ -259,20 +278,83 @@ if ($Command -eq 'initialize') {
         configurationFingerprint = $ConfigurationFingerprint; harnessCertification = $harnessCertification; leases = @(); runs = @(); failureFingerprints = @(); activeRun = $null; scopeVerification = $null; verifier = $null
         history = @(); createdAt = [DateTime]::UtcNow.ToString('o'); updatedAt = [DateTime]::UtcNow.ToString('o'); integrityHash = ''
     }
+    $initialManifest = Join-Path $systemRepo "changes/$ChangeName/manifest.yaml"
+    if (Test-Path -LiteralPath $initialManifest -PathType Leaf) {
+        $manifestJson = @(Get-GitOutput $systemRepo @('show', "${TestRevision}:changes/$ChangeName/manifest.yaml")) -join "`n"
+        $manifestGrant = ($manifestJson | ConvertFrom-Json).testAuthorization
+        if ($manifestGrant.ceiling -ne $Authorization -or $manifestGrant.grantedBy -ne 'user') { Stop-Controller 'ERROR_AUTHORIZATION' 'initialize ceiling must match the committed manifest initial user grant' }
+    }
+    if ($Authorization -ne 'design' -or $ReportPath) {
+        $grant = Read-AuthorizationGrant $state 'none'
+        $state.authorization | Add-Member -NotePropertyName grants -NotePropertyValue @($grant)
+    }
     Require-Ceiling $state 'design'; Add-History $state '' 'TEST_DESIGN_DRAFT' 'initialize'; Write-State $state; Write-Output '[FLOW_CONTROLLER] PASS'; Write-Output 'phase: TEST_DESIGN_DRAFT'; exit 0
 }
 
 $state = Read-State
 if ($state.schemaVersion -ne 1 -or $state.phase -notin $phases) { Stop-Controller 'ERROR_STATE_CORRUPT' 'unsupported schema or phase' }
-if ($Command -in @('issue-lease','record-verifier','start-run','record-run','block')) { Require-RevisionLock $state }
-if ($Command -in @('accept-result','repair-derived-artifacts')) { Require-ImmutableRevisionLock $state }
+if ($Command -in @('grant-authorization','reopen-design','issue-lease','record-verifier','start-run','record-run','block')) { Require-RevisionLock $state }
+if ($Command -in @('accept-design-revision','accept-result','repair-derived-artifacts')) { Require-ImmutableRevisionLock $state }
 
 switch ($Command) {
     'status' { $state | ConvertTo-Json -Depth 16; exit 0 }
     'next' {
         $next = @{ TEST_DESIGN_DRAFT='VERIFY_DESIGN'; TEST_DESIGN_VERIFIED='ISSUE_IMPLEMENTATION_LEASE'; TEST_IMPLEMENTING='AWAIT_IMPLEMENTATION_RESULT'; TEST_IMPLEMENTED='VERIFY_IMPLEMENTATION'; TEST_IMPLEMENTATION_VERIFIED='VERIFY_ENVIRONMENT'; TEST_ENVIRONMENT_VERIFIED='RUN_ONCE'; TEST_EXECUTING='AWAIT_RUN_RESULT'; TEST_EXECUTED_PASS='VERIFY_RESULT'; TEST_EXECUTED_FAIL='BLOCKED'; TEST_RESULT_VERIFIED='COMPLETE'; BLOCKED='BLOCKED' }[$state.phase]
         $skill = @{ VERIFY_DESIGN='flow-codex-test-verify'; ISSUE_IMPLEMENTATION_LEASE='flow-codex-test-assign'; AWAIT_IMPLEMENTATION_RESULT='flow-codex-test-receive/apply/report'; VERIFY_IMPLEMENTATION='flow-codex-test-verify'; VERIFY_ENVIRONMENT='flow-codex-test'; RUN_ONCE='flow-codex-system-test'; AWAIT_RUN_RESULT='flow-codex-system-test'; VERIFY_RESULT='flow-codex-test-verify'; COMPLETE='flow-codex-test'; BLOCKED='none' }[$next]
+        $required = @{ ISSUE_IMPLEMENTATION_LEASE='implementation'; AWAIT_IMPLEMENTATION_RESULT='implementation'; VERIFY_IMPLEMENTATION='implementation'; VERIFY_ENVIRONMENT='execution'; RUN_ONCE='execution'; AWAIT_RUN_RESULT='execution'; VERIFY_RESULT='result' }[$next]
+        if ($required -and $ceilingRank[[string]$state.authorization.maxPhase] -lt $ceilingRank[$required]) { $next='STOP_AWAIT_USER_AUTHORIZATION'; $skill='none' }
         Write-Output '[FLOW_CONTROLLER] PASS'; Write-Output "phase: $($state.phase)"; Write-Output "next: $next"; Write-Output "skill: $skill"; Write-Output "lease_required: $($next -in @('ISSUE_IMPLEMENTATION_LEASE','AWAIT_IMPLEMENTATION_RESULT'))"; exit 0
+    }
+    'grant-authorization' {
+        if ($ceilingRank[$Authorization] -le $ceilingRank[[string]$state.authorization.maxPhase]) { Stop-Controller 'ERROR_AUTHORIZATION' 'grant must strictly increase the ceiling; downgrade, reset and replay are forbidden' }
+        $grant = Read-AuthorizationGrant $state ([string]$state.authorization.maxPhase)
+        $certification = Assert-HarnessCertification $state.harnessCertification.root $state.harnessCertification.path $state.revisions.harness
+        if ($certification.certificationHash -ne $state.harnessCertification.certificationHash) { Stop-Controller 'ERROR_HARNESS_UNCERTIFIED' 'locked harness certification changed' }
+        if ($null -eq $state.authorization.PSObject.Properties['grants']) { $state.authorization | Add-Member -NotePropertyName grants -NotePropertyValue @() }
+        $state.authorization.grants += $grant
+        $state.authorization.maxPhase = $Authorization
+        Add-History $state $state.phase $state.phase 'explicit user authorization grant'
+        Write-State $state; Write-Output '[FLOW_CONTROLLER] PASS'; Write-Output "authorization_ceiling: $Authorization"; exit 0
+    }
+    'reopen-design' {
+        Assert-DesignRevisionWindow $state
+        if ([string]::IsNullOrWhiteSpace($Reason) -or (Test-SensitiveContent $Reason)) { Stop-Controller 'ERROR_INPUT' 'a non-sensitive design revision reason is required' }
+        if ($null -eq $state.PSObject.Properties['designRevisions']) { $state | Add-Member -NotePropertyName designRevisions -NotePropertyValue @() }
+        $state.designRevisions += [pscustomobject]@{ at=[DateTime]::UtcNow.ToString('o'); revision=$state.revisions.test; verifier=$state.verifier; reason=$Reason }
+        $state.verifier = $null
+        Set-Phase $state 'TEST_DESIGN_DRAFT' $Reason
+        Write-State $state; Write-Output '[FLOW_CONTROLLER] PASS'; exit 0
+    }
+    'accept-design-revision' {
+        Assert-DesignRevisionWindow $state
+        if ($state.phase -ne 'TEST_DESIGN_DRAFT' -or $TestRevision -ne $state.revisions.test) { Stop-Controller 'ERROR_REVISION_DRIFT' 'reopen design before accepting a new design revision; supply the locked old TestRevision' }
+        $proposed = Resolve-GitRevision $state.repositories.systemTest $ProposedTestRevision
+        if ($proposed -eq $TestRevision -or $proposed -ne (Get-GitHead $state.repositories.systemTest)) { Stop-Controller 'ERROR_REVISION_DRIFT' 'proposed design must be a new canonical HEAD' }
+        Assert-GitWorktreeClean $state.repositories.systemTest
+        $diff = Get-GitDiffInfo $state.repositories.systemTest $TestRevision $proposed
+        $prefix = "changes/$($state.changeName)/"
+        $allowed = @('test-design.md','test-plan.md','test-cases.yaml','test-cases.generated.json')
+        foreach ($file in $diff.changedFiles) {
+            if (-not $file.StartsWith($prefix) -or $file.Substring($prefix.Length) -notin $allowed) { Stop-Controller 'ERROR_SCOPE' 'design revalidation only changes canonical cases and design/plan/sidecar; configuration, fixtures and implementation remain locked' }
+        }
+        # Static guard precedes revision acceptance; semantic review follows in VERIFY_DESIGN.
+        $guard = Join-Path $PSScriptRoot 'validate-test-artifacts.ps1'
+        $guardOutput = @(& $guard -SystemTestRepo $state.repositories.systemTest -ChangeName $state.changeName -Mode design -CanonicalRevision $state.revisions.testBaseline 2>&1)
+        if ($LASTEXITCODE -ne 0) { Stop-Controller 'ERROR_DESIGN_ARTIFACTS' ($guardOutput -join ' | ') }
+        # Required scenarios cannot disappear or be weakened in this compatibility migration.
+        $sourcePath = $prefix + 'test-cases.yaml'
+        $oldSource = @(Get-GitOutput $state.repositories.systemTest @('show', "${TestRevision}:$sourcePath")) -join "`n"
+        $previousPath = Join-Path ([IO.Path]::GetTempPath()) ('flow-previous-cases-' + [guid]::NewGuid().ToString('N') + '.yaml')
+        try {
+            [IO.File]::WriteAllText($previousPath, $oldSource, [Text.UTF8Encoding]::new($false))
+            $caseValidator = Join-Path $PSScriptRoot 'validate-test-cases.ps1'
+            $coverageOutput = @(& $caseValidator -TestCasesPath (Join-Path $state.repositories.systemTest $sourcePath) -PreviousTestCasesPath $previousPath -PreserveRequiredCoverage 2>&1)
+            if ($LASTEXITCODE -ne 0) { Stop-Controller 'ERROR_SCOPE' ($coverageOutput -join ' | ') }
+        } finally { if (Test-Path -LiteralPath $previousPath) { Remove-Item -LiteralPath $previousPath -Force } }
+        $state.revisions.test = $proposed; $state.revisions.designRevision = $proposed; $state.revisions.testBaseRevision = $proposed
+        $state.verifier = $null
+        Add-History $state $state.phase $state.phase ("accepted design revision " + $proposed)
+        Write-State $state; Write-Output '[FLOW_CONTROLLER] PASS'; Write-Output 'next: VERIFY_DESIGN'; exit 0
     }
     'issue-lease' {
         if ($state.phase -ne 'TEST_DESIGN_VERIFIED' -or $Role -ne 'test-implementer') { Stop-Controller 'ERROR_TRANSITION' 'implementation lease requires TEST_DESIGN_VERIFIED' }

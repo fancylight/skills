@@ -25,6 +25,15 @@ scenarios:
     required: true
     suite: api
     integration: Y
+    business:
+      purpose: Preserve quantity through storage and CSV export
+      preconditions: Empty database; one sample record
+      inputs: name sample; quantity 7
+      steps: Deserialize JSON then insert with SQL binding and export CSV
+      expected: Exactly one CSV row sample with quantity 7
+      oracle: Input quantity is the independent expected value 7
+      counterexamples: Binding quantity 0 must fail the CSV assertion
+      evidenceBoundary: Real local SQLite and CSV; no distributed transport coverage
     testClass: example.DeliveryTest
     testMethod: roundtrip
     reportClass: example.DeliveryTest

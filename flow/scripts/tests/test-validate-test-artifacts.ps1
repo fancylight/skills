@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 $powershellExecutable = (Get-Process -Id $PID).Path
 $scriptRoot = Split-Path -Parent $PSScriptRoot
 $guard = Join-Path $scriptRoot 'validate-test-artifacts.ps1'
@@ -21,6 +21,15 @@ scenarios:
     required: true
     suite: api
     integration: Y
+    business:
+      purpose: 创建记录后按规则保存数量
+      preconditions: 数量必须大于0且每次请求只创建一行
+      inputs: 数量7，标识fixture
+      steps: 提交创建请求后查询该标识并核对记录数
+      expected: 恰好一行且数量7，无额外副作用
+      oracle: 需求AC-1指定数量原样保存；预期直接来自输入7
+      counterexamples: 数量0应拒绝且没有新增行
+      evidenceBoundary: Y验证请求到持久化；其他依赖不在本例范围
     testClass: com.example.ExampleIT
     testMethod: executesScenario
     reportClass: com.example.ExampleReport
@@ -53,6 +62,23 @@ try {
     New-Fixture 'valid' $false
     & $powershellExecutable -NoProfile -File $guard -SystemTestRepo $work -ChangeName valid -Mode design -CanonicalRevision $revision
     if ($LASTEXITCODE -ne 0) { throw 'Expected valid fixture to pass artifact guard.' }
+
+    # Design stage and user ceiling are independent; pure technical mapping is not complete design.
+    foreach ($ceiling in @('implementation','execution','result')) {
+        New-Fixture "initial-$ceiling" $false
+        $authManifest = Join-Path $work "changes/initial-$ceiling/manifest.yaml"
+        (Get-Content $authManifest -Raw -Encoding utf8).Replace('"ceiling":"design"', ('"ceiling":"' + $ceiling + '"')) | Set-Content $authManifest -Encoding utf8
+        & $powershellExecutable -NoProfile -File $guard -SystemTestRepo $work -ChangeName "initial-$ceiling" -Mode design -CanonicalRevision $revision
+        if ($LASTEXITCODE -ne 0) { throw "Design with initial $ceiling authorization must pass." }
+    }
+    New-Fixture 'technical-only' $false
+    $techDir = Join-Path $work 'changes/technical-only'
+    $techSource = Join-Path $techDir 'test-cases.yaml'
+    [regex]::Replace((Get-Content $techSource -Raw -Encoding utf8), '(?ms)^    business:.*?(?=^    testClass:)', '') | Set-Content $techSource -Encoding utf8
+    & $testCasesValidator -TestCasesPath $techSource -CanonicalRevision $revision -ManifestPath (Join-Path $techDir 'manifest.yaml') -DerivedContractPath (Join-Path $techDir 'test-cases.generated.json') -TestPlanPath (Join-Path $techDir 'test-plan.md') -Generate | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Legacy technical source must still parse.' }
+    & $powershellExecutable -NoProfile -File $guard -SystemTestRepo $work -ChangeName technical-only -Mode design -CanonicalRevision $revision
+    if ($LASTEXITCODE -eq 0) { throw 'Pure technical mapping must not pass formal design.' }
 
     New-Fixture 'valid-v2' $false
     $v2ManifestPath = Join-Path $work 'changes/valid-v2/manifest.yaml'

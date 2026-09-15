@@ -1,7 +1,7 @@
 # 集成测试设计产物清单
 
 `flow-codex-test-design` 必须产出 manifest、test-cases、test-cases.generated.json、test-design、test-plan、IDS、seed 与 cleanup。manifest 使用可解析 JSON
-（保留 `.yaml` 扩展名），并在 design 阶段记录 `stage: "design"`、用户授权的 `testAuthorization.ceiling: "design"`。
+（保留 `.yaml` 扩展名），并在 design 阶段记录 `stage: "design"`、用户初始授权的 `testAuthorization.ceiling`（design/implementation/execution/result；不由 stage 推导）。
 
 ## 配置与范围
 

@@ -1,6 +1,6 @@
 ---
 name: flow-codex-test-design
-description: 在业务代码已审核提交后，基于概要设计验收、as-built revision 和本地环境设计可独立实施的 Flow 集成测试。以 test-cases.yaml 为唯一场景源，产出确定性 sidecar、test-design、test-plan、manifest 与 fixtures 契约，不编写 JUnit。
+description: 在业务代码已审核提交后，基于概要设计验收、as-built revision 和本地环境设计可独立实施的 Flow 集成测试。先审核业务用例，再以 test-cases.yaml 为唯一场景源设计技术执行，产出确定性 sidecar、test-design、test-plan、manifest 与 fixtures 契约，不编写 JUnit。
 ---
 
 # Codex Flow 集成测试设计
@@ -16,33 +16,37 @@ description: 在业务代码已审核提交后，基于概要设计验收、as-b
 
 ## 硬前置与输入
 
-先解析 canonical `.flow/changes/<change_name>/automation-state.yaml`。若 state 已存在，只有 controller `next` 与当前动作相容时才继续；若不存在，可完成 design 产物并形成可提交 design revision，然后以用户明确授权 ceiling、固定 SUT/harness revision、harness certification 和 configuration fingerprint 执行唯一一次 `initialize`。不得自行写 state。
+先解析 canonical `.flow/changes/<change_name>/automation-state.yaml`。若 state 已存在且用户要求存量设计复核或补充业务用例，优先按协议 `reopen-design`，更新提交后 `accept-design-revision`（design 上限不阻断设计复核）；其他情况只有 controller `next` 与当前动作相容时才继续。不得删除或重建 state；若不存在，可完成 design 产物并形成可提交 design revision，然后以用户明确授权 ceiling、固定 SUT/harness revision、harness certification 和 configuration fingerprint 执行唯一一次 `initialize`。不得自行写 state。
 
 1. 要求根角色为 `orchestrator` 与明确的 `change_name`。以 system-test change 的 `manifest.yaml.testAuthorization`
-   作为等价测试状态；首次设计时依据用户本轮明确授权初始化为 `ceiling: design`。不得修改根 task/progress 来
+   记录初始用户授权（缺少后续阶段授权时 ceiling=design；已明确授权更高阶段时如实记录）。controller 初始化后，当前有效上限读取 `authorization.maxPhase` 及 grants，追加授权用协议 `grant-authorization`，不修改已提交 manifest。不得修改根 task/progress 来
    记录授权，也不得从 skill 建议的 `next` 推导或提升授权。
 2. 所有纳入范围的业务 spec 已完成 review、单元测试和提交；`flow-codex-verify` 全量 §A+§B 无 ERROR。
 3. 每个 SUT 记录仓库、期望分支、commit、启动模块和配置；未提交业务代码不得作为基线。
 4. 读取概要设计验收、操作链路、数据访问契约、OpenSpec/as-built、单元测试结果、本地 playbook 和现有
    system-test 支撑。不得读取本需求已写集成测试代码反推设计。
-5. 关键中间件、数据、鉴权、外部依赖替身或观测能力无法盘点时 BLOCKED。
+5. 业务草案可先形成；进入技术设计前，关键中间件、数据、鉴权、外部依赖替身或观测能力无法盘点时 BLOCKED。
 
 ## 步骤
 
-新配置中心环境使用共享 v2 manifest：引用平台已登记的 repo 级 descriptor，声明 configuration targets、ownership、SUT 启动契约、runner 与 harness；旧 v1 才使用 configurationSource 等旧字段。先用 core `assets/scripts/resolve-test-environment.ps1` 生成 resolved manifest，再进行设计校验。native 模式可以由启动契约传入 profile/search locations，无须在业务源码新增配置文件。
+以下环境约束在业务用例审核补齐后应用。新配置中心环境使用共享 v2 manifest：引用平台已登记的 repo 级 descriptor，声明 configuration targets、ownership、SUT 启动契约、runner 与 harness；旧 v1 才使用 configurationSource 等旧字段。先用 core `assets/scripts/resolve-test-environment.ps1` 生成 resolved manifest，再进行设计校验。native 模式可以由启动契约传入 profile/search locations，无须在业务源码新增配置文件。
 本地 dev 配置保存在配置中心；Git 忽略的 human 本地输入允许已有凭据，设计产物只记录来源和完整文件 hash。夹具读取同一配置来源，`.env` 仅用于必要运行参数。配置迁移属于已获授权的平台准备，不在业务 test-design 内生成替代 dev 配置。
 外部中间件登记 external，runner 不启停或重建；WireMock 的方法、路径、参数、鉴权及响应契约提前明确，由 `runner.prepare` 注册并验证本次 mapping，失败阻断后续业务，cleanup 只清理本次资源。
 
 0. 按 `scaffold.md` 解析或初始化 config 中的 system-test 仓；已存在完整仓时只增量更新 change 产物。
 1. 为概要设计每条验收分配稳定 `AC-n`，确定集成 Y/N、Non-Goal 或后续阶段；N 不得伪装为覆盖。
-2. 先创建 `changes/<change_name>/test-cases.yaml`。它是稳定场景 ID、required、集成 Y/N、测试类/方法、
-   report class、runner filter 和 evidence 契约的唯一可执行来源；setup/action/assertions/observability 使用结构化对象，
-   cleanup/externalEvidence 使用列表。同一场景不得在 Markdown 维护第二份手写计数或映射。使用确定性生成器更新
-   test-plan 的唯一标记区和 `test-cases.generated.json`；manifest 只以 `testCasesContract.path` 引用 sidecar。
-   重复或缺失 ID、未知 ID、Java 方法未绑定、报告/证据漂移均在设计验证中拒绝。
+2. 先在 `test-cases.yaml` 编写稳定 id、acceptance、required、integration 与结构化 `business`，暂不要求测试类、方法、HTTP路径或夹具。
+   business 必须让业务用户能审核：验证目的、规则配置与初态、具体输入、操作顺序、独立预期最终结果、预期依据及推导、关键反例、Y/N与证据边界。
+   先用 `validate-test-cases.ps1 -TestCasesPath <source> -Mode business -TestPlanPath <plan> -Generate` 生成业务预览（只更新既有标记区，无 sidecar）。
+   对照需求逐条审核业务覆盖并补齐：区分配置分支、边界、变更重算、重复/乱序及真实最终落点；仅在当前需求适用时纳入。
+   单对话由当前执行者自查并在 test-design 的既有覆盖策略中记明依据、发现与补充及源 hash；不得冒称用户已审核。
+   用户要求先审核用例时在此展示预览并等待其意见；否则在已有授权内完成自查后继续，不额外创造审批关卡。
+   业务歧义或缺独立预期尚未解决时，不用技术设计掩盖缺口。反例描述必须落实到相应场景/断言或有明确的外部证据边界，不能只写反例文字就计为已覆盖。
+   业务审核补齐后，才在同一场景添加 setup/action/assertions/observability 对象、cleanup/externalEvidence 列表及技术绑定。
+   后续技术可行性改变业务覆盖时返回本步复核受影响用例；技术设计不得反向篡改预期以迎合实现。
 3. 设计并写入 `test-design.md`：完整覆盖 TDD.1–TDD.10（目标与风险、SUT revision、拓扑、真实/桩边界、
    鉴权、夹具、观测点、覆盖策略、SQL、失败归因）。
-4. 在 `test-plan.md` 只写场景背景、边界和人工说明，不复制可执行场景表、ID、方法或计数。每个 Y 验收仍必须
+4. `test-plan.md` 的唯一生成区以业务用例为主体、技术映射为附录；人工区只写背景与边界，不手工复制第二套用例、ID或计数。每个 Y 验收仍必须
    在 canonical source 中有 happy path、核心断言和副作用观测；正向能力缺 happy path，或“未写入”缺观测，均 BLOCKED。
 5. 由 canonical source 推导 sidecar、IDS、幂等 seed/cleanup、环境契约及必要 release SQL 镜像；manifest 不得承担覆盖论证，
    但必须登记 `requiredEnvBySuite`、system-test 仓库相对的 `wireMockContracts`（SUT Feign method/path/query/minimum response）、
@@ -74,7 +78,7 @@ description: 在业务代码已审核提交后，基于概要设计验收、as-b
    `[TEST_ARTIFACT_GUARD] ERROR` 均为 BLOCKED，不得提交、写 READY 或进入下一阶段。
    required 场景删除时，另传 previous source/revision、design verifier report、controller state 和受信 verifier identity；
    不得使用自由布尔开关声明 design verify 已通过。
-10. 在 manifest 记录 `testAuthorization`（默认 ceiling=design）、review identity/reject rounds 和 capability
+10. 在 manifest 记录初始 `testAuthorization`（默认 ceiling=design；已有更高授权如实记录，initialize 以 grant 报告绑定用户原话及引用）、review identity/reject rounds 和 capability
    fingerprint；不得修改根 task/progress，也不得因自身 READY 勾选通过。
 
 禁止写 JUnit、修改业务源码，或在 design/plan 中写实际 PASS、日期、耗时、真实 EXPLAIN 与事后 evidence。

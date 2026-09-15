@@ -5,6 +5,8 @@ description: 在测试实现生命周期独立验证后编排 Flow 集成测试 
 
 # Codex Flow 集成测试编排
 
+初始化后，当前有效授权从 controller `authorization.maxPhase` 及 grants 读取；manifest.testAuthorization 仅为初始授权。用户追加授权按 core/references/test-controller.md 的 grant-authorization 入账，不从 next 推断、不要求重复授权、不改 manifest 来伪造授权。
+
 作为根编排 agent 执行。读取 core platform、`../flow-codex-core/references/test-controller.md` 与 `integration-test-result.md.tmpl`。
 
 执行已有用例先读取 ../flow-codex-core/references/test-execution.md；复用适用的项目执行路径，不重新设计测试或维护环境。
@@ -20,7 +22,7 @@ description: 在测试实现生命周期独立验证后编排 Flow 集成测试 
 3. 当前轮 `[TEST_VERIFY_RESULT] PASS` 且 `verify_mode: implementation`；测试仓 revision 未漂移。
 4. manifest 的 `configurationSource`、`requiredEndpoints`、`connectivityProbe`、`ownership` 已在 design verify 中核验；
    最近一次最小只读探针成功，且其 configuration/revision fingerprint 与 implementation verify 一致。
-5. `testAuthorization.ceiling` 为 `execution` 或 `result`，且为用户本轮明确授权；否则输出
+5. `controller.authorization.maxPhase` 为 `execution` 或 `result`，且为用户已明确授权；否则输出
    `next: STOP_AWAIT_USER_AUTHORIZATION`，不得委托 runner。
 6. config 可解析 system-test 仓，且 manifest、test-design、test-plan、fixtures 存在。
 7. 不接受 task 勾选、TEST_DESIGN READY、用户要求根代跑或 local-only 替代 implementation PASS。

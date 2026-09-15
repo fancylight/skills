@@ -16,10 +16,12 @@
 ## 场景来源与派生物
 
 `changes/{{change_name}}/test-cases.yaml` 是场景、稳定 ID、required、测试方法、报告类、runner filter
-和证据契约的唯一可执行来源。`test-plan.md` 只保留解释性说明，不得维护第二份可执行场景计数或映射。
+和证据契约的唯一可执行来源。`test-plan.md` 的唯一生成区先展示业务用例、后展示技术附录，人工区只保留解释性说明，不得维护第二份可执行场景计数或映射。
 manifest 必须以 `testCasesContract.path` 引用 `test-cases.generated.json`；该 sidecar、test-plan 受控 generated 区、
 runner filter、报告类、计数、integration Y/N、evidence index 和 failure observability 必须由 canonical source
 确定性生成并绑定同一 test revision/source hash。任何重复、缺失或漂移都必须在 design/implementation verify 中拒绝。
+
+业务用例先从需求推导并审核补齐，然后围绕其设计运行方式、代码组织、夹具、观测和清理。覆盖策略处记录本次业务审核依据、补充结论、self/真实审核身份及源hash；这不是运行PASS，也不冒称用户审批。
 
 ## TDD.1 测试目标与风险
 

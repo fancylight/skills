@@ -1,9 +1,9 @@
 # 集成测试计划：{{change_name}}
 
-> 本文只定义场景和断言；实际执行结果写入 evidence 与根 `集成测试.md`。
+> 本文先展示供人审核的业务用例，再列技术执行绑定；只定义预期，状态为待执行；实际执行结果写入 evidence 与根 `集成测试.md`。
 > system-test path: {{system_test_path}}（必须与根 config 中 `type: system-test` 条目一致）
 
-## 人工场景说明
+## 范围与业务审核说明
 
 可执行场景只定义在 `changes/{{change_name}}/test-cases.yaml`。本文件不得复制场景 ID、required 状态、测试方法
 或可执行计数；设计 agent 可在此记录背景、边界和人工说明，但任何说明不能替代 canonical source。manifest、
@@ -11,7 +11,7 @@ runner filter、报告类、计数和 evidence index 均从该文件确定性生
 
 {{scenario_notes}}
 
-## 受控场景镜像
+## 业务用例及技术附录（同源生成）
 
 <!-- FLOW_TEST_CASES_GENERATED:START -->
 <!-- 由 validate-test-cases.ps1 生成；禁止手工编辑。 -->

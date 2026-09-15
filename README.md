@@ -239,3 +239,5 @@ Codex feedback 的浏览器操作优先使用 Edge 控制工具；CDP 仅在用�
 本版仅验证 Codex，不更新或卸载 Claude。旧 Claude 使用旧版独立安装，不能共享新版资源。重装后建议新开会话，从已有需求文件和 Git 状态恢复，不重建 spec、不清空 controller。安装技能不会自动更新业务项目入口或测试仓；将 `flow/templates/codex/flow-delivery-entry.md.tmpl` 合并到业务 AGENTS.md，GLM 执行接线单独交付。
 
 GPT-6 与 GPT-5.6 Sol 共用规则，模型效果以真实回放为准；未运行的模型不声明兼容。
+
+集成测试设计现在先审核可读业务用例，再设计运行、代码、夹具和观测；test-plan 的业务主体和技术附录由同一 test-cases.yaml 派生。存量已审核设计可在原对话按 [controller 协议](flow/docs/test-controller.md) 重开并复核；追加用户授权有正式命令，不修改初始 manifest 或重置状态。

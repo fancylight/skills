@@ -5,6 +5,8 @@ description: 使用 system-test manifest runner 执行 Flow change 的 API/UI/E2
 
 # Codex Flow 系统测试执行
 
+初始化后，当前有效授权从 controller `authorization.maxPhase` 及 grants 读取；manifest.testAuthorization 仅为初始授权。用户追加授权按 core/references/test-controller.md 的 grant-authorization 入账，不从 next 推断、不要求重复授权、不改 manifest 来伪造授权。
+
 质量要求：读取 ../flow-codex-core/assets/templates/engineering-quality.md 的「测试与排障」。沿用现有结果与授权机制，不增加阶段。
 
 读取 core platform、`../flow-codex-core/references/test-controller.md`、runtime-contract 和 local-pitfalls。不得修改业务服务代码、整体 mock SUT，或操作 manifest

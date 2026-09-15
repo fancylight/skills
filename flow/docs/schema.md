@@ -462,7 +462,7 @@ requirements 必须传导同一 Fact ID、实现分支、正向要求、反例/�
 
 ### 11.1 授权与不可重置状态
 
-根 change 的集成测试状态必须记录在 system-test change 的 `manifest.yaml`（等价 YAML）中；测试设计、审核和
+初始用户授权记录在 system-test change 的 `manifest.yaml` 中；controller 初始化后有效授权与审计读取 automation-state 的 authorization.maxPhase/grants，追加授权仅用 grant-authorization（见 test-controller.md）。测试设计、审核和
 执行流程不得为记录授权而修改根 `task.md` 或业务 progress：
 
 ```yaml
@@ -479,7 +479,7 @@ capabilityFingerprint:
   networkAvailable: boolean
 ```
 
-`ceiling` 默认 `design`，只能由用户明确要求提升。baseline、SUT revision、branch、executor 或 reviewer 改变会使当前
+`ceiling` 默认 `design`，已明确授权更高阶段时如实记录；stage=design 与授权上限相互独立。初始化后的追加授权不修改该初始快照，只能由用户明确要求并通过 controller 绑定版本的 grant-authorization 入账。baseline、SUT revision、branch、executor 或 reviewer 改变会使当前
 验证失效，但不得清零 `reviewRejectRounds`。外部证据缺失以 `[TEST_EXTERNAL_EVIDENCE] BLOCKED` 记录 owning repo、anchor
 和 required assertion；当前测试 Flow 不得自动修改该仓。
 
@@ -696,14 +696,15 @@ phase: TEST_DESIGN_DRAFT | TEST_DESIGN_VERIFIED | TEST_IMPLEMENTING | TEST_IMPLE
   TEST_EXECUTED_PASS | TEST_EXECUTED_FAIL | TEST_RESULT_VERIFIED | BLOCKED
 authorization:
   maxPhase: design | implementation | execution | result
+  grants: optional array # initial/追加用户授权原话、引用、报告hash与版本绑定；旧state可无此字段
 repositories:
   systemTest: canonical absolute path
   sut: canonical absolute path
 revisions:
-  designRevision: immutable design revision captured at initialize
-  testBaseRevision: immutable test revision captured at initialize
+  designRevision: current accepted design revision; initialize or pre-implementation accept-design-revision
+  testBaseRevision: accepted design base before implementation leasing
   testBaseline: immutable pre-design system-test baseline used by generated sidecar; never replaced by a commit containing that sidecar
-  test: current accepted system-test implementation revision; updated only by accept-result
+  test: current accepted system-test revision; changed only by controller revision acceptance/repair commands
   sut: immutable SUT revision
   harness: immutable harness revision
 configurationFingerprint: string
@@ -713,6 +714,7 @@ failureFingerprints: array[string]
 activeRun: object | null       # TEST_EXECUTING 的唯一已持久化 runner；启动前按 test revision 去重
 scopeVerification: object | null # trusted scope PASS and controller-computed implementation-base-to-proposed diff
 verifier: object | null
+designRevisions: optional array # reopen-design保留旧revision/verifier/reason；不清除历史
 history: array
 integrityHash: sha256
 ```
@@ -731,8 +733,7 @@ state 的 `integrityHash` 用于检测手工篡改或半写入；每次成功替
 
 ### 11.5 test-cases.yaml（WP4 canonical scenario source）
 
-`changes/{change}/test-cases.yaml` 是 system-test 场景的唯一可执行来源；`test-plan.md` 只能承载背景、边界和
-人工说明，不得维护第二份手写场景计数或可执行映射。文件使用固定 schema 的严格 YAML 子集；malformed YAML、
+`changes/{change}/test-cases.yaml` 是业务用例及技术绑定的唯一来源；`test-plan.md` 的唯一生成区先列业务用例，再列技术附录。人工区只承载背景与边界，不得维护第二份手写用例、计数或映射。文件使用固定 schema 的严格 YAML 子集；malformed YAML、
 未知字段、错误嵌套、字段类型错误或必填结构缺失均拒绝。结构如下：
 
 ```yaml
@@ -743,6 +744,15 @@ scenarios:
     required: true | false
     suite: api | ui | cdc | other
     integration: Y | N
+    business:
+      purpose: "验证目的"
+      preconditions: "具体规则配置及初始状态"
+      inputs: "具体输入数据"
+      steps: "业务操作/事件顺序"
+      expected: "预期最终数值、状态、归属及副作用"
+      oracle: "需求或已确认样本位置与独立推导"
+      counterexamples: "关键反例及结果；不适用须给理由"
+      evidenceBoundary: "Y/N理由、真实与替身范围及最终落点"
     testClass: fully.qualified.ClassName
     testMethod: stableMethodName
     reportClass: report.class.Name
@@ -779,6 +789,13 @@ validator 对未迁移的旧字段明确报错并退回 design verify，不静�
 required 场景删除必须提供 controller state 完整性校验通过且 summaryHash 一致的结构化 design verifier PASS，
 绑定 previous/current revision、previous/current source hash 与 verifier identity；自由布尔开关、伪造或陈旧 report
 均拒绝。`integration` 只允许 `Y`/`N`；`N` 必须声明 externalEvidence。提供 EvidenceRoot 时，普通和外部证据都必须落地。
+
+business 为上述八个非空单行字符串；不放实际执行状态或以被测输出充当预期。schemaVersion 仍为1，旧技术字段和ID保持兼容。
+`validate-test-cases -Mode business` 仅要求 id/acceptance/required/integration/business；可用 -Generate -TestPlanPath 预览业务用例，不要求技术字段、manifest或sidecar。
+完成业务语义审核并补齐后再设计技术字段，以默认design模式生成完整计划和sidecar。
+正式 `validate-test-artifacts` 各阶段强制 RequireBusiness；旧源仍可解析/导出，但缺业务用例不能取得新的正式设计通过。
+脚本只证明结构、绑定及确定性；具体预期正确性、覆盖是否充分由 test-verify 对原始需求审查，不因字段齐全自动通过。
+存量设计按 test-controller.md 的 reopen-design/accept-design-revision 复核，保留旧审核和稳定baseline，不制造历史。
 
 ## 12. feedback（线上反馈，独立于 change）
 

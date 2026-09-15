@@ -5,6 +5,8 @@ description: 向 system-test 仓派发 st-api 集成测试 spec。仅在当前�
 
 # Codex Flow 集成测试派发
 
+初始化后，当前有效授权从 controller `authorization.maxPhase` 及 grants 读取；manifest.testAuthorization 仅为初始授权。用户追加授权按 core/references/test-controller.md 的 grant-authorization 入账，不从 next 推断、不要求重复授权、不改 manifest 来伪造授权。
+
 默认单对话按 core/references/test-controller.md 把真实测试租约交给当前执行者继续 receive/apply/report，不创建 agent；多 agent 派发仅在用户授权时使用。
 
 作为根编排 agent 执行。读取 core platform、checkpoints、`../flow-codex-core/references/test-controller.md`、scheduler 与 test-child-agent-prompt。
@@ -16,7 +18,7 @@ description: 向 system-test 仓派发 st-api 集成测试 spec。仅在当前�
 1. 根角色为 `orchestrator`，并提供 `change_name`。
 2. `flow-codex-verify` 全量 §A+§B 无 ERROR。
 3. 当前轮 `[TEST_VERIFY_RESULT] PASS` 且 `verify_mode: design`；其 SUT/test 仓 revision 与当前基线一致。
-4. `testAuthorization.ceiling` 为 `implementation`、`execution` 或 `result`，并有本轮用户明确授权；缺失或
+4. `controller.authorization.maxPhase` 为 `implementation`、`execution` 或 `result`，并有用户明确授权；缺失或
    `design` 时输出 `next: STOP_AWAIT_USER_AUTHORIZATION`，不得派发。
 5. config 可解析 system-test 仓，且 manifest、test-design、test-plan、IDS、seed、cleanup 存在。
 6. task 中 st-api 依赖的业务 spec 已完成；不得以 task checkbox 或 TEST_DESIGN READY 替代第 3 项。

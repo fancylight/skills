@@ -5,6 +5,16 @@ scenarios:
     required: true
     suite: api
     integration: Y
+    # 先填写并审核business，再补充以下技术字段。标量用单行引号字符串，不放执行结果。
+    business:
+      purpose: "<验证的业务规则或风险>"
+      preconditions: "<规则配置、开关、初始业务状态及适用条件>"
+      inputs: "<具体业务数据、时间、数量等>"
+      steps: "<用户操作或事件顺序>"
+      expected: "<独立推导的最终数值、归属、状态和副作用>"
+      oracle: "<需求或已确认样本位置及计算过程；不得抄被测实现输出>"
+      counterexamples: "<关键反例、边界及对应结果；不适用须说明原因>"
+      evidenceBoundary: "<为何集成Y/N、真实链路与替身边界、N的外部验证范围>"
     testClass: <system-test-class>
     testMethod: <stable-test-method>
     reportClass: <report-class>

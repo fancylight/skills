@@ -1,0 +1,62 @@
+schemaVersion: 1
+scenarios:
+  - id: AC-1-S1
+    acceptance: AC-1
+    required: true
+    integration: Y
+    business:
+      purpose: "严格模式跨日配对更正后清零"
+      preconditions: "严格模式；全天跨夜；按前日归属；初始无工时"
+      inputs: "A日23:00进、B日02:00出；随后将B日02:00更正为进"
+      steps: "提交两条打卡并等结算，再更正第二条方向并等重新结算"
+      expected: "首次A日3小时/B日0小时；更正后两日均0小时，当天镜像同步清零"
+      oracle: "AC-1确认严格只配进出；23→02相差3小时；更正后进进没有有效配对"
+      counterexamples: "非严格模式同样更正仍保留3小时，不能把严格清零规则推广到非严格"
+      evidenceBoundary: "Y核验真实ES→MQ→Mongo及当天镜像；接口成功不能替代最终存储断言"
+    suite: api
+    testClass: com.example.NightIT
+    testMethod: correctionClearsStrictPair
+    reportClass: com.example.NightIT
+    filter: AC-1-S1
+    externalEvidence: []
+    setup:
+      fixtures: [strict-worker]
+    action:
+      method: POST
+      path: /punches/correction
+    assertions:
+      response: [accepted]
+      database: [hours-equal-zero-after-correction]
+      sideEffects: [day-mirror-equal-zero]
+    cleanup: [strict-worker]
+    observability:
+      correlationField: scenarioId
+      allowedEvidence: [reports/strict.xml, observations/mongo.json]
+  - id: AC-2-S1
+    acceptance: AC-2
+    required: true
+    integration: N
+    business:
+      purpose: "非严格日内匹配不能消费跨夜终点"
+      preconditions: "非严格模式；归前日"
+      inputs: "A日23:00进；B日01:00进、03:00出"
+      steps: "按时间顺序提交记录并计算两日工时"
+      expected: "A日2小时；B日2小时；B日01:00仍参加日内配对"
+      oracle: "AC-2已确认样本：23→01隐含OUT段2小时，01→03日内段2小时"
+      counterexamples: "严格模式下A日0小时且B日2小时；不能丢失B日01:00"
+      evidenceBoundary: "N仅引用算法单测验证分段，不声称覆盖MQ传输、Mongo或当天镜像"
+    suite: external
+    externalEvidence: [external/algorithm.xml]
+    setup:
+      fixtures: [non-strict-worker]
+    action:
+      method: POST
+      path: /punches
+    assertions:
+      response: []
+      database: []
+      sideEffects: [daily-start-preserved]
+    cleanup: [non-strict-worker]
+    observability:
+      correlationField: scenarioId
+      allowedEvidence: [external/algorithm.xml]

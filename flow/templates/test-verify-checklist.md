@@ -38,3 +38,5 @@
 - **TR.3 ERROR**：ceiling 不足时运行 runner 或 result verify，或将 runner PASS 视为完整 Flow 完成。
 - **TR.4 ERROR**：runner FAIL 缺 `evidence/current/index.md`、`failure-report.md`、原始报告状态或 failure/error 全量映射；
   证据不足时必须输出 `[TEST_EVIDENCE_INCOMPLETE] ERROR` 与 `UNDETERMINED`，不得判定业务缺陷。
+
+业务用例优先：design 审核必须从原需求检查 business 的具体输入、配置分支、独立结果推导、关键反例、Y/N和证据边界，再检查技术设计可否真正验证。缺业务用例或只有技术映射为 ERROR。脚本只检查结构与派生一致性，不证明业务覆盖正确；存量设计依 controller 协议重新复核，不继承旧PASS。

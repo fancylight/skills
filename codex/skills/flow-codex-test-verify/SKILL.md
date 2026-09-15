@@ -18,8 +18,7 @@ description: 只读验证 Flow 集成测试的 canonical test-cases、派生 sid
 
 首先读取 controller `status`/`next`。design、implementation、result 分别只接受 `VERIFY_DESIGN`、`VERIFY_IMPLEMENTATION`、`VERIFY_RESULT`；phase 不匹配立即 ERROR。验证 PASS 后只向 controller 提交绑定 identity、mode、test/SUT/harness revision、configuration fingerprint 与安全 summary 的结构化报告，由 `record-verifier` 决定是否提升 phase；本 skill 不直接改 state。
 
-要求提供 `change_name` 与 `verify_mode`（`design`、`implementation` 或 `result`）；当前 `testAuthorization` 从
-system-test change 的 manifest 读取。缺失、与用户授权不一致或由流程自行提升均为 ERROR。
+要求提供 `change_name` 与 `verify_mode`（`design`、`implementation` 或 `result`）；初始 `testAuthorization` 从 manifest 读取；初始化后的当前上限读取 controller `authorization.maxPhase` 和 grants（协议中的追加授权记录）。旧state可无grants，继续沿用原锁定上限；任何新增授权必须入账。授权缺失、与用户授权不一致或由流程自行提升均为 ERROR。
 只读检查；
 不得编辑业务/测试产物、启动服务、运行 runner、修改 `task.md`，也不替代 `flow-codex-review` 的代码审核。
 
@@ -28,11 +27,12 @@ system-test change 的 manifest 读取。缺失、与用户授权不一致或由
 
 ## 检查
 
-1. `design`：从 controller `revisions.testBaseline` 读取稳定的 `<test baseline revision>`；当前设计提交由
+1. `design`：先核对生成计划中的业务输入、规则分支、独立预期及推导、关键反例、Y/N和真实最终落点，再检查技术设计能否实际证明这些预期。不得用方法数、字段齐全或静态脚本PASS替代业务覆盖审核；语义无法确定时保留缺口。存量旧PASS不是新规则的通过证据，先按协议重开复核。
+   从 controller `revisions.testBaseline` 读取稳定的 `<test baseline revision>`；当前设计提交由
    `revisions.designRevision`/`revisions.test` 单独锁定，不能拿它替换 sidecar 基线。先独立运行
    `flow-codex-core/assets/scripts/validate-test-artifacts.ps1 -Mode design
    -CanonicalRevision <test baseline revision>`，再运行
-   `validate-test-cases.ps1 -Mode design -CanonicalRevision <test baseline revision> -ManifestPath <manifest>
+   `validate-test-cases.ps1 -RequireBusiness -Mode design -CanonicalRevision <test baseline revision> -ManifestPath <manifest>
    -DerivedContractPath <test-cases.generated.json> -TestPlanPath <test-plan>`；guard ERROR 必须列为 ERROR，绝不自动修复。确认
    `test-cases.yaml` 是唯一可执行场景来源，test-plan 没有第二份计数/映射，稳定 ID 无重复/缺失，manifest 计数、
    integration Y/N、report class、filter、evidence、failureObservability 与 source revision/hash 一致；删除 required
@@ -54,7 +54,7 @@ system-test change 的 manifest 读取。缺失、与用户授权不一致或由
    controller `next=BLOCKED`，不得调用本模式或输出 result PASS。缺任一关键证据须在记录运行前输出
    `[TEST_EVIDENCE_INCOMPLETE] ERROR`，结论只能是 `UNDETERMINED`，不得提升为业务缺陷。
 
-`verify_mode: result` 还要求 `testAuthorization.ceiling=result`；若仅授权 execution，只保留 runner evidence 并输出
+`verify_mode: result` 还要求 `controller.authorization.maxPhase=result`；若仅授权 execution，只保留 runner evidence 并输出
 `next: STOP_AWAIT_USER_AUTHORIZATION`，不得给出 result PASS 或更新最终状态。
 
 语义争议应列 WARN 并引用原文；缺少客观证据、required 场景或安全边界时列 ERROR。成功的 runner 只能证明
