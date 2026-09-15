@@ -1,7 +1,7 @@
 ﻿[CmdletBinding()]
 param(
     [Parameter(Mandatory = $true, Position = 0)]
-    [ValidateSet('status', 'next', 'initialize', 'grant-authorization', 'reopen-design', 'accept-design-revision', 'issue-lease', 'validate-lease', 'accept-result', 'repair-derived-artifacts', 'record-verifier', 'start-run', 'record-run', 'retry-harness-failure', 'retry-test-infra-failure', 'block')]
+    [ValidateSet('status', 'next', 'initialize', 'grant-authorization', 'reopen-design', 'accept-design-revision', 'record-scope-review', 'issue-lease', 'validate-lease', 'accept-result', 'repair-derived-artifacts', 'record-verifier', 'start-run', 'record-run', 'retry-harness-failure', 'retry-test-infra-failure', 'block')]
     [string]$Command,
     [Parameter(Mandatory = $true)] [string]$StatePath,
     [string]$ChangeName,
@@ -294,9 +294,14 @@ if ($Command -eq 'initialize') {
 $state = Read-State
 if ($state.schemaVersion -ne 1 -or $state.phase -notin $phases) { Stop-Controller 'ERROR_STATE_CORRUPT' 'unsupported schema or phase' }
 if ($Command -in @('grant-authorization','reopen-design','issue-lease','record-verifier','start-run','record-run','block')) { Require-RevisionLock $state }
-if ($Command -in @('accept-design-revision','accept-result','repair-derived-artifacts')) { Require-ImmutableRevisionLock $state }
+if ($Command -in @('accept-design-revision','accept-result','repair-derived-artifacts','record-scope-review')) { Require-ImmutableRevisionLock $state }
 
 switch ($Command) {
+    'record-scope-review' {
+        . (Join-Path $PSScriptRoot 'controller-scope-review.ps1')
+        Record-ImplementationScopeReview $state
+        exit 0
+    }
     'status' { $state | ConvertTo-Json -Depth 16; exit 0 }
     'next' {
         $next = @{ TEST_DESIGN_DRAFT='VERIFY_DESIGN'; TEST_DESIGN_VERIFIED='ISSUE_IMPLEMENTATION_LEASE'; TEST_IMPLEMENTING='AWAIT_IMPLEMENTATION_RESULT'; TEST_IMPLEMENTED='VERIFY_IMPLEMENTATION'; TEST_IMPLEMENTATION_VERIFIED='VERIFY_ENVIRONMENT'; TEST_ENVIRONMENT_VERIFIED='RUN_ONCE'; TEST_EXECUTING='AWAIT_RUN_RESULT'; TEST_EXECUTED_PASS='VERIFY_RESULT'; TEST_EXECUTED_FAIL='BLOCKED'; TEST_RESULT_VERIFIED='COMPLETE'; BLOCKED='BLOCKED' }[$state.phase]

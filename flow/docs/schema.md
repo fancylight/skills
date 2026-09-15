@@ -715,6 +715,7 @@ activeRun: object | null       # TEST_EXECUTING 的唯一已持久化 runner；�
 scopeVerification: object | null # trusted scope PASS and controller-computed implementation-base-to-proposed diff
 verifier: object | null
 designRevisions: optional array # reopen-design保留旧revision/verifier/reason；不清除历史
+scopeDesignReviews: optional array # 实施中用户范围修订审核：原话/引用、审核人、前后提交及源hash、稳定baseline、SUT/harness/config、diffHash、删除ID、报告hash；只记审计，不推进阶段
 history: array
 integrityHash: sha256
 ```

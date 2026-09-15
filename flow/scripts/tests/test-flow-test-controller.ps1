@@ -291,6 +291,7 @@ try {
     $atomicBefore = (Get-Content $atomic.state -Raw | ConvertFrom-Json).revisions.test; if ($atomicBefore -ne $atomic.fixture.design) { throw 'failed atomic accept changed state' }
 
     . (Join-Path $PSScriptRoot 'test-controller-design-authorization.inc.ps1')
+    . (Join-Path $PSScriptRoot 'test-controller-scope-review.inc.ps1')
 
     Add-Content -LiteralPath (Join-Path $harnessRoot 'scripts\system-test.ps1') -Value '# mutation invalidates certification'
     Assert-Controller { & $controller start-run -StatePath $state -TestRevision $implementationRevision -SutRevision $sutRevision -HarnessRevision $harness -ConfigurationFingerprint $config } $false 'ERROR_HARNESS_UNCERTIFIED' 'stale-harness-certification'

@@ -2,7 +2,7 @@
 # Temporary Phase 0 wrapper. Prefer flow/scripts/ directly.
 param(
     [Parameter(Mandatory = $true, Position = 0)]
-    [ValidateSet('status', 'next', 'initialize', 'issue-lease', 'validate-lease', 'accept-result', 'record-verifier', 'start-run', 'record-run', 'block')]
+    [ValidateSet('status', 'next', 'initialize', 'grant-authorization', 'reopen-design', 'accept-design-revision', 'record-scope-review', 'issue-lease', 'validate-lease', 'accept-result', 'record-verifier', 'start-run', 'record-run', 'block')]
     [string]$Command,
     [Parameter(Mandatory = $true)] [string]$StatePath,
     [string]$ChangeName,

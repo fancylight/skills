@@ -409,6 +409,22 @@ function Test-RequiredRemovalEvidence($PreviousDocument, $CurrentMap, [string]$P
     }
     $report = Read-JsonFile $DesignVerifierReportPath 'design verifier report'; $state = Read-JsonFile $ControllerStatePath 'controller state'
     if ($null -eq $report -or $null -eq $state) { return }
+    if ($report.mode -eq 'design-scope') {
+        if ($state.integrityHash -ne (Get-StateIntegrityHash $state)) { Add-ValidationError 'scope review controller integrity mismatch'; return }
+        $records = @($state.scopeDesignReviews | Where-Object {
+            $_.testRevision -eq $report.testRevision -and $_.verifierId -eq $TrustedVerifierIdentity -and
+            $_.reportSha256 -eq (Get-FileSha256 $DesignVerifierReportPath) -and
+            $_.previousTestRevision -eq $PreviousTestRevision -and $_.canonicalRevision -eq $CanonicalRevision -and
+            $_.previousSourceSha256 -eq $PreviousHash -and $_.currentSourceSha256 -eq $CurrentHash -and
+            $_.sutRevision -eq $state.revisions.sut -and $_.harnessRevision -eq $state.revisions.harness -and
+            $_.configurationFingerprint -eq $state.configurationFingerprint
+        })
+        if ($records.Count -ne 1 -or
+            (@($records[0].removedScenarioIds | Sort-Object) -join "`n") -ne (@($removed | Sort-Object) -join "`n")) {
+            Add-ValidationError 'required removal lacks current controller-bound scope design review'
+        }
+        return
+    }
     $reportFields = @('schemaVersion','result','mode','verifierId','previousTestRevision','currentTestRevision','previousSourceSha256','currentSourceSha256','summary')
     foreach ($field in $reportFields) { if (-not (Test-HasField $report $field)) { Add-ValidationError "design verifier report is missing $field" } }
     foreach ($property in @($report.PSObject.Properties.Name)) { if ($property -notin $reportFields) { Add-ValidationError "design verifier report contains unknown field '$property'" } }

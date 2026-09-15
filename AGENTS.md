@@ -132,3 +132,5 @@ Claude Code 完整指令见 [docs/claude-code.md](./docs/claude-code.md)（经 [
 需求实施先读 codex/skills/flow-codex-core/references/delivery.md。符合条件的原范围修复可直接实施；完整编排不隐含子 agent 授权。实施收尾自动使用 flow-codex-check，亦可单独只读调用。feedback 不受此入口影响。
 
 本版新能力仅支持 Codex；Claude 保留旧版独立安装，不与新版共享运行资源。
+
+集成测试实施中用户已批准缩小范围时，使用test-controller.md的record-scope-review保留新范围审核；无需重开对话或重置state，仍需代码与运行验收。

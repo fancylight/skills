@@ -15,6 +15,7 @@ description: 在 system-test 仓按已验证的 test-design、test-plan 和 mani
 
 1. 要求 `change_name` 与 `spec_id=st-api-<change_name>`、design PASS 和 `controller.authorization.maxPhase>=implementation`；
    编辑前检查期望分支和 scoped-clean 基线。
+   实施中用户明确修订范围时，按test-controller.md的record-scope-review记录当前提交绑定的范围自查；不因原required用例经批准退出就要求重置流程。该检查点提交不代表代码review/report完成。
 2. 每次编辑、静态校验、测试或提交前执行 `test-scope-guard.ps1`，AuthorizedRepo 必须是唯一 system-test 仓；
    静态校验必须显式传入 `-Action test -CommandKind static`，任何其他 CommandKind 在本阶段均应被拒绝。
    仅按已验证场景实现 JUnit、test-support、fixtures、stub 与系统测试配置；禁止修改、测试、提交业务仓或业务

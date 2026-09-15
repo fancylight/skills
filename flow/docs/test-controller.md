@@ -77,6 +77,20 @@ manifest 的 `testAuthorization` 是**初始用户授权**，`stage: design` 不
 
 ## Lease 与结构化结果
 
+### 实施中已批准的范围修订（运行前）
+
+用户明确修改范围时，原实施者在同一lease内修订canonical源、设计和测试代码，保留旧提交。完成业务范围自查与静态检查后可提交检查点；代码review及report仍须随后完成。使用`record-scope-review`记录新范围的设计自查，不用`reopen-design`回退阶段，不新建state。
+
+该命令仅接受TEST_IMPLEMENTING且从未运行、原持有人有效lease、干净且已提交的测试HEAD；SUT/harness/config与授权上限不变，实际diff限原lease路径。传StatePath、LeaseId、AgentId、VerifierId、ProposedTestRevision及原SutRevision/HarnessRevision/ConfigurationFingerprint和ReportPath。报告必须来自实际用户原话和真实语义审核，格式如下：
+
+```json
+{"schemaVersion":1,"result":"PASS","mode":"design-scope","verifierId":"真实身份","grantedBy":"user","requestRef":"实际消息引用","requestText":"用户修改范围的原话","changeName":"change","previousTestRevision":"原designRevision","testRevision":"本次提交","canonicalRevision":"稳定testBaseline","sutRevision":"原SUT","harnessRevision":"原harness","configurationFingerprint":"原配置指纹","previousSourceSha256":"原Git源按LF且末尾一个换行的UTF8摘要","currentSourceSha256":"当前canonical文件摘要","removedScenarioIds":["明确退出的ID"],"diffHash":"implementationBase至本次提交的规范Git diff摘要","summary":"self范围审核：提供方、消费者、保存、最终输出、保留反例及退出边界"}
+```
+
+控制器校验真实Git/源/删除集合并写scopeDesignReviews审计；不认证原话真实性或代替语义审核。保留的required/Y不能降级。旧verifier、lease、版本锁、失败、运行历史均不变，不直接进入执行。普通accept-result、implementation/environment/result验证和提交范围检查仍必须通过。实现审核需同时消费原design PASS与本次提交绑定的scope review，不能仅沿用旧设计PASS。
+
+删除检查继续传PreviousTestCasesPath（原Git源按上述LF保存）、PreviousTestRevision、DesignVerifierReportPath（本次scope报告）、ControllerStatePath和TrustedVerifierIdentity；CanonicalRevision始终为稳定baseline。validator必须验证controller审计及源hash匹配，不以人工注释代替。缺口是可修复工程工作，不默认要求用户重新讨论已确认业务；运行后变更、配置/业务版本变化不适用此入口。
+
 - assign 通过 controller 签发 implementation lease；prompt 只传 controller 返回的 `leaseId`、agentId、repository、authorizedPaths、allowed/forbidden capabilities、implementationBaseRevision 和 expiresAt。
 - receive/apply/report 每次写入、静态校验或提交前调用 `validate-lease`；无 lease、过期、agent/role/capability/path 不匹配立即停止。
 - report 只把结构化 implementation report 和可信 scope guard report 交给 `accept-result`。controller 从 canonical Git 读取 base→proposed diff，成功后才推进 test revision。

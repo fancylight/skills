@@ -41,7 +41,7 @@ description: 只读验证 Flow 集成测试的 canonical test-cases、派生 sid
    `test-plan.md`、manifest 与 fixtures。按 TD.1–TD.11 验证三产物职责、AC 场景映射、拓扑、真实/桩边界、
    夹具、SQL 计划、scoped-clean 基线与配置契约；仅允许对用户确认的来源执行一次最小只读探针，失败即
    `[TEST_CONFIGURATION] BLOCKED` / `STOP_AWAIT_HUMAN_CONFIGURATION`。
-2. `implementation`：读取设计 PASS、进度文件、review 结果、测试代码、静态实现校验记录与测试仓 Git 状态。
+2. `implementation`：读取设计 PASS、进度文件、review 结果、测试代码、静态实现校验记录与测试仓 Git 状态。若用户在实施中修订范围，按test-controller.md复核当前提交绑定的scopeDesignReviews及删除证据；它仅补充范围设计审核，不代替代码review和本模式门禁。
    按 TI.1–TI.8 验证场景/断言落实、无必需 skip、外部桩一致、同一可恢复 revision 和 local-only waiver；运行
    `validate-test-cases.ps1 -Mode implementation -CanonicalRevision <test baseline revision from controller> -ManifestPath <manifest>
    -DerivedContractPath <test-cases.generated.json> -TestPlanPath <test-plan> -JavaSourceRoot <java root> -EvidenceRoot <evidence root>`
