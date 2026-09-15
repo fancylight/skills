@@ -134,3 +134,5 @@ Claude Code 完整指令见 [docs/claude-code.md](./docs/claude-code.md)（经 [
 本版新能力仅支持 Codex；Claude 保留旧版独立安装，不与新版共享运行资源。
 
 集成测试实施中用户已批准缩小范围时，使用test-controller.md的record-scope-review保留新范围审核；无需重开对话或重置state，仍需代码与运行验收。
+
+环境预检逐项验证resolved manifest中的服务版本；同仓多模块及跨仓依赖均使用已有指纹锁定，主业务仓仍须匹配controller。TCP探针兼容字面量与环境引用，不把未解析的端点误报为实际连接失败。

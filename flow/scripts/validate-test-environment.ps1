@@ -204,18 +204,24 @@ try {
     if ($configurationRevision -ne [string]$resolved.configuration.provider.configurationRevision) { Add-Step 'configuration-revision' 'preflight' 'BLOCKED' 'CONFIG_INFRA' 'configuration content revision drifted' 'configuration-provider' }
     else { Add-Step 'configuration-revision' 'preflight' 'PASS' 'NONE' 'configuration content revision is locked' 'configuration-provider' }
 
-    if (@($resolved.suts).Count -ne 1) { Add-Step 'controller-topology' 'preflight' 'BLOCKED' 'TEST_HARNESS' 'current controller supports exactly one SUT repository' }
-    else {
-        $sut = @($resolved.suts)[0]
+    $stateSutRepo = Get-CanonicalPath ([string]$state.repositories.sut)
+    $primaryCount = 0
+    foreach ($sut in @($resolved.suts)) {
         $sutRepo = Get-CanonicalPath ([string]$sut.repository)
         $actualSutRevision = Get-GitHead $sutRepo
-        $stateSutRepo = Get-CanonicalPath ([string]$state.repositories.sut)
-        if ($sutRepo -ne $stateSutRepo -or $actualSutRevision -ne [string]$state.revisions.sut -or [string]$sut.revision -ne [string]$state.revisions.sut) {
-            Add-Step 'sut-revision' 'preflight' 'BLOCKED' 'CONFIG_INFRA' 'SUT repository or revision differs from controller state' ([string]$sut.id)
+        $isPrimary = $sutRepo.Equals($stateSutRepo, [StringComparison]::OrdinalIgnoreCase)
+        if ($isPrimary) { $primaryCount++ }
+        # All SUT identities/revisions are bound by the configuration fingerprint.
+        # The primary repository may expose several service modules.
+        if (-not $actualSutRevision -or $actualSutRevision -ne [string]$sut.revision -or
+            ($isPrimary -and [string]$sut.revision -ne [string]$state.revisions.sut)) {
+            Add-Step 'sut-revision' 'preflight' 'BLOCKED' 'CONFIG_INFRA' 'SUT revision differs from its locked manifest or primary controller revision' ([string]$sut.id)
         } else { Add-Step 'sut-revision' 'preflight' 'PASS' 'NONE' 'SUT repository and revision are locked' ([string]$sut.id) }
         if (-not (Test-Path -LiteralPath ([string]$sut.startContract) -PathType Leaf)) { Add-Step 'sut-start-contract' 'preflight' 'BLOCKED' 'CONFIG_INFRA' 'SUT start contract is missing' ([string]$sut.id) }
         else { Add-Step 'sut-start-contract' 'preflight' 'PASS' 'NONE' 'SUT start contract exists' ([string]$sut.id) }
     }
+
+    if ($primaryCount -eq 0) { Add-Step 'controller-topology' 'preflight' 'BLOCKED' 'TEST_HARNESS' 'resolved SUTs must include the controller primary repository' }
 
     foreach ($target in @($resolved.configuration.targets)) {
         $targetPath = Get-CanonicalPath ([string]$target.absoluteFile)
@@ -277,8 +283,8 @@ try {
     foreach ($probe in @($resolved.probes | Where-Object { $_.stage -eq 'preflight' })) {
         $probeId = [string]$probe.id
         if ([string]$probe.kind -eq 'tcp') {
-            $hostValue = Get-ReferenceValue ([string]$probe.hostRef) $environmentValues
-            $portValue = Get-ReferenceValue ([string]$probe.portRef) $environmentValues
+            $hostValue = if (-not [string]::IsNullOrWhiteSpace([string]$probe.hostRef)) { Get-ReferenceValue ([string]$probe.hostRef) $environmentValues } else { [string]$probe.host }
+            $portValue = if (-not [string]::IsNullOrWhiteSpace([string]$probe.portRef)) { Get-ReferenceValue ([string]$probe.portRef) $environmentValues } else { [string]$probe.port }
             $port = 0
             $validPort = [int]::TryParse($portValue, [ref]$port) -and $port -gt 0 -and $port -le 65535
             $passed = -not [string]::IsNullOrWhiteSpace($hostValue) -and $validPort -and (Test-Tcp $hostValue $port $ProbeTimeoutMs)

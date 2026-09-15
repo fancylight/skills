@@ -51,7 +51,7 @@ function Write-State([string]$Path, $State) {
     Write-Json $Path $State
 }
 
-function New-Fixture([string]$Name, [bool]$ProvideDatabase = $true, [bool]$ProvideCredential = $true) {
+function New-Fixture([string]$Name, [bool]$ProvideDatabase = $true, [bool]$ProvideCredential = $true, [bool]$LiteralProbe = $false, [bool]$MultiSut = $false) {
     $orch = Join-Path $root $Name
     $testRepo = Join-Path $orch 'system-test'
     $providerRepo = Join-Path $orch 'config-provider'
@@ -65,6 +65,12 @@ function New-Fixture([string]$Name, [bool]$ProvideDatabase = $true, [bool]$Provi
     Set-Content -LiteralPath (Join-Path $providerRepo 'src\main\resources\application-native.yml') -Encoding utf8 -NoNewline -Value 'spring: {}'
     Set-Content -LiteralPath (Join-Path $providerRepo 'scripts\start-native.ps1') -Encoding utf8 -NoNewline -Value "Write-Output 'fixture'"
     Set-Content -LiteralPath (Join-Path $providerRepo 'config\sample-sut\application-dev.yml') -Encoding utf8 -NoNewline -Value "spring:`n  datasource:`n    username: test_user`n    password: `${DATABASE_CREDENTIAL}"
+    if ($MultiSut) {
+        foreach ($application in @('sample-module', 'second-sut')) {
+            [void](New-Item -ItemType Directory -Path (Join-Path $providerRepo "config/$application") -Force)
+            Copy-Item -LiteralPath (Join-Path $providerRepo 'config/sample-sut/application-dev.yml') -Destination (Join-Path $providerRepo "config/$application/application-dev.yml")
+        }
+    }
     $providerRevision = Commit-All $providerRepo 'provider baseline'
 
     Set-Content -LiteralPath (Join-Path $sutRepo 'README.md') -Encoding utf8 -NoNewline -Value 'sample sut'
@@ -92,6 +98,10 @@ function New-Fixture([string]$Name, [bool]$ProvideDatabase = $true, [bool]$Provi
         )
         evidenceContracts=@([ordered]@{ id='property-source'; kind='log-regex'; pattern='CONFIG_CONSUMED\\s+sample-sut/dev' })
     }
+    if ($LiteralProbe) {
+        $descriptor.probes[1].Remove('hostRef'); $descriptor.probes[1].Remove('portRef')
+        $descriptor.probes[1].host = '127.0.0.1'; $descriptor.probes[1].port = $externalPort
+    }
     $descriptorPath = Join-Path $testRepo 'config\environments\local.json'
     Write-Json $descriptorPath $descriptor
     $manifest = [ordered]@{
@@ -100,6 +110,16 @@ function New-Fixture([string]$Name, [bool]$ProvideDatabase = $true, [bool]$Provi
         suts=@([ordered]@{ id='sample-sut'; repository='${ORCH_ROOT}/sample-sut'; revision=$sutRevision; lifecycle='managed'; startContract='config/services/sample-sut/start-system-test.ps1'; healthProbe='sample-sut-health' })
         harness=[ordered]@{ revision=('a' * 64) }
         runner=[ordered]@{ workingDirectory='${TEST_ROOT}'; command=@('powershell.exe','-NoProfile','-File','scripts/run-suite.ps1'); failureCategory='SUT_BUSINESS' }
+    }
+    $secondSutRepo = Join-Path $orch 'second-sut'
+    if ($MultiSut) {
+        Initialize-Git $secondSutRepo
+        Copy-Item -LiteralPath (Join-Path $sutRepo 'README.md') -Destination (Join-Path $secondSutRepo 'README.md')
+        $secondRevision = Commit-All $secondSutRepo 'second baseline'
+        foreach ($application in @('sample-module', 'second-sut')) {
+            $manifest.configuration.targets += [ordered]@{ application=$application; profile='dev'; relativeFile="config/$application/application-dev.yml"; endpoint="/$application/dev"; sutEvidence=[ordered]@{ kind='log-pattern'; patternId='property-source' } }
+            $manifest.suts += [ordered]@{ id=$application; repository=$(if ($application -eq 'sample-module') { $sutRepo } else { $secondSutRepo }); revision=$(if ($application -eq 'sample-module') { $sutRevision } else { $secondRevision }); lifecycle='managed'; startContract='config/services/sample-sut/start-system-test.ps1'; healthProbe='sample-sut-health' }
+        }
     }
     $manifestPath = Join-Path $testRepo 'changes\sample\manifest.yaml'
     Write-Json $manifestPath $manifest
@@ -151,6 +171,29 @@ try {
     if ($LASTEXITCODE -ne 0 -or ($controllerOutput -join "`n") -notmatch '\[FLOW_CONTROLLER\] PASS') { throw "controller rejected environment report: $($controllerOutput -join ' | ')" }
     if ((Get-Content -LiteralPath $valid.state -Raw -Encoding utf8 | ConvertFrom-Json).phase -ne 'TEST_ENVIRONMENT_VERIFIED') { throw 'controller did not advance environment phase' }
 
+    $multi = New-Fixture 'multi-literal' $false $true $true $true
+    $external = Start-Listener $multi.externalPort
+    try { $multiResult = Invoke-Verifier $multi } finally { $external.Stop() }
+    Assert-Pass $multiResult 'literal TCP and three services across two repositories'
+    $multiReport = Get-Content -LiteralPath $multi.report -Raw -Encoding utf8 | ConvertFrom-Json
+    if (@($multiReport.steps | Where-Object { $_.stepId -eq 'sut-revision' -and $_.result -eq 'PASS' }).Count -ne 3) { throw 'all three SUTs must be verified' }
+    Set-Content -LiteralPath (Join-Path $multi.orch 'second-sut/drift.txt') -Encoding utf8 -Value 'drift'
+    [void](Commit-All (Join-Path $multi.orch 'second-sut') 'secondary drift')
+    $external = Start-Listener $multi.externalPort
+    try { $secondaryResult = Invoke-Verifier $multi } finally { $external.Stop() }
+    Assert-Blocked $secondaryResult 'CONFIG_INFRA' 'secondary SUT revision drift'
+    $secondaryReport = Get-Content -LiteralPath $multi.report -Raw -Encoding utf8 | ConvertFrom-Json
+    if (@($secondaryReport.steps | Where-Object { $_.stepId -eq 'sut-revision' -and $_.resourceId -eq 'second-sut' -and $_.result -eq 'BLOCKED' }).Count -ne 1) { throw 'secondary revision must be independently rejected' }
+
+    $missingPrimary = New-Fixture 'missing-primary'
+    $state = Get-Content -LiteralPath $missingPrimary.state -Raw -Encoding utf8 | ConvertFrom-Json
+    $state.repositories.sut = $missingPrimary.providerRepo
+    Write-State $missingPrimary.state $state
+    Assert-Blocked (Invoke-Verifier $missingPrimary) 'TEST_HARNESS' 'missing controller primary'
+
+    $literalDown = New-Fixture 'literal-down' $false $true $true
+    Assert-Blocked (Invoke-Verifier $literalDown) 'DATA_SCHEMA_CONTRACT' 'unavailable literal TCP endpoint'
+
     $externalDown = New-Fixture 'external-down'
     Assert-Blocked (Invoke-Verifier $externalDown) 'DATA_SCHEMA_CONTRACT' 'unavailable external dependency'
 
@@ -193,5 +236,9 @@ try {
     Write-Output '[TEST_ENVIRONMENT_PREFLIGHT_SELF_TEST] PASS'
     Write-Output 'cases: controller acceptance, external unavailable, managed port occupied, missing reference, input/provider/resolved drift, missing start contract, phase mismatch'
 } finally {
-    if (Test-Path -LiteralPath $root) { Remove-Item -LiteralPath $root -Recurse -Force }
+    $resolvedRoot = [IO.Path]::GetFullPath($root)
+    $tempRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\', '/')
+    if (-not $resolvedRoot.StartsWith($tempRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase) -or
+        [IO.Path]::GetFileName($resolvedRoot) -notlike 'flow-environment-preflight-*') { throw 'Unsafe temporary test cleanup target' }
+    if (Test-Path -LiteralPath $resolvedRoot) { Remove-Item -LiteralPath $resolvedRoot -Recurse -Force }
 }
