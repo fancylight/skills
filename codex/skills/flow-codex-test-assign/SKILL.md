@@ -5,6 +5,8 @@ description: 向 system-test 仓派发 st-api 集成测试 spec。仅在当前�
 
 # Codex Flow 集成测试派发
 
+需求命名、分支与提交遵循 `../flow-codex-core/references/git-conventions.md`；已有需求读取根 change.json；实际写入 Git 仓库前按该规则绑定并校验，提交使用公共脚本，中文描述贯穿业务、文档和测试。
+
 初始化后，当前有效授权从 controller `authorization.maxPhase` 及 grants 读取；manifest.testAuthorization 仅为初始授权。用户追加授权按 core/references/test-controller.md 的 grant-authorization 入账，不从 next 推断、不要求重复授权、不改 manifest 来伪造授权。
 
 默认单对话按 core/references/test-controller.md 把真实测试租约交给当前执行者继续 receive/apply/report，不创建 agent；多 agent 派发仅在用户授权时使用。

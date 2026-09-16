@@ -30,3 +30,6 @@
 5. 最终说明分别列出服务仓与根仓提交、验证范围和未覆盖项。既定记录保留业务提交关联，根仓 hash 仅在最终说明列出，避免自身 hash 循环。
 
 缺少旧流程记录本身不构成失败；缺设计、代码正确性依据、适用测试或文档收尾时必须明确，不得将已提交等同完成。
+
+
+需求及 Agent Git 操作按 [git-conventions.md](git-conventions.md) 执行：根 change.json 为身份来源，修改前 check-branch，提交用公共脚本并使用中文描述；不安装阻断人工提交的 Git hook。feedback 调查本身不绑定需求，转入 fix-now 写代码时按非 Flow 或明确关联需求绑定。

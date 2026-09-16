@@ -5,6 +5,8 @@ description: 在 system-test 仓按已验证的 test-design、test-plan 和 mani
 
 # Codex Flow 集成测试编码
 
+需求命名、分支与提交遵循 `../flow-codex-core/references/git-conventions.md`；已有需求读取根 change.json；实际写入 Git 仓库前按该规则绑定并校验，提交使用公共脚本，中文描述贯穿业务、文档和测试。
+
 初始化后，当前有效授权从 controller `authorization.maxPhase` 及 grants 读取；manifest.testAuthorization 仅为初始授权。用户追加授权按 core/references/test-controller.md 的 grant-authorization 入账，不从 next 推断、不要求重复授权、不改 manifest 来伪造授权。
 
 质量要求：读取 ../flow-codex-core/assets/templates/engineering-quality.md 的「实现与审核、测试与排障」。沿用现有结果与授权机制，不增加阶段。

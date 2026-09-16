@@ -136,3 +136,8 @@ Claude Code 完整指令见 [docs/claude-code.md](./docs/claude-code.md)（经 [
 集成测试实施中用户已批准缩小范围时，使用test-controller.md的record-scope-review保留新范围审核；无需重开对话或重置state，仍需代码与运行验收。
 
 环境预检逐项验证resolved manifest中的服务版本；同仓多模块及跨仓依赖均使用已有指纹锁定，主业务仓仍须匹配controller。TCP探针兼容字面量与环境引用，不把未解析的端点误报为实际连接失败。
+
+
+## Codex Git 规范维护
+
+维护本仓库的 Git 规范读 codex/skills/flow-codex-core/references/git-conventions.md；本仓无业务需求号的维护提交使用 `<type> <中文描述>`，沿用当前已授权分支。框架脚本见 flow/scripts/flow-git.py，Codex hook 安装见 codex/scripts/install-git-hook.py；不向旧 Claude 安装传播，不安装 Git hook。

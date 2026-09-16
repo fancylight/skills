@@ -5,6 +5,8 @@ description: 在提交后记录一个已完成的 Flow spec，并更新根追踪
 
 # Codex Flow 汇报
 
+需求命名、分支与提交遵循 `../flow-codex-core/references/git-conventions.md`；已有需求读取根 change.json；实际写入 Git 仓库前按该规则绑定并校验，提交使用公共脚本，中文描述贯穿业务、文档和测试。
+
 质量要求：读取 ../flow-codex-core/assets/templates/engineering-quality.md 的「文档与汇报」。沿用现有结果与授权机制，不增加阶段。
 
 读取 `../flow-codex-core/references/platform.md`、

@@ -5,6 +5,8 @@ description: 按依赖安排 Flow specs，默认当前对话串行实施，仅�
 
 # Codex Flow 派发
 
+需求命名、分支与提交遵循 `../flow-codex-core/references/git-conventions.md`；已有需求读取根 change.json；实际写入 Git 仓库前按该规则绑定并校验，提交使用公共脚本，中文描述贯穿业务、文档和测试。
+
 完整编排入口；不因用户只要求修复已有 spec 而自动派发。先按 ../flow-codex-core/references/delivery.md 判断路径并确认当前项目允许子 agent；不允许时不得启动或恢复子 agent，也不得以本 skill 推导授权。作为根编排 agent 执行。读取 `../flow-codex-core/references/platform.md`、
 `../flow-codex-core/references/checkpoints.md` 和 `references/scheduler.md`。使用
 `../flow-codex-core/assets/templates/child-agent-prompt.md`.

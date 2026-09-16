@@ -28,6 +28,8 @@ description: 只读校验整个 Flow 需求、指定 spec 或修复范围的实�
 
 ## 输出
 
+对已绑定工作目录，按 `../flow-codex-core/references/git-conventions.md` 用公共脚本 audit 检查明确的基线到目标提交，汇总 agent_pass / agent_fail / unclassified / legacy_exceptions。缺绑定或基线只标记 UNVERIFIED，不在本只读入口写元数据或绑定；历史/来源不明的不规范提交仅 WARN，不要求改写历史。
+
 列出需求范围、各仓基线/目标/工作区，随后使用表格：检查项 | PASS / FAIL / UNVERIFIED / NOT_APPLICABLE | 要求位置与实现/证据位置 | 影响 | 补救建议。
 
 FAIL 表示有确证偏差，UNVERIFIED 表示依据或范围不足。任一必要项 FAIL 或 UNVERIFIED 时不得宣称交付完整通过；进行中需求只评价本次指定范围，不因其他未实施 spec 判本次修复失败。静态审核与运行验证分别汇总，声明复用了哪些证据、哪些没有运行。

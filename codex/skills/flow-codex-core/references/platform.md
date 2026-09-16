@@ -50,3 +50,6 @@ openspec instructions apply --change <spec-id> --json
 
 OpenSpec 报告 blocked 状态时停止。proposal、design、delta specs 和 tasks 齐备，并且 apply 指令
 可用后，设计才算完成。
+
+
+需求及 Agent Git 操作按 [git-conventions.md](git-conventions.md) 执行：根 change.json 为身份来源，修改前 check-branch，提交用公共脚本并使用中文描述；不安装阻断人工提交的 Git hook。feedback 调查本身不绑定需求，转入 fix-now 写代码时按非 Flow 或明确关联需求绑定。

@@ -5,6 +5,8 @@ description: 将已批准的需求变更应用到现有 Flow 产物和受影响�
 
 # Codex Flow 需求变更
 
+需求命名、分支与提交遵循 `../flow-codex-core/references/git-conventions.md`；已有需求读取根 change.json；实际写入 Git 仓库前按该规则绑定并校验，提交使用公共脚本，中文描述贯穿业务、文档和测试。
+
 按 `../flow-codex-core/references/first-delivery.md` 核对变动承诺的提供方、消费者、保存校验和最终输出，声明仍有效证据与必须重验范围。按原 spec 修复并在同一对话收尾，不因变化而强制新开对话。
 
 质量要求：读取 ../flow-codex-core/assets/templates/engineering-quality.md 的「设计与验证、文档与汇报」。沿用现有结果与授权机制，不增加阶段。

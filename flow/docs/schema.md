@@ -898,3 +898,12 @@ KB 沉淀：`flow-codex-kb feedback/{id}` 或 `/flow:kb feedback/{id}`，读取�
 
 模板源（index）：`flow/templates/feedback-index.md.tmpl`
 
+
+
+## Codex Git 命名扩展（flow-v1）
+
+仅 Codex 模板启用 `conventions.agent_git: flow-v1`；Claude legacy 字段与安装行为不变。`branch_pattern` 是完整模式 `feature/{change_name}`，`commit_format` 为 `{requirement_id} {type} {description}`，`commit_language` 为 `zh-CN`，项目级不得固定 task_id。
+
+首次 design 的命名身份保存在 `.flow/changes/<change_name>/change.json`：`version: 1`、`requirement_id`（小写 glw-数字）、`title`（中文）、`slug`（英文 kebab-case）、`delivery_date`（初始交期 YYYYMMDD）、`change_name`（slug-交期）、`branch`（完整 feature/change_name）、`legacy: false`。这不是设计方案，不解除 domain 门禁；task 与概要设计读取该身份，延期不改路径。
+
+定点接入存量需求使用 `legacy: true`，slug/delivery_date 为 null，保留真实旧 change_name/branch，另记 `evidence_repo`（核实当前分支的仓库）；不自动批量迁移。工作目录绑定及 Agent 提交回执存于实际 Git dir，不纳入业务版本库。详细命令见 `codex/skills/flow-codex-core/references/git-conventions.md`。

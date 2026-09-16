@@ -5,6 +5,8 @@ description: 在业务代码已审核提交后，基于概要设计验收、as-b
 
 # Codex Flow 集成测试设计
 
+需求命名、分支与提交遵循 `../flow-codex-core/references/git-conventions.md`；已有需求读取根 change.json；实际写入 Git 仓库前按该规则绑定并校验，提交使用公共脚本，中文描述贯穿业务、文档和测试。
+
 业务场景及开发小链路按 `../flow-codex-core/references/first-delivery.md` 前置到 design/apply。这里仍是正式测试设计入口，承接同一场景源，不为早期局部测试绕过提交和门禁要求。
 
 质量要求：读取 ../flow-codex-core/assets/templates/engineering-quality.md 的「测试与排障」。沿用现有结果与授权机制，不增加阶段。

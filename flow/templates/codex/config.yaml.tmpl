@@ -1,0 +1,46 @@
+# Flow 项目配置模板
+# 由 $flow-codex-init 生成，可手动编辑
+
+project:
+  name: "{{project_name}}"
+  role: "orchestrator"
+  created: "{{created_date}}"
+
+services:
+{{#each services}}
+  - name: "{{name}}"
+    path: "{{path}}"
+    type: "{{type}}"
+    description: "{{description}}"
+    flow_initialized: false
+    flow_initialized_at: ""
+{{/each}}
+
+knowledge_base:
+  enabled: {{knowledge_base.enabled}}
+  path: "{{knowledge_base.path}}"
+  overview: "{{knowledge_base.overview}}"
+  maintenance_guide: "{{knowledge_base.maintenance_guide}}"
+  child_write: true
+  review_on_archive: true
+
+conventions:
+  agent_git: "flow-v1"
+  task_id_prefix: "glw"
+  branch_pattern: "feature/{change_name}"
+  commit_format: "{requirement_id} {type} {description}"
+  commit_language: "zh-CN"
+
+child_agent:
+  spec_tool: "{{spec_tool}}"
+  onboarding_doc: ".flow/onboarding.md"
+
+# 控制面协议：缺省 legacy（兼容进行中 change）。
+# 新建 change 在 design/init 写入 lease-v1 后走根调度 review + 串行 report 租约。
+# 详见 flow/docs/control-plane.md 与 docs/claude-lease-migration.md
+flow:
+  protocol_version: "legacy"
+  # 测试环境 v2 分阶段启用；完成 system-test service 与 environment descriptor 注册后取消注释。
+  # test_platform:
+  #   system_test_service: "<type-system-test-service>"
+  #   default_environment: "local"

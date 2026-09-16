@@ -16,6 +16,8 @@ description: Codex Flow 适配层的内部公共资源和平台规则。仅在�
 
 ## 按任务加载
 
+- 需求命名、分支及提交：读取 `references/git-conventions.md`，使用 `assets/scripts/flow-git.py`；仅 Codex 接线，不安装 Git hook。
+
 - 需求实施、原范围修复及交付收尾：读取 `references/delivery.md`；不应用于 feedback。
 - 执行已有集成用例：读取 `references/test-execution.md`；正式 controller 约束保留。
 - `flow-codex-check` 只读核对当前交付，不要求先补走 checkpoints 中的派发/汇报。

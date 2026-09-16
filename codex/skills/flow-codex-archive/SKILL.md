@@ -5,6 +5,8 @@ description: 在验证和集成测试后归档已完成的 Flow 需求。用户�
 
 # Codex Flow 归档
 
+需求命名、分支与提交遵循 `../flow-codex-core/references/git-conventions.md`；已有需求读取根 change.json；实际写入 Git 仓库前按该规则绑定并校验，提交使用公共脚本，中文描述贯穿业务、文档和测试。
+
 读取 `../flow-codex-core/references/platform.md` 与
 `../flow-codex-core/assets/templates/verify-checklist.md`。
 

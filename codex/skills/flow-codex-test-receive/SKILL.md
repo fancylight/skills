@@ -5,6 +5,8 @@ description: 将 st-api 集成测试 spec 加载到 config 中 type=system-test 
 
 # Codex Flow 集成测试接收
 
+需求命名、分支与提交遵循 `../flow-codex-core/references/git-conventions.md`；已有需求读取根 change.json；实际写入 Git 仓库前按该规则绑定并校验，提交使用公共脚本，中文描述贯穿业务、文档和测试。
+
 读取 `../flow-codex-core/references/platform.md` 和 `../flow-codex-core/references/test-controller.md`。
 
 ## 输入

@@ -385,6 +385,22 @@ if (-not $journeyTemplateFound) {
     }
 }
 
+# Codex Git contract resources and entry routing (legacy Claude remains separate).
+@('flow/scripts/flow-git.py', 'flow/scripts/tests/test_flow_git.py', 'codex/scripts/install-git-hook.py',
+  'codex/skills/flow-codex-core/references/git-conventions.md',
+  'flow/templates/codex/config.yaml.tmpl', 'flow/templates/codex/child-config.yaml.tmpl',
+  'flow/templates/codex/overview-design.md.tmpl') | ForEach-Object {
+    if (-not (Test-Path -LiteralPath (Join-Path $projectRoot $_) -PathType Leaf)) {
+        $errors += "Missing Codex Git conventions resource: $_"
+    }
+}
+@('init', 'design', 'assign', 'receive', 'apply', 'report', 'test-design', 'test-assign', 'test-receive', 'test-apply', 'test-report', 'check') | ForEach-Object {
+    $entry = Get-Content -LiteralPath (Join-Path $skillsDir "flow-codex-$_/SKILL.md") -Raw -Encoding UTF8
+    if ($entry -notmatch 'git-conventions.md') { $errors += "Missing Git convention routing: $_" }
+}
+$gitTemplate = Get-Content -LiteralPath (Join-Path $codexOverridesDir 'overview-design.md.tmpl') -Raw -Encoding UTF8
+if ($gitTemplate -match '\{\{branch_pattern\}\}/') { $errors += 'Codex overview must use the full bound branch, not concatenate branch_pattern.' }
+
 if ($errors.Count -gt 0) {
     $errors | ForEach-Object { Write-Error $_ }
     exit 1

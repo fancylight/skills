@@ -14,9 +14,9 @@ core 的 `domain-model.md.tmpl` 完成领域发现；未经 domain verify，不�
 
 ## 根模式
 
-1. 要求明确提供 `change_name`。
+1. 按 `../flow-codex-core/references/git-conventions.md` 明确需求号、中文标题、英文短名和交期，用 init 生成目录及 change.json；已有需求读取或定点 adopt，不重命名。只询问讨论中缺失的信息。
 2. 读取根 Flow 配置和已有需求产物。
-3. **只创建或修复领域模型**：读取 `../flow-codex-core/assets/templates/domain-model.md.tmpl`，在
+3. **除命名元数据外，只创建或修复领域模型**：读取 `../flow-codex-core/assets/templates/domain-model.md.tmpl`，在
    `.flow/changes/<change_name>/domain-model.md` 记录本 change 的 Decision ID、Fact ID、生效条件、
    不生效条件/反例、可定位 E1/E2 证据、冲突与未决问题。只覆盖会影响实现分支的决策点；不得扫描
    整个系统，且不得把概要设计、实现设想或 agent 推断作为领域事实证据。

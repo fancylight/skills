@@ -1,6 +1,9 @@
 param(
     [string]$TargetDir = (Join-Path $env:USERPROFILE ".agents\skills"),
-    [switch]$WhatIf
+    [switch]$WhatIf,
+    [switch]$InstallGitHook,
+    [string]$PythonPath,
+    [string]$CodexHome = $(if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $env:USERPROFILE '.codex' })
 )
 
 $ErrorActionPreference = "Stop"
@@ -9,6 +12,16 @@ $projectRoot = Split-Path -Parent $scriptDir
 $skillsDir = Join-Path $scriptDir "skills"
 $sharedTemplatesDir = Join-Path $projectRoot "flow\templates"
 $codexOverridesDir = Join-Path $sharedTemplatesDir "codex"
+
+if ($InstallGitHook) {
+    if (-not $PythonPath -or -not (Test-Path -LiteralPath $PythonPath -PathType Leaf)) {
+        throw '-InstallGitHook requires -PythonPath pointing to a verified Python 3.10+ executable.'
+    }
+    if (-not $WhatIf) {
+        & $PythonPath -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)'
+        if ($LASTEXITCODE -ne 0) { throw 'Flow Git requires Python 3.10+.' }
+    }
+}
 
 if (-not (Test-Path -LiteralPath $skillsDir)) {
     throw "Codex skills directory not found: $skillsDir"
@@ -153,4 +166,13 @@ if (Test-Path -LiteralPath $sharedTemplatesDir) {
 }
 else {
     Write-Warning "Shared templates directory not found: $sharedTemplatesDir"
+}
+
+# Codex-only Git conventions. Do not add to the legacy Claude installer.
+Copy-Item -LiteralPath (Join-Path $projectRoot 'flow/scripts/flow-git.py') -Destination (Join-Path $coreScriptsDir 'flow-git.py') -Force -WhatIf:$WhatIf
+if ($InstallGitHook) {
+    if (-not $WhatIf) {
+        & $PythonPath (Join-Path $scriptDir 'scripts/install-git-hook.py') --codex-home $CodexHome --runtime-script (Join-Path $coreScriptsDir 'flow-git.py') --python $PythonPath
+        if ($LASTEXITCODE -ne 0) { throw 'Flow Git hook installation failed.' }
+    }
 }

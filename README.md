@@ -241,3 +241,8 @@ Codex feedback 的浏览器操作优先使用 Edge 控制工具；CDP 仅在用�
 GPT-6 与 GPT-5.6 Sol 共用规则，模型效果以真实回放为准；未运行的模型不声明兼容。
 
 集成测试设计现在先审核可读业务用例，再设计运行、代码、夹具和观测；test-plan 的业务主体和技术附录由同一 test-cases.yaml 派生。存量已审核设计可在原对话按 [controller 协议](flow/docs/test-controller.md) 重开并复核；追加用户授权有正式命令，不修改初始 manifest 或重置状态。
+
+
+### Codex Git 命名与中文提交
+
+根需求编号贯穿业务、文档和测试提交；新目录及分支由英文短名和初始交期确定。Agent 使用本地脚本校验并提交，描述使用中文；可接入 Codex PreToolUse，用户手动 Git 提交保持原样。安装、撤销、边界及统计见 [Git 规范说明](docs/git-conventions.md)。
