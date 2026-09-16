@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $resolver = Join-Path (Split-Path -Parent $PSScriptRoot) 'resolve-test-environment.ps1'
 $runtime = Join-Path $repositoryRoot 'templates\system-test\scripts\run-resolved-environment.ps1'
@@ -264,7 +264,13 @@ try {
     $interruptStdout = Join-Path $interrupted.orch 'runtime.stdout.log'
     $interruptStderr = Join-Path $interrupted.orch 'runtime.stderr.log'
     $interruptArgs = "-NoProfile -ExecutionPolicy Bypass -File `"$runtime`" -ResolvedManifestPath `"$($interrupted.resolved)`" -ExpectedFingerprint $($interrupted.fingerprint) -OutputPath `"$($interrupted.report)`" -StatePath `"$interruptState`" -ProbeTimeoutMs 500 -StartupTimeoutMs 4500"
-    $runtimeProcess = Start-Process -FilePath 'powershell.exe' -ArgumentList $interruptArgs -RedirectStandardOutput $interruptStdout -RedirectStandardError $interruptStderr -PassThru -WindowStyle Hidden
+    # Start-Process does not apply pwsh's native-command PSModulePath cleanup.
+    # Give the PS5 child its own built-in modules instead of PS7-only modules.
+    $savedModulePath=$env:PSModulePath
+    try {
+        $env:PSModulePath=(Join-Path $env:WINDIR 'System32/WindowsPowerShell/v1.0/Modules')+';'+$savedModulePath
+        $runtimeProcess = Start-Process -FilePath 'powershell.exe' -ArgumentList $interruptArgs -RedirectStandardOutput $interruptStdout -RedirectStandardError $interruptStderr -PassThru -WindowStyle Hidden
+    } finally { $env:PSModulePath=$savedModulePath }
     $deadline = [DateTime]::UtcNow.AddSeconds(12)
     $ownedCount = 0
     do {
@@ -302,6 +308,25 @@ try {
     $timeoutReport = Get-Content -LiteralPath $timeout.report -Raw | ConvertFrom-Json
     if ($timeoutReport.result -ne 'BLOCKED' -or $timeoutReport.summary -notmatch 'runtime limit' -or ([DateTime]::UtcNow - $timeoutStart).TotalSeconds -gt 20) { throw 'Suite hard timeout did not terminate the owned command' }
     if (-not (Test-PortAvailable $timeout.providerPort) -or -not (Test-PortAvailable $timeout.sutPort)) { throw 'Timeout leaked service processes' }
+
+    $previousDeadline=$env:FLOW_EXECUTION_DEADLINE
+    try {
+        $env:FLOW_EXECUTION_DEADLINE=[DateTime]::UtcNow.AddSeconds(90).ToString('o')
+        $expired=Invoke-Runtime $timeout
+        Assert-Result $expired 'BLOCKED' 'BUDGET_EXHAUSTED' 'persistent deadline reserves cleanup'
+        if (@($expired.report.steps | Where-Object { $_.phase -in @('sut-start','suite') }).Count) {throw 'expired budget launched a suite'}
+    } finally { $env:FLOW_EXECUTION_DEADLINE=$previousDeadline }
+
+    $doubleFailure=New-Fixture 'business-and-cleanup' 'good' $true 1
+    $doubleManifest=Join-Path $doubleFailure.testRepo 'changes/sample/manifest.json'
+    $doubleConfig=Get-Content $doubleManifest -Raw | ConvertFrom-Json
+    $doubleConfig.runner | Add-Member -Force -NotePropertyName prepare -NotePropertyValue @('powershell.exe','-NoProfile','-Command','exit 0')
+    $doubleConfig.runner | Add-Member -Force -NotePropertyName cleanup -NotePropertyValue @('powershell.exe','-NoProfile','-Command','exit 1')
+    Write-Json $doubleManifest $doubleConfig
+    Resolve-Fixture $doubleFailure
+    $doubleResult=Invoke-Runtime $doubleFailure
+    Assert-Result $doubleResult 'BLOCKED' 'SUT_BUSINESS' 'cleanup preserves original business failure'
+    if (-not $doubleResult.report.primaryFailure -or @($doubleResult.report.steps | Where-Object { $_.phase -eq 'cleanup' -and $_.result -ne 'PASS' }).Count -eq 0) {throw 'lost one of the two failures'}
 
     $external = New-Fixture 'external-provider'
     $externalDescriptorPath = Join-Path $external.testRepo 'config/environments/local.json'
@@ -360,6 +385,27 @@ Set-Content -LiteralPath (Join-Path $ReportDirectory 'TEST-example.SmokeTest.xml
     if ($selectionResult.fullSuite -or $selectionResult.counts.passed -ne 1 -or $selectionResult.scenarioIds[0] -ne 'SMOKE-1' -or $selectionResult.rawEvidencePath -notmatch '[\\/]runs[\\/]') { throw 'Selected v2 dispatch returned an invalid full/partial result' }
     $rawSelectedResult = Get-Content -LiteralPath (Join-Path (Split-Path -Parent $selectionResult.rawEvidencePath) 'runtime-result.json') -Raw | ConvertFrom-Json
     if ($rawSelectedResult.fullSuite -or $rawSelectedResult.scenarioIds[0] -ne 'SMOKE-1') { throw 'Raw runtime evidence omitted its partial scope' }
+    # Exercise the actual formal runner with a registered, integrity-protected
+    # synthetic controller receipt. The fixture XML is not business evidence.
+    $registeredPath=Join-Path $dispatch.orch 'registered-state.json'
+    $formalOutput=Join-Path $dispatch.orch 'formal-slice.json'
+    $registered=[ordered]@{phase='TEST_EXECUTING';changeName='sample';repositories=@{systemTest=$dispatch.testRepo};activeRun=@{runId='formal-fixture';executionKey='fixture-binding';scenarioIds=@('SMOKE-1');deadlineUtc=[DateTime]::UtcNow.AddMinutes(30).ToString('o');evidence=$formalOutput};integrityHash=''}
+    $sha=[Security.Cryptography.SHA256]::Create()
+    try { $registered.integrityHash=-join ($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes(($registered | ConvertTo-Json -Depth 16 -Compress))) | ForEach-Object {$_.ToString('x2')}) } finally { $sha.Dispose() }
+    Write-Json $registeredPath $registered
+    $savedExecution=@{}
+    $executionValues=@{FLOW_EXECUTION_STATE=$registeredPath;FLOW_EXECUTION_RUN='formal-fixture';FLOW_EXECUTION_KEY='fixture-binding';FLOW_EXECUTION_DEADLINE=$registered.activeRun.deadlineUtc}
+    try {
+        foreach($key in $executionValues.Keys){$savedExecution[$key]=[Environment]::GetEnvironmentVariable($key);[Environment]::SetEnvironmentVariable($key,$executionValues[$key])}
+        $formalLines=@(& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $systemTestRunner run -Change sample -ExecutionMode orchestrated -ScenarioIds SMOKE-1 -ConfigurationFingerprint $dispatch.fingerprint -EnvFile .env.local -HarnessCertificationPath $certification -StructuredResultPath $formalOutput 2>&1)
+        if ($LASTEXITCODE -ne 0) {throw "Formal slice failed: $($formalLines -join ' | ')"}
+        $formal=Get-Content $formalOutput -Raw|ConvertFrom-Json
+        if($formal.flowRunId -ne 'formal-fixture' -or $formal.executionKey -ne 'fixture-binding' -or $formal.fullSuite -or $formal.counts.passed -ne 1){throw 'formal selected evidence binding lost'}
+        $originalHash=(Get-FileHash $formalOutput).Hash
+        $oldPreference=$ErrorActionPreference;$ErrorActionPreference='Continue'
+        try {$repeat=@(& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $systemTestRunner run -Change sample -ExecutionMode orchestrated -ScenarioIds SMOKE-1 -ConfigurationFingerprint $dispatch.fingerprint -EnvFile .env.local -HarnessCertificationPath $certification -StructuredResultPath $formalOutput 2>&1)} finally {$ErrorActionPreference=$oldPreference}
+        if($LASTEXITCODE -eq 0 -or ($repeat -join ' ') -notmatch 'already dispatched' -or (Get-FileHash $formalOutput).Hash -ne $originalHash){throw 'registered interruption retry redelivered/overwrote evidence'}
+    } finally {foreach($key in $savedExecution.Keys){[Environment]::SetEnvironmentVariable($key,$savedExecution[$key])}}
     $selectedManifest.runner | Add-Member -NotePropertyName prepare -NotePropertyValue @('powershell.exe','-NoProfile','-File','scripts/precondition.ps1')
     Set-Content -LiteralPath (Join-Path $dispatch.testRepo 'scripts/precondition.ps1') -Value 'exit 78'
     Write-Json (Join-Path $selectedRoot 'manifest.json') $selectedManifest
@@ -371,10 +417,11 @@ Set-Content -LiteralPath (Join-Path $ReportDirectory 'TEST-example.SmokeTest.xml
     $blockedSelection = Get-Content -LiteralPath $structuredDispatch -Raw | ConvertFrom-Json
     if ($blockedSelection.status -ne 'BLOCKED' -or $blockedSelection.counts.observedTests -ne 0 -or $blockedSelection.counts.failed -ne 0 -or $blockedSelection.counts.expectedMethodCount -ne 1 -or $blockedSelection.counts.reportAvailability -ne 'NOT_EXECUTED') { throw 'Precondition failure fabricated executed test counts' }
 
+    $allPassed=$true
     Write-Output '[RESOLVED_ENVIRONMENT_RUNTIME_SELF_TEST] PASS'
     Write-Output 'cases: happy, provider readiness failure, source drift, target identity mismatch, missing consumption evidence, suite attribution, reuse ownership, redaction, interrupted recovery, prepare failure, hard timeout, external ownership, certified system-test v2 dispatch'
 } finally {
-    if ([Environment]::GetEnvironmentVariable('FLOW_KEEP_RUNTIME_FIXTURES') -ne '1' -and (Test-Path -LiteralPath $root)) {
+    if ($allPassed -and [Environment]::GetEnvironmentVariable('FLOW_KEEP_RUNTIME_FIXTURES') -ne '1' -and (Test-Path -LiteralPath $root)) {
         Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue
     } else { Write-Output "fixtures: $root" }
 }

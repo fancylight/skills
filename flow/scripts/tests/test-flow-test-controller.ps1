@@ -1,4 +1,5 @@
-﻿$ErrorActionPreference = 'Stop'
+﻿param([switch]$ExecutionOnly)
+$ErrorActionPreference = 'Stop'
 $controller = Join-Path (Split-Path -Parent $PSScriptRoot) 'flow-test-controller.ps1'
 $repoRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
 $harnessSource = Join-Path $repoRoot 'flow\templates\system-test'
@@ -89,6 +90,15 @@ function New-LeasedCase([string]$Name, [string]$ChangeName = 'sample-change', [s
         Assert-Controller { & $controller issue-lease -StatePath $state -TestRevision $fixture.design -SutRevision $sutFixture.design -HarnessRevision $harness -ConfigurationFingerprint config-a -Role test-implementer -AgentId agent-a -LeaseMinutes $LeaseMinutes }
     }
     [pscustomobject]@{ repo=$repo; sut=$sut; state=$state; fixture=$fixture; sutFixture=$sutFixture; designReport=$designReport; sutRevision=$sutFixture.design; harness=$harness; config='config-a' }
+}
+if ($ExecutionOnly) {
+    try {
+        . (Join-Path $PSScriptRoot 'test-controller-execution.inc.ps1')
+        Write-Output '[CONTROLLER_EXECUTION_TEST] PASS'
+    } finally {
+        if ([IO.Path]::GetFullPath($root).StartsWith([IO.Path]::GetFullPath([IO.Path]::GetTempPath()),[StringComparison]::OrdinalIgnoreCase)) { Remove-Item -LiteralPath $root -Recurse -Force }
+    }
+    exit 0
 }
 try {
     $system = Join-Path $root 'system-test'; $sut = Join-Path $root 'sut'; $state = Join-Path $root 'automation-state.json'
@@ -292,6 +302,7 @@ try {
 
     . (Join-Path $PSScriptRoot 'test-controller-design-authorization.inc.ps1')
     . (Join-Path $PSScriptRoot 'test-controller-scope-review.inc.ps1')
+    . (Join-Path $PSScriptRoot 'test-controller-execution.inc.ps1')
 
     Add-Content -LiteralPath (Join-Path $harnessRoot 'scripts\system-test.ps1') -Value '# mutation invalidates certification'
     Assert-Controller { & $controller start-run -StatePath $state -TestRevision $implementationRevision -SutRevision $sutRevision -HarnessRevision $harness -ConfigurationFingerprint $config } $false 'ERROR_HARNESS_UNCERTIFIED' 'stale-harness-certification'

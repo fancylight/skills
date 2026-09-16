@@ -1,9 +1,11 @@
----
+﻿---
 name: flow-codex-test
 description: 在测试实现生命周期独立验证后编排 Flow 集成测试 runner，并仅在最终结果验证通过时更新完成状态。
 ---
 
 # Codex Flow 集成测试编排
+
+正式测试先读取 `../flow-codex-core/references/test-execution-cycle.md`。已接入 execution 的需求使用 `flow-test.ps1 status`，按其 prepare/advance/resume 路径推进；以下旧 next/租约步骤仅用于尚未接入的需求。允许已审核的最小切片先正式运行，其余场景保持未验证；同一对话继续，不新增用户阶段。
 
 初始化后，当前有效授权从 controller `authorization.maxPhase` 及 grants 读取；manifest.testAuthorization 仅为初始授权。用户追加授权按 core/references/test-controller.md 的 grant-authorization 入账，不从 next 推断、不要求重复授权、不改 manifest 来伪造授权。
 
@@ -38,7 +40,7 @@ description: 在测试实现生命周期独立验证后编排 Flow 集成测试 
 3. verifier BLOCKED/ERROR 时停止，不调用 controller、不启动 config provider、SUT、Docker 或 runner；
 4. verifier PASS 后，用 report 内完全一致的 test/SUT/harness revision 与 configuration fingerprint 调用 controller
    `record-verifier -VerifyMode environment`；
-5. controller 推进到 `TEST_ENVIRONMENT_VERIFIED` 后本轮结束，下一轮才可执行 `RUN_ONCE`。
+5. controller 推进到 `TEST_ENVIRONMENT_VERIFIED` 后可在当前对话继续 `RUN_ONCE`，无需另起一轮用户操作。
 
 v1 manifest 没有 resolved manifest 时保持现有认证 harness 探针，不把 v2 verifier 结果伪造给旧配置契约。
 

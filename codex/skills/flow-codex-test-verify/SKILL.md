@@ -1,9 +1,13 @@
----
+﻿---
 name: flow-codex-test-verify
 description: 只读验证 Flow 集成测试的 canonical test-cases、派生 sidecar、设计、实现生命周期和最终运行证据。用于 test-design 后、test 前和 system-test 后的硬门禁；不编写测试、不启动服务、不修改 task。
 ---
 
 # Codex Flow 集成测试验证
+
+正式测试先读取 `../flow-codex-core/references/test-execution-cycle.md`。已接入 execution 的需求使用 `flow-test.ps1 status`，按其 prepare/advance/resume 路径推进；以下旧 next/租约步骤仅用于尚未接入的需求。允许已审核的最小切片先正式运行，其余场景保持未验证；同一对话继续，不新增用户阶段。
+
+审核业务判断时先读取 `../flow-codex-core/references/design-challenge.md`，在现有审核中核对原始依据和可证伪输入；结构检查不得自动产生语义 PASS。
 
 单对话按 core/references/test-controller.md 以真实当前身份完成分阶段自查。result 阶段若项目已有 local-delivery.json，应向 validate-test-artifacts.ps1 传 LocalDeliveryPlan、LocalDeliveryEvidence、PythonExecutable，合并只读核验结果；该检查不执行测试，也不替代正式门禁。
 

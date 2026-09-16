@@ -23,6 +23,18 @@ $runtimeStatePath = ''
 $sensitiveValues = @()
 $logDirectory = ''
 $prepareAttempted = $false
+$cleanupMode = $false
+$primaryFailure = $null
+$stepClock=[DateTime]::UtcNow
+
+function Get-BudgetTimeout([int]$Requested) {
+    if (-not $env:FLOW_EXECUTION_DEADLINE) { return $Requested }
+    $deadline = [DateTime]::Parse($env:FLOW_EXECUTION_DEADLINE).ToUniversalTime()
+    if (-not $script:cleanupMode) { $deadline=$deadline.AddSeconds(-120) }
+    $remaining=[int][Math]::Floor(($deadline-[DateTime]::UtcNow).TotalMilliseconds)
+    if ($remaining -le 0) { Stop-Run 'BUDGET_EXHAUSTED' 'Total execution deadline reached; no new operation is permitted' }
+    return [Math]::Min($Requested,$remaining)
+}
 
 function Get-CanonicalPath([string]$Path) {
     return [IO.Path]::GetFullPath($Path).TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
@@ -50,7 +62,9 @@ function Get-RedactedContentHash([string]$Path) {
 }
 
 function Add-Step([string]$Id, [string]$Phase, [string]$StepResult, [string]$Category, [string]$Detail, [string]$ResourceId = '') {
-    $steps.Add([ordered]@{ stepId=$Id; phase=$Phase; resourceId=$ResourceId; result=$StepResult; category=$Category; detail=$Detail })
+    $now=[DateTime]::UtcNow
+    $steps.Add([ordered]@{ stepId=$Id; phase=$Phase; resourceId=$ResourceId; result=$StepResult; category=$Category; detail=$Detail; finishedAt=$now.ToString('o'); elapsedSeconds=[Math]::Round(($now-$script:stepClock).TotalSeconds,3) })
+    $script:stepClock=$now
 }
 
 function Write-OwnedState {
@@ -118,6 +132,7 @@ function Test-Tcp([string]$HostName, [int]$Port, [int]$TimeoutMs) {
 }
 
 function Invoke-Probe($Probe) {
+    $null=Get-BudgetTimeout $ProbeTimeoutMs
     if ([string]$Probe.kind -eq 'http') {
         try {
             $response = Invoke-WebRequest -UseBasicParsing -Uri ([string]$Probe.url) -Method $(if ([string]::IsNullOrWhiteSpace([string]$Probe.method)) { 'GET' } else { [string]$Probe.method }) -TimeoutSec ([Math]::Max(1, [Math]::Ceiling($ProbeTimeoutMs / 1000.0)))
@@ -134,9 +149,10 @@ function Invoke-Probe($Probe) {
     return $false
 }
 
-function Wait-Probe($Probe, [int]$TimeoutMs) {
-    $deadline = [DateTime]::UtcNow.AddMilliseconds($TimeoutMs)
+function Wait-Probe($Probe, [int]$TimeoutMs, $OwnedProcess=$null) {
+    $deadline = [DateTime]::UtcNow.AddMilliseconds((Get-BudgetTimeout $TimeoutMs))
     do {
+        if ($null -ne $OwnedProcess) { $OwnedProcess.Refresh(); if ($OwnedProcess.HasExited) { return $false } }
         if (Invoke-Probe $Probe) { return $true }
         Start-Sleep -Milliseconds 200
     } while ([DateTime]::UtcNow -lt $deadline)
@@ -149,6 +165,7 @@ function Quote-Argument([string]$Value) {
 }
 
 function Start-OwnedProcess([string]$Id, [string]$Executable, $Arguments, [string]$WorkingDirectory, [string]$LogDirectory) {
+    $null=Get-BudgetTimeout $StartupTimeoutMs
     $stdout = Join-Path $LogDirectory "$Id.stdout.log"
     $stderr = Join-Path $LogDirectory "$Id.stderr.log"
     $argumentLine = (@($Arguments | ForEach-Object { Quote-Argument ([string]$_) }) -join ' ')
@@ -162,6 +179,7 @@ function Start-OwnedProcess([string]$Id, [string]$Executable, $Arguments, [strin
 }
 
 function Invoke-OwnedCommand([string]$Id, [string]$Executable, $Arguments, [string]$WorkingDirectory, [string]$LogDirectory) {
+    $operationTimeout=Get-BudgetTimeout $SuiteTimeoutMs
     $stdout = Join-Path $LogDirectory "$Id.stdout.log"
     $stderr = Join-Path $LogDirectory "$Id.stderr.log"
     $info = [Diagnostics.ProcessStartInfo]::new()
@@ -180,7 +198,7 @@ function Invoke-OwnedCommand([string]$Id, [string]$Executable, $Arguments, [stri
     Write-OwnedState
     $stdoutTask = $process.StandardOutput.ReadToEndAsync()
     $stderrTask = $process.StandardError.ReadToEndAsync()
-    $finished = $process.WaitForExit($SuiteTimeoutMs)
+    $finished = $process.WaitForExit($operationTimeout)
     if (-not $finished) {
         if (-not (Stop-OwnedRecord ([ordered]@{ pid=$process.Id; startedAtUtc=$record.startedAtUtc }))) { Stop-Run 'CONFIG_INFRA' "timed-out owned command could not be stopped: $Id" }
     }
@@ -302,6 +320,7 @@ try {
     [void](New-Item -ItemType Directory -Path $logDirectory -Force)
 
     foreach ($resourceId in @($resolved.executionOrder)) {
+        $null=Get-BudgetTimeout $StartupTimeoutMs
         $resource = @($resolved.resources | Where-Object { [string]$_.id -eq [string]$resourceId } | Select-Object -First 1)[0]
         if ([string]$resource.lifecycle -eq 'external') {
             $probe = Get-ProbeById $resolved ([string]$resource.preflightProbe)
@@ -343,10 +362,10 @@ try {
         $health = Get-ProbeById $resolved ([string]$sut.healthProbe)
         $sutPort = if ([string]$health.kind -eq 'http') { ([uri]$health.url).Port } else { [int]$health.port }
         if ($sutPort -gt 0 -and -not (Test-PortAvailable $sutPort)) { Stop-Run 'CONFIG_INFRA' "SUT port is occupied; ownership cannot be acquired: $($sut.id)" }
-        $sutDeadline = [DateTime]::UtcNow.AddMilliseconds($StartupTimeoutMs)
+        $sutDeadline = [DateTime]::UtcNow.AddMilliseconds((Get-BudgetTimeout $StartupTimeoutMs))
         $sutRecord = Start-OwnedProcess ("sut-" + [string]$sut.id) 'powershell.exe' @('-NoProfile','-ExecutionPolicy','Bypass','-File',[string]$sut.startContract) ([string]$sut.repository) $logDirectory
         $probe = Get-ProbeById $resolved ([string]$sut.healthProbe)
-        if ($null -eq $probe -or -not (Wait-Probe $probe $StartupTimeoutMs)) { Stop-Run 'CONFIG_INFRA' "SUT health probe failed: $($sut.id)" }
+        if ($null -eq $probe -or -not (Wait-Probe $probe $StartupTimeoutMs $sutRecord.process)) { Stop-Run 'CONFIG_INFRA' "SUT health probe failed or owned startup process exited: $($sut.id); inspect its stdout/stderr evidence" }
         Add-Step "sut-$($sut.id)-health" 'sut-start' 'PASS' 'NONE' 'SUT created and healthy' ([string]$sut.id)
 
         foreach ($target in @($resolved.configuration.targets | Where-Object { $_.application -eq $sut.id })) {
@@ -389,7 +408,9 @@ try {
     $message = Protect-Text $_.Exception.Message
     Add-Step 'runtime-failure' 'runtime' 'BLOCKED' $failureCategory $message
     $summary = $message
+    $primaryFailure=[ordered]@{category=$failureCategory;summary=$message}
 } finally {
+    $cleanupMode=$true
     if ($prepareAttempted -and @($resolved.runner.cleanup | Where-Object { $_ }).Count -gt 0) {
         try {
             $cleanup = @($resolved.runner.cleanup)
@@ -398,7 +419,8 @@ try {
             Add-Step 'fixture-cleanup' 'cleanup' 'PASS' 'NONE' 'run-scoped fixture cleanup completed'
         } catch {
             Add-Step 'fixture-cleanup' 'cleanup' 'BLOCKED' 'TEST_HARNESS' 'run-scoped fixture cleanup failed'
-            $result = 'BLOCKED'; $failureCategory = 'TEST_HARNESS'
+            $result = 'BLOCKED'
+            if (-not $primaryFailure) { $failureCategory = 'TEST_HARNESS'; $summary='run-scoped fixture cleanup failed' }
         }
     }
     for ($processIndex = $ownedProcesses.Count - 1; $processIndex -ge 0; $processIndex--) {
@@ -409,7 +431,8 @@ try {
             Add-Step ("cleanup-" + [string]$record.id) 'cleanup' 'PASS' 'NONE' 'process created by this run was stopped' ([string]$record.id)
         } catch {
             Add-Step ("cleanup-" + [string]$record.id) 'cleanup' 'BLOCKED' 'CONFIG_INFRA' 'owned process cleanup failed' ([string]$record.id)
-            $result = 'BLOCKED'; $failureCategory = 'CONFIG_INFRA'; $summary = 'owned process cleanup failed'
+            $result = 'BLOCKED'
+            if (-not $primaryFailure) { $failureCategory = 'CONFIG_INFRA'; $summary = 'owned process cleanup failed' }
         }
     }
     if ($result -eq 'PASS' -or @($steps | Where-Object { $_.phase -eq 'cleanup' -and $_.result -ne 'PASS' }).Count -eq 0) {
@@ -429,7 +452,7 @@ try {
         schemaVersion=1; result=$result; mode='resolved-environment-runtime'; configurationFingerprint=$ExpectedFingerprint
         fullSuite=[string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable('FLOW_SCENARIO_IDS'))
         scenarioIds=@(([string][Environment]::GetEnvironmentVariable('FLOW_SCENARIO_IDS')).Split(',') | Where-Object { $_ })
-        failureCategory=$failureCategory; summary=(Protect-Text $summary); steps=@($steps)
+        failureCategory=$failureCategory; summary=(Protect-Text $summary); primaryFailure=$primaryFailure; steps=@($steps)
     }
     $parent = Split-Path -Parent (Get-CanonicalPath $OutputPath)
     if (-not (Test-Path -LiteralPath $parent -PathType Container)) { [void](New-Item -ItemType Directory -Path $parent -Force) }

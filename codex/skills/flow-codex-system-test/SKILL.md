@@ -1,9 +1,11 @@
----
+﻿---
 name: flow-codex-system-test
 description: 使用 system-test manifest runner 执行 Flow change 的 API/UI/E2E/CDC 测试并收集原始证据。可用于编排执行或 standalone 复现；runner PASS 不等同完整 Flow 完成。
 ---
 
 # Codex Flow 系统测试执行
+
+正式测试先读取 `../flow-codex-core/references/test-execution-cycle.md`。已接入 execution 的需求使用 `flow-test.ps1 status`，按其 prepare/advance/resume 路径推进；以下旧 next/租约步骤仅用于尚未接入的需求。允许已审核的最小切片先正式运行，其余场景保持未验证；同一对话继续，不新增用户阶段。
 
 初始化后，当前有效授权从 controller `authorization.maxPhase` 及 grants 读取；manifest.testAuthorization 仅为初始授权。用户追加授权按 core/references/test-controller.md 的 grant-authorization 入账，不从 next 推断、不要求重复授权、不改 manifest 来伪造授权。
 
@@ -26,7 +28,7 @@ description: 使用 system-test manifest runner 执行 Flow change 的 API/UI/E2
 
 orchestrated 模式先要求 controller `next=RUN_ONCE`，验证当前 harness certification 后调用 `start-run`；只有 controller 已原子持久化 `TEST_EXECUTING` 才运行 manifest 唯一命令。v2 manifest 调用 `system-test.ps1` 时必须把 active run 的 configuration fingerprint 作为 `-ConfigurationFingerprint` 传入。结束后要求 `next=AWAIT_RUN_RESULT`，以当前 active run 的 revision/configuration 和原始 evidence 调用一次 `record-run`。start/record 任一步失败都不运行或重跑。standalone 模式不写 controller state，也不完成 Flow。
 
-独立 smoke 可用 v2 `-ScenarioIds`：仅从 `testCasesContract.path` 的 canonical 派生契约选取精确测试方法，
+v2 `-ScenarioIds` 支持 standalone smoke 或由 flow-test.ps1 登记的正式切片；仅从 `testCasesContract.path` 的 canonical 派生契约选取精确测试方法，
 将 `${FLOW_TEST_FILTER}` 与 `${FLOW_TEST_REPORT_DIR}` 交给 runner 命令。空选集、未知 ID、零匹配、缺失或越界报告、skipped 均失败。
 结果必须 `fullSuite=false`，不能登记全量 PASS。新证据写入 `evidence/runs/<run-id>/`，保留旧全量结果和控制状态。
 配置中心是本地 dev 配置唯一来源；Git 忽略且 `ownership=human` 的本地文件允许已有凭据，完整文件摘要参与指纹，

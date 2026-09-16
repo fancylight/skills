@@ -1,9 +1,11 @@
----
+﻿---
 name: flow-codex-design
 description: 为 Codex 编排 Flow 领域发现与后续设计。首次根调用只创建领域模型并输出 DOMAIN_DRAFT，不在同一动作生成概要设计、OpenSpec 或其他方案产物；后续受验证阶段控制时使用。
 ---
 
 # Codex Flow 设计
+
+审核业务判断时先读取 `../flow-codex-core/references/design-challenge.md`，在现有审核中核对原始依据和可证伪输入；结构检查不得自动产生语义 PASS。
 
 按 `../flow-codex-core/references/first-delivery.md` 保留独立预期和关键反例；业务场景在设计中前置，执行由实施者的项目测试承担。默认单对话分阶段自查，明确非独立审核；用户要求独立验证时才以取得独立结论作为对应条件，不能伪造。
 

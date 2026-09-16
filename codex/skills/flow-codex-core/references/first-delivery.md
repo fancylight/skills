@@ -48,6 +48,8 @@ run 实际执行且保留首次失败；check 只读重新解析 XML、校验场
 
 ## 与既有 Flow 的连接
 
+正式测试的首个已审核切片及修复恢复使用 [test-execution-cycle.md](test-execution-cycle.md)。它通过原 controller/runner 运行，允许未选中场景尚未实现；只对选中范围给出结论，完整 Flow 的收尾门禁保持有效。
+
 设计期只维护验收章节中的场景。首个小链路可由 apply 的项目测试命令执行；需要 canonical 机器汇总时再维护同一份 test-cases.yaml，不另外创建临时场景协议。早期本地测试不调用正式 test-design/controller，也不提前制造设计或实现门禁 PASS。
 
 正式 test-design 仍在业务审核、测试及提交后执行，承接既有场景并维护其余正式产物。正式 test/test-verify 和部署验收保持原门禁。若本地接线存在，check 必须只读执行上述 check 命令；旧证据不适用时回实施者执行 run。本地 PASS 不能代替正式 Flow 的设计、实现、结果验证；也不能因正式流程尚未全量完成，把限定修复范围的有效本地验证抹去。

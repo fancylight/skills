@@ -25,8 +25,26 @@ param(
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'test-runtime-contract.ps1')
 $hasScenarioSelection = $PSBoundParameters.ContainsKey('ScenarioIds')
-if ($hasScenarioSelection -and ($ExecutionMode -ne 'standalone' -or @($ScenarioIds).Count -eq 0)) { throw '[TEST_HARNESS] scenario selection requires standalone mode and a nonempty selection' }
+if ($hasScenarioSelection -and @($ScenarioIds).Count -eq 0) { throw '[TEST_HARNESS] scenario selection requires a nonempty selection' }
+if ($hasScenarioSelection -and $ExecutionMode -eq 'orchestrated') {
+  if (-not $env:FLOW_EXECUTION_STATE) { throw '[TEST_HARNESS] formal slices require flow-test.ps1 and a registered active run' }
+  $registeredRaw=Get-Content -LiteralPath $env:FLOW_EXECUTION_STATE -Raw -Encoding utf8
+  $registered = if ((Get-Command ConvertFrom-Json).Parameters.ContainsKey('DateKind')) { $registeredRaw | ConvertFrom-Json -DateKind String } else { $registeredRaw | ConvertFrom-Json }
+  $registeredHash=$registered.integrityHash
+  $registered.integrityHash=''
+  $sha=[Security.Cryptography.SHA256]::Create()
+  try { $actualHash=-join ($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes(($registered | ConvertTo-Json -Depth 16 -Compress))) | ForEach-Object { $_.ToString('x2') }) } finally { $sha.Dispose() }
+  $registered.integrityHash=$registeredHash
+  if ($registeredHash -ne $actualHash -and $registeredHash -ne (Get-TestStateIntegrityHashFromRaw $registeredRaw)) { throw '[TEST_HARNESS] controller state integrity mismatch' }
+  $active = $registered.activeRun
+  if ($registered.phase -ne 'TEST_EXECUTING' -or $active.runId -ne $env:FLOW_EXECUTION_RUN -or $active.executionKey -ne $env:FLOW_EXECUTION_KEY -or $registered.changeName -ne $Change -or
+      (@($active.scenarioIds | Sort-Object) -join ',') -ne (@($ScenarioIds | Sort-Object) -join ',') -or
+      [IO.Path]::GetFullPath($active.evidence) -ne [IO.Path]::GetFullPath($StructuredResultPath)) { throw '[TEST_HARNESS] registered slice differs from invocation' }
+  if ([DateTime]::UtcNow -ge [DateTime]::Parse($active.deadlineUtc).ToUniversalTime().AddSeconds(-120)) { throw '[TEST_HARNESS] execution budget exhausted' }
+  $env:FLOW_EXECUTION_DEADLINE = [string]$active.deadlineUtc
+}
 $TestRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+if ($hasScenarioSelection -and $ExecutionMode -eq 'orchestrated' -and [IO.Path]::GetFullPath($registered.repositories.systemTest).TrimEnd('\','/') -ne $TestRoot.TrimEnd('\','/')) { throw '[TEST_HARNESS] registered test repository differs from runner' }
 if ([string]::IsNullOrWhiteSpace($OrchRoot)) {
   $OrchRoot = [Environment]::GetEnvironmentVariable('FLOW_ORCH_ROOT')
 }
@@ -692,9 +710,11 @@ function Invoke-V2Command($Manifest) {
     if (-not (Test-Path -LiteralPath $structuredParent -PathType Container)) { [void](New-Item -ItemType Directory -Path $structuredParent -Force) }
     $structured = [ordered]@{
       schemaVersion=1; status=$status; exitCode=$(if ($status -eq 'PASS') { 0 } else { 1 }); phase=$(if ($status -eq 'PASS') { 'RUNNER_COMPLETED' } else { 'RUNNER_FAILED' })
+      flowRunId=$env:FLOW_EXECUTION_RUN; executionKey=$env:FLOW_EXECUTION_KEY
+      primaryFailure=$runtimeReport.primaryFailure
       classification=[string]$runtimeReport.failureCategory; rawEvidencePath=$indexPath; configurationFingerprint=$expectedFingerprint
       fullSuite=($null -eq $selection); scenarioIds=@($ScenarioIds); flow_completed=$false
-      cleanup=[ordered]@{ attempted=$true; succeeded=(-not (Test-Path -LiteralPath $runtimeState)); retainedState=(Test-Path -LiteralPath $runtimeState); command=".\scripts\system-test.ps1 cleanup -Change $Change" }
+      cleanup=[ordered]@{ attempted=$true; succeeded=(-not (Test-Path -LiteralPath $runtimeState) -and @($runtimeReport.steps | Where-Object { $_.phase -eq 'cleanup' -and $_.result -ne 'PASS' }).Count -eq 0); retainedState=(Test-Path -LiteralPath $runtimeState); command=".\scripts\system-test.ps1 cleanup -Change $Change" }
       counts=[ordered]@{ passed=$passed; failed=$failed; skipped=$skipped; expectedMethodCount=$(if ($selection) { $selection.expectedMethodCount } else { $null }); observedTests=($passed + $failed + $skipped); reportAvailability=$reportAvailability; raw=$runtimeResult }
     }
     [IO.File]::WriteAllText([IO.Path]::GetFullPath($StructuredResultPath), ($structured | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new($false))
@@ -715,6 +735,13 @@ function Invoke-V2Command($Manifest) {
 $manifest = Get-Manifest
 if ($hasScenarioSelection -and [int]$manifest.schemaVersion -ne 2) { throw '[TEST_HARNESS] ScenarioIds requires a v2 canonical manifest' }
 if ([int]$manifest.schemaVersion -eq 2) {
+  if ($hasScenarioSelection -and $ExecutionMode -eq 'orchestrated') {
+    if ($Command -ne 'run') { throw '[TEST_HARNESS] registered slice is only valid for run' }
+    $marker=[IO.Path]::GetFullPath($StructuredResultPath)+'.started'
+    [void](New-Item -ItemType Directory -Path (Split-Path -Parent $marker) -Force)
+    try { $markerStream=[IO.File]::Open($marker,'CreateNew','Write','None'); $markerStream.Dispose() }
+    catch { throw '[TEST_HARNESS] this registered run was already dispatched; reconcile evidence, never redeliver' }
+  }
   Invoke-V2Command $manifest
   exit 0
 }

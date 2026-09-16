@@ -1,8 +1,16 @@
-# 集成测试 Controller 协议
+﻿# 集成测试 Controller 协议
 
 集成测试自动化的唯一 machine state 位于编排根
 `.flow/changes/<change>/automation-state.yaml`。只用安装后的
 `assets/scripts/flow-test-controller.ps1` 读取或写入；manifest、task、agent 口述和 Goal 建议都不能直接改变 phase、授权或 revision。
+
+## 正式切片与恢复入口
+
+Codex 的 v2 需求使用 `assets/scripts/flow-test.ps1 prepare / advance / resume / status`，仍读写本文件所述唯一 state。详细审核输入、选择范围、30分钟总预算和恢复契约见安装后的 `references/test-execution-cycle.md`。`execution` 为现有 controller 的附加字段，不是第二套状态机；runs/history 继续保留。
+
+已接入需求的旧写命令返回新入口，旧 `next` 返回新动作。普通失败由当前对话按授权修复并 resume，不能把下列旧 BLOCKED 动作解释为必须重新取得同一授权。新切片必须经过实际 design/implementation/environment 审核，结果仍须语义审核；局部结果不能完成全量。未接入的旧需求继续兼容下述命令。
+
+新执行入口的环境预检失败使用 `TEST_ENVIRONMENT_FAILED`，保存具体失败及构件诊断；下一动作是带修复证据的 `resume`。审核输入完整不等于运行通过。预检通过才进入 `TEST_ENVIRONMENT_VERIFIED`；正式运行后先按选中场景记录 `TEST_EXECUTED_PASS/FAIL`，结果审核才能让对应场景成为当前 PASS。
 
 ## 入口规则
 

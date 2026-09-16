@@ -146,7 +146,7 @@ try {
 
     $statusOutput = @(& $controller status -StatePath (Get-CanonicalPath $StatePath) 2>&1)
     if ($LASTEXITCODE -ne 0 -or @($statusOutput | Where-Object { [string]$_ -match '^\[FLOW_CONTROLLER\] ERROR' }).Count -gt 0) { throw "controller state is unavailable: $($statusOutput -join ' | ')" }
-    $script:state = ($statusOutput -join "`n") | ConvertFrom-Json
+    $script:state = if ((Get-Command ConvertFrom-Json).Parameters.ContainsKey('DateKind')) { ($statusOutput -join "`n") | ConvertFrom-Json -DateKind String } else { ($statusOutput -join "`n") | ConvertFrom-Json }
     if ([string]$state.phase -ne 'TEST_IMPLEMENTATION_VERIFIED') { throw "controller phase must be TEST_IMPLEMENTATION_VERIFIED, actual: $($state.phase)" }
     if ([string]$state.configurationFingerprint -ne [string]$resolved.configurationFingerprint) {
         Add-Step 'controller-binding' 'preflight' 'BLOCKED' 'CONFIG_INFRA' 'resolved configuration fingerprint differs from controller state'
@@ -218,7 +218,33 @@ try {
             Add-Step 'sut-revision' 'preflight' 'BLOCKED' 'CONFIG_INFRA' 'SUT revision differs from its locked manifest or primary controller revision' ([string]$sut.id)
         } else { Add-Step 'sut-revision' 'preflight' 'PASS' 'NONE' 'SUT repository and revision are locked' ([string]$sut.id) }
         if (-not (Test-Path -LiteralPath ([string]$sut.startContract) -PathType Leaf)) { Add-Step 'sut-start-contract' 'preflight' 'BLOCKED' 'CONFIG_INFRA' 'SUT start contract is missing' ([string]$sut.id) }
-        else { Add-Step 'sut-start-contract' 'preflight' 'PASS' 'NONE' 'SUT start contract exists' ([string]$sut.id) }
+        else {
+            Add-Step 'sut-start-contract' 'preflight' 'PASS' 'NONE' 'SUT start contract exists' ([string]$sut.id)
+            if ($state.execution) {
+                $parseErrors=$null; $tokens=$null
+                $ast=[Management.Automation.Language.Parser]::ParseFile([string]$sut.startContract,[ref]$tokens,[ref]$parseErrors)
+                $parameters=@($ast.ParamBlock.Parameters | ForEach-Object {$_.Name.VariablePath.UserPath})
+                if ($parseErrors.Count -gt 0 -or 'ValidateOnly' -notin $parameters) {
+                    Add-Step 'sut-artifact' 'preflight' 'BLOCKED' 'CONFIG_INFRA' 'Start contract must implement reviewed read-only -ValidateOnly artifact identity verification before using the execution cycle' ([string]$sut.id)
+                } else {
+                    $remaining=([DateTime]::Parse($state.execution.deadlineUtc).ToUniversalTime().AddSeconds(-120)-[DateTime]::UtcNow).TotalMilliseconds
+                    $checkOutput=[IO.Path]::GetTempFileName(); $checkError=[IO.Path]::GetTempFileName(); $checkProcess=$null
+                    try {
+                        if ($remaining -le 0) { throw 'Execution budget exhausted before artifact verification' }
+                        $checkProcess=Start-Process powershell.exe -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File',('"'+$sut.startContract+'"'),'-ValidateOnly') -WindowStyle Hidden -PassThru -RedirectStandardOutput $checkOutput -RedirectStandardError $checkError
+                        if (-not $checkProcess.WaitForExit([int][Math]::Min(30000,$remaining))) { Stop-Process -Id $checkProcess.Id -Force; throw 'Read-only artifact verification timed out' }
+                        if ($checkProcess.ExitCode -ne 0) { throw 'Read-only artifact verification failed; inspect the pinned source revision, build receipt, JDK and artifact hash' }
+                        Add-Step 'sut-artifact' 'preflight' 'PASS' 'NONE' 'Read-only startup contract verified the actual pinned artifact' ([string]$sut.id)
+                    } catch {
+                        $diagnostic=[string]$_.Exception.Message
+                        $detail=Get-Content -LiteralPath $checkError -Raw -ErrorAction SilentlyContinue
+                        if ($detail) { $diagnostic += "`n" + (Protect-TestRuntimeText $detail (Get-TestSensitiveValues $resolved.configuration.targets)) }
+                        Add-Step 'sut-artifact' 'preflight' 'BLOCKED' 'CONFIG_INFRA' $diagnostic ([string]$sut.id)
+                    }
+                    finally { Remove-Item -LiteralPath $checkOutput,$checkError -Force -ErrorAction SilentlyContinue }
+                }
+            }
+        }
     }
 
     if ($primaryCount -eq 0) { Add-Step 'controller-topology' 'preflight' 'BLOCKED' 'TEST_HARNESS' 'resolved SUTs must include the controller primary repository' }

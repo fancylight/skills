@@ -30,4 +30,11 @@ $orchestrator = Get-Content -LiteralPath (Join-Path $skillsRoot 'flow-codex-test
 if (-not $orchestrator.Contains('TEST_EXECUTED_FAIL') -or -not $orchestrator.Contains('next=BLOCKED')) {
   throw 'runner FAIL must stop at controller BLOCKED without result verifier'
 }
-Write-Output 'flow test skills consume the controller/lease/Goal contract'
+foreach ($name in $contracts.Keys) {
+  $content=Get-Content -LiteralPath (Join-Path $skillsRoot "$name/SKILL.md") -Raw -Encoding UTF8
+  if (-not $content.Contains('test-execution-cycle.md') -or -not $content.Contains('flow-test.ps1 status')) { throw "$name lacks the single-conversation recovery entry" }
+}
+foreach ($name in @('flow-codex-design','flow-codex-verify','flow-codex-review','flow-codex-test-design','flow-codex-test-verify')) {
+  if (-not (Get-Content -LiteralPath (Join-Path $skillsRoot "$name/SKILL.md") -Raw -Encoding UTF8).Contains('design-challenge.md')) {throw "$name lacks evidence-first semantic review"}
+}
+Write-Output 'flow test skills consume the controller/lease/Goal and execution-cycle contracts'

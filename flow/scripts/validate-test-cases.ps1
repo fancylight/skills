@@ -16,7 +16,8 @@ param(
     [switch]$Generate,
     [switch]$ExportJson,
     [switch]$RequireBusiness,
-    [switch]$PreserveRequiredCoverage
+    [switch]$PreserveRequiredCoverage,
+    [string[]]$ScenarioIds
 )
 
 $ErrorActionPreference = 'Stop'
@@ -270,7 +271,11 @@ function ConvertTo-CanonicalObject($Value) {
 function ConvertTo-CanonicalJson($Value) { return (ConvertTo-CanonicalObject $Value | ConvertTo-Json -Depth 20 -Compress) }
 function Read-JsonFile([string]$Path, [string]$Label) {
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { Add-ValidationError "$Label not found: $Path"; return $null }
-    try { return Get-Content -LiteralPath $Path -Raw -Encoding utf8 | ConvertFrom-Json }
+    try {
+        $raw=Get-Content -LiteralPath $Path -Raw -Encoding utf8
+        if ((Get-Command ConvertFrom-Json).Parameters.ContainsKey('DateKind')) { return $raw | ConvertFrom-Json -DateKind String }
+        return $raw | ConvertFrom-Json
+    }
     catch { Add-ValidationError "$Label is not valid JSON: $($_.Exception.Message)"; return $null }
 }
 function Find-ByteSequence([byte[]]$Bytes, [byte[]]$Needle) {
@@ -450,6 +455,11 @@ function Test-JavaBindings($Document) {
         $packageMatch = [regex]::Match($raw, '(?m)^\s*package\s+(?<package>[A-Za-z_][A-Za-z0-9_.]*)\s*;')
         $packageName = if ($packageMatch.Success) { $packageMatch.Groups['package'].Value } else { '' }
         $classes = @([regex]::Matches($raw, '(?m)\b(?:class|record|interface)\s+(?<class>[A-Za-z_][A-Za-z0-9_]*)'))
+        if ($ScenarioIds) {
+            $selectedClasses=@($ScenarioIds | ForEach-Object { [string](Get-Field $allScenarios[$_] 'testClass') })
+            $matchingClasses=@($classes | Where-Object { $name=$_.Groups['class'].Value; $(if ($packageName) { "$packageName.$name" } else { $name }) -in $selectedClasses })
+            if ($matchingClasses.Count -eq 0) { continue }
+        }
         $annotations = @([regex]::Matches($raw, '@TestScenarioId\s*\(\s*["''](?<id>[^"'']+)["'']\s*\)'))
         for ($i = 0; $i -lt $annotations.Count; $i++) {
             $annotation = $annotations[$i]; $end = if ($i + 1 -lt $annotations.Count) { $annotations[$i + 1].Index } else { $raw.Length }
@@ -468,6 +478,7 @@ function Test-JavaBindings($Document) {
         }
     }
     foreach ($id in $map.Keys) {
+        if ($ScenarioIds -and $id -notin $ScenarioIds) { continue }
         if (-not $bindings.ContainsKey($id)) { Add-ValidationError "Java method is not bound to scenario id: $id"; continue }
         $scenario = $map[$id]; $binding = $bindings[$id]
         if ($binding.class -ne [string](Get-Field $scenario 'testClass')) { Add-ValidationError "Java test class drift for $id" }
@@ -480,6 +491,10 @@ try { $document = Read-StrictTestCases $TestCasesPath }
 catch { Add-ValidationError "strict YAML parse failed: $($_.Exception.Message)" }
 $sourceHash = Get-FileSha256 $TestCasesPath
 $scenarioMap = if ($null -ne $document) { Test-DocumentSchema $document } else { @{} }
+if ($PSBoundParameters.ContainsKey('ScenarioIds')) {
+    if ($Mode -notin @('implementation','result') -or @($ScenarioIds).Count -eq 0) { Add-ValidationError 'selection only applies to nonempty implementation/result validation' }
+    foreach ($id in $ScenarioIds) { if (-not $scenarioMap.ContainsKey($id) -or (Get-Field $scenarioMap[$id] 'integration') -ne 'Y') { Add-ValidationError "unknown integration scenario selection: $id" } }
+}
 
 $previousDocument = $null
 if ($PreviousTestCasesPath) {

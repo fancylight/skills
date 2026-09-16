@@ -161,6 +161,24 @@ function Assert-Blocked($Result, [string]$Category, [string]$Label) {
 }
 
 try {
+    $cycleFixture = New-Fixture 'cycle-artifact'
+    $startup=Join-Path $cycleFixture.testRepo 'config/services/sample-sut/start-system-test.ps1'
+    Set-Content -LiteralPath $startup -Encoding utf8 -Value 'param([switch]$ValidateOnly); if (-not $ValidateOnly) { throw "must not start service" }; exit 0'
+    $cycleHead=Commit-All $cycleFixture.testRepo 'read-only artifact contract'
+    $cycleState=Get-Content $cycleFixture.state -Raw -Encoding utf8 | ConvertFrom-Json
+    $cycleState.revisions.test=([string]$cycleHead).Trim()
+    $cycleState | Add-Member -NotePropertyName execution -NotePropertyValue @{deadlineUtc=[DateTime]::UtcNow.AddMinutes(30).ToString('o')}
+    Write-State $cycleFixture.state $cycleState
+    $external=Start-Listener $cycleFixture.externalPort
+    try { $cycleResult=Invoke-Verifier $cycleFixture } finally {$external.Stop()}
+    Assert-Pass $cycleResult 'cycle validates artifacts without launching service or misparsing UTC budget'
+    Set-Content -LiteralPath $startup -Encoding utf8 -Value 'param([switch]$ValidateOnly); throw "Pinned build identity mismatch"'
+    $cycleState.revisions.test=([string](Commit-All $cycleFixture.testRepo 'stale artifact regression')).Trim()
+    Write-State $cycleFixture.state $cycleState
+    $external=Start-Listener $cycleFixture.externalPort
+    try { $cycleResult=Invoke-Verifier $cycleFixture } finally {$external.Stop()}
+    Assert-Blocked $cycleResult 'CONFIG_INFRA' 'stale artifact is rejected before startup'
+    if ((Get-Content $cycleFixture.report -Raw) -notmatch 'Pinned build identity mismatch') {throw 'artifact failure diagnosis missing'}
     $valid = New-Fixture 'valid'
     $external = Start-Listener $valid.externalPort
     try { $validResult = Invoke-Verifier $valid } finally { $external.Stop() }

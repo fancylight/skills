@@ -1,7 +1,7 @@
 ﻿[CmdletBinding()]
 param(
     [Parameter(Mandatory = $true, Position = 0)]
-    [ValidateSet('status', 'next', 'initialize', 'grant-authorization', 'reopen-design', 'accept-design-revision', 'record-scope-review', 'issue-lease', 'validate-lease', 'accept-result', 'repair-derived-artifacts', 'record-verifier', 'start-run', 'record-run', 'retry-harness-failure', 'retry-test-infra-failure', 'block')]
+    [ValidateSet('status', 'next', 'initialize', 'grant-authorization', 'reopen-design', 'accept-design-revision', 'record-scope-review', 'issue-lease', 'validate-lease', 'accept-result', 'repair-derived-artifacts', 'record-verifier', 'start-run', 'record-run', 'retry-harness-failure', 'retry-test-infra-failure', 'execution', 'block')]
     [string]$Command,
     [Parameter(Mandatory = $true)] [string]$StatePath,
     [string]$ChangeName,
@@ -32,11 +32,13 @@ param(
     [string]$FirstEvidence,
     [string]$Reason,
     [int]$LeaseMinutes = 30,
-    [switch]$SimulateWriteFailure
+    [switch]$SimulateWriteFailure,
+    [ValidateSet('prepare','resume','review','environment','start','finish','result','status','import')] [string]$Action,
+    [string[]]$ScenarioIds
 )
 
 $ErrorActionPreference = 'Stop'
-$phases = @('TEST_DESIGN_DRAFT','TEST_DESIGN_VERIFIED','TEST_IMPLEMENTING','TEST_IMPLEMENTED','TEST_IMPLEMENTATION_VERIFIED','TEST_ENVIRONMENT_VERIFIED','TEST_EXECUTING','TEST_EXECUTED_PASS','TEST_EXECUTED_FAIL','TEST_RESULT_VERIFIED','BLOCKED')
+$phases = @('TEST_DESIGN_DRAFT','TEST_DESIGN_VERIFIED','TEST_IMPLEMENTING','TEST_IMPLEMENTED','TEST_IMPLEMENTATION_VERIFIED','TEST_ENVIRONMENT_VERIFIED','TEST_ENVIRONMENT_FAILED','TEST_EXECUTING','TEST_EXECUTED_PASS','TEST_EXECUTED_FAIL','TEST_RESULT_VERIFIED','BLOCKED')
 $ceilingRank = @{ design = 1; implementation = 2; execution = 3; result = 4 }
 
 function Stop-Controller([string]$Code, [string]$Message) {
@@ -54,7 +56,7 @@ function Test-SensitiveContent([string]$Value) {
     return -not [string]::IsNullOrWhiteSpace($Value) -and $Value -match '(?i)(password|passwd|token|secret|api[_ -]?key|bearer\s+|connection\s*string|connectionstring)'
 }
 function Get-GitOutput([string]$Repository, [string[]]$Arguments) {
-    $output = @(& git -C $Repository @Arguments 2>$null)
+    $output = @(& git -c core.longpaths=true -C $Repository @Arguments 2>$null)
     if ($LASTEXITCODE -ne 0) { Stop-Controller 'ERROR_GIT' "git command failed in canonical repository: $Repository" }
     return $output
 }
@@ -135,8 +137,12 @@ function ConvertFrom-StateJson([string]$Raw) {
 function Read-State {
     function Read-ValidStateFile([string]$Path) {
         if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { throw "state file not found: $Path" }
-        $candidate = ConvertFrom-StateJson (Get-Content -LiteralPath $Path -Raw -Encoding utf8)
-        if ([string]::IsNullOrWhiteSpace($candidate.integrityHash) -or $candidate.integrityHash -ne (Get-StateIntegrityHash $candidate)) { throw "state integrity hash does not match: $Path" }
+        $raw=Get-Content -LiteralPath $Path -Raw -Encoding utf8
+        $candidate = ConvertFrom-StateJson $raw
+        if ($candidate.integrityHash -ne (Get-StateIntegrityHash $candidate)) {
+            . (Join-Path $PSScriptRoot '../templates/system-test/scripts/test-runtime-contract.ps1')
+            if ([string]::IsNullOrWhiteSpace($candidate.integrityHash) -or $candidate.integrityHash -ne (Get-TestStateIntegrityHashFromRaw $raw)) { throw "state integrity hash does not match: $Path" }
+        }
         return $candidate
     }
     try { return Read-ValidStateFile $StatePath }
@@ -178,7 +184,7 @@ function Read-StructuredJson([string]$Path, [string]$Label) {
     try {
         $raw = Get-Content -LiteralPath $Path -Raw -Encoding utf8
         if (Test-SensitiveContent $raw) { Stop-Controller 'ERROR_SECRET_INPUT' "$Label contains sensitive material" }
-        return $raw | ConvertFrom-Json
+        return ConvertFrom-StateJson $raw
     }
     catch { Stop-Controller 'ERROR_STRUCTURED_OUTPUT' "$Label is not valid JSON" }
 }
@@ -262,6 +268,13 @@ function Assert-DesignRevisionWindow($State) {
     }
 }
 
+# Serialize every canonical state transition, including compatibility commands.
+$stateDirectory=Split-Path -Parent ([IO.Path]::GetFullPath($StatePath))
+[void](New-Item -ItemType Directory -Force -Path $stateDirectory)
+$stateLock=$null
+try {
+    try { $stateLock=[IO.File]::Open(([IO.Path]::GetFullPath($StatePath)+'.controller.lock'),'OpenOrCreate','ReadWrite','None') }
+    catch { Stop-Controller 'ERROR_STATE_BUSY' 'Another controller transition is active; inspect status after it completes' }
 if ($Command -eq 'initialize') {
     if ([string]::IsNullOrWhiteSpace($ChangeName) -or [string]::IsNullOrWhiteSpace($SystemTestRepo) -or [string]::IsNullOrWhiteSpace($SutRepo) -or [string]::IsNullOrWhiteSpace($TestBaselineRevision) -or [string]::IsNullOrWhiteSpace($TestRevision) -or [string]::IsNullOrWhiteSpace($SutRevision) -or [string]::IsNullOrWhiteSpace($HarnessRevision) -or [string]::IsNullOrWhiteSpace($ConfigurationFingerprint)) { Stop-Controller 'ERROR_INPUT' 'initialize requires change, repositories, baseline/current revisions, harness certification, and configuration fingerprint' }
     if ((Test-SensitiveContent $ChangeName) -or (Test-SensitiveContent $ConfigurationFingerprint)) { Stop-Controller 'ERROR_SECRET_INPUT' 'initialize input contains sensitive material' }
@@ -293,6 +306,22 @@ if ($Command -eq 'initialize') {
 
 $state = Read-State
 if ($state.schemaVersion -ne 1 -or $state.phase -notin $phases) { Stop-Controller 'ERROR_STATE_CORRUPT' 'unsupported schema or phase' }
+if ($Command -eq 'execution') {
+    . (Join-Path $PSScriptRoot 'controller-execution.ps1')
+    Invoke-Execution $state
+    exit 0
+}
+if ($state.PSObject.Properties['execution'] -and $Command -eq 'next') {
+    . (Join-Path $PSScriptRoot 'controller-execution.ps1')
+    $summary=Get-ExecutionSummary $state
+    Write-Output '[FLOW_CONTROLLER] PASS'
+    Write-Output "next: $($summary.next)"
+    Write-Output 'entry: flow-test.ps1'
+    exit 0
+}
+if ($state.PSObject.Properties['execution'] -and $Command -notin @('status','next','grant-authorization','validate-lease')) {
+    Stop-Controller 'ERROR_EXECUTION_ENTRY' 'This change uses flow-test.ps1; use prepare/advance/resume/status. Legacy writes cannot reset its budget or current results.'
+}
 if ($Command -in @('grant-authorization','reopen-design','issue-lease','record-verifier','start-run','record-run','block')) { Require-RevisionLock $state }
 if ($Command -in @('accept-design-revision','accept-result','repair-derived-artifacts','record-scope-review')) { Require-ImmutableRevisionLock $state }
 
@@ -566,3 +595,5 @@ switch ($Command) {
         Set-Phase $state 'BLOCKED' $(if ($Reason) { $Reason } else { 'blocked by controller' }); Write-State $state; Write-Output '[FLOW_CONTROLLER] PASS'; exit 0
     }
 }
+
+} finally { if ($stateLock) { $stateLock.Dispose() } }

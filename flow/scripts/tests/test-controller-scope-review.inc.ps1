@@ -1,4 +1,4 @@
-# Real Git/user grant/design/lease; no production state or service involved.
+﻿# Real Git/user grant/design/lease; no production state or service involved.
 $scopeFixture = New-GitFixture (Join-Path $root 'scope-review-system') 'scope-review'
 $scopeSut = New-GitFixture (Join-Path $root 'scope-review-sut') 'sut'
 $scopeDirectory = Join-Path $scopeFixture.path 'changes/scope-review'
@@ -60,8 +60,8 @@ $scopeValidation = @{
     CanonicalRevision=$scopeFixture.baseline;DesignVerifierReportPath=$scopeReportPath;ControllerStatePath=$scopeStatePath;TrustedVerifierIdentity='self'
 }
 $scopeValidator = Join-Path $PSScriptRoot '../validate-test-cases.ps1'
-& $scopeValidator @scopeValidation | Out-Null
-if ($LASTEXITCODE -ne 0) { throw 'scope removal attestation was not consumable' }
+$scopeOutput=@(& $scopeValidator @scopeValidation)
+if ($LASTEXITCODE -ne 0) { throw "scope removal attestation was not consumable: $($scopeOutput -join ' | ')" }
 $tamperedScope = Get-Content $scopeReportPath -Raw | ConvertFrom-Json
 $tamperedScope.requestText='different request'
 $tamperedScope | ConvertTo-Json -Depth 8 | Set-Content $scopeReportPath -Encoding utf8

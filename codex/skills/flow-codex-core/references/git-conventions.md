@@ -22,14 +22,17 @@ task、概要设计、业务和 st-api spec 必须读取这一身份；一个根
 python SCRIPT bind --repo REPO --change ROOT/.flow/changes/CHANGE/change.json
 python SCRIPT check-branch --repo REPO
 python SCRIPT create-branch --repo REPO --base main
+python SCRIPT switch-branch --repo REPO --branch feature/CHANGE
 python SCRIPT check-commit --repo REPO --message-file MESSAGE_FILE
 python SCRIPT commit --repo REPO --message-file MESSAGE_FILE
 python SCRIPT audit --repo REPO --base START_REVISION --target HEAD
 ```
 
 - bind 将引用保存在该工作目录的实际 Git dir，worktree 之间隔离；不会 checkout。已有不同绑定时先核对任务，用户已授权切换任务才能 `--replace`。
+- 存量 Flow 服务分支与根需求分支不同且已核实时，可用 `bind --change <change.json> --existing` 保留当前分支。仅允许 legacy 需求；例外绑定根需求身份、原根分支及本 Git dir，不能复制到其他工作目录或用于新需求。
 - 开始修改前执行 check-branch；不匹配先说明原因，不能静默切换。新分支在用户授权创建后用 create-branch，显式给出已有本地基线（GLM 使用 main），禁止自动 upstream。要求干净工作区，唯一例外是本次 init 创建且已绑定的未跟踪 change.json；先创建分支再写领域文档。已有正确分支直接使用。
 - commit 前检查 diff，并用显式路径暂存本任务文件，检查完整暂存区不混入其他任务。消息写 UTF-8 文件；脚本不代替文件范围审核，不自动 stage、push、amend 或修改历史。失败先查输出及 HEAD，不盲目重试提交。
+- 恢复已授权的既有需求分支时，使用 switch-branch，显式目标必须与绑定一致且本地已存在。脚本拒绝已跟踪文件的未提交改动和进行中的合并/变基/拣选；未跟踪或被忽略的测试证据可原样保留，由 Git 检查实际路径冲突，并禁止覆盖被忽略文件。不新建或重置分支、不猜远端分支、不自动 stash、清理或暂存证据。成功后检查绑定分支；不要求用户手动切分支来绕过 hook。
 - 新建非 Flow 修复：`bind --repo REPO --adhoc --branch bugfix/fix-name-20260916 [--issue glw-92995]`；无真实需求号时省略 issue。脚本使用显式日期，Agent 根据创建当天填写。已有非 Flow 维护分支使用 `--adhoc --existing` 保留当前分支。不能把已绑定 Flow 需求改成 adhoc 来省略编号。
 - 根编排目录不是 Git 仓库时只维护 change.json，不初始化 Git；分别绑定真正的业务/测试/文档仓库。
 - merge、rebase、cherry-pick、revert 等复杂写操作不由普通提交入口处理。若任务明确需要，先形成针对该操作的具体方案；不能为绕过 hook 转入 Python、交互 shell 或临时关闭检查。

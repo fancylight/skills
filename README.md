@@ -8,6 +8,10 @@ Codex 默认支持单对话完成设计、自查、实施、测试及交付，�
 
 ## 工程质量
 
+Codex 的设计、自查与测试审核按 [设计判断与反例审核](codex/skills/flow-codex-core/references/design-challenge.md) 核对原始依据和可证伪输入。结构完整不能自动成为语义通过。
+
+正式集成测试支持先跑已审核切片，通过 [flow-test.ps1 执行与恢复](codex/skills/flow-codex-core/references/test-execution-cycle.md) 管理原 controller 状态。首次准备运行起默认30分钟，恢复不重置预算；当前结果与历史证据分开，局部成功不算全量成功。仍可在一个对话完成设计、开发、测试和交付。
+
 设计、编码、审核、测试和汇报共用 [工程质量约束](flow/templates/engineering-quality.md)。先核对既有实现及目标环境，再判断新增能力；审核不能仅检查与设计一致。概要设计先解释当前方案，追溯信息后置；历史布局仍可使用。
 
 Java 变更保留项目已有规范检查，并用 [独立 NeedBraces 检查器](flow/scripts/check-java-style.ps1) 检查本次文件。它只保证控制语句的大括号，不代表完整阿里 Java 规范检查，不修改业务 POM。工具固定 Checkstyle 14.1.0，可从 [官方发布页](https://github.com/checkstyle/checkstyle/releases/tag/checkstyle-14.1.0)取得 all.jar，放在用户缓存 `.cache/flow-tools/checkstyle/14.1.0/`，或传入 `-CheckstyleJar`；使用独立 JDK 21+，不升级业务项目 JDK。检查器不会自动下载或安装依赖。

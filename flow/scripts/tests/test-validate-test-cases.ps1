@@ -215,6 +215,20 @@ class SampleIT {
     Write-Text $javaFile 'package com.example; class SampleIT { @TestScenarioId("AC-1-S1") public void createsRecord() {} @TestScenarioId("AC-9-S1") public void unknown() {} }'
     Assert-Fail (Invoke-Validator $implementation) 'unknown Java binding'
 
+    $sliceSource=Get-SourceText $false
+    $secondSlice=$sliceSource.Substring($sliceSource.IndexOf('  - id:')).Replace('AC-1-S1','AC-3-S1').Replace('AC-1','AC-3').Replace('createsRecord','laterRecord')
+    $sliceCases=Join-Path $root 'slice-cases.yaml'
+    Write-Text $sliceCases ($sliceSource.TrimEnd()+"`n"+$secondSlice)
+    Write-Text $javaFile 'package com.example; class SampleIT { @TestScenarioId("AC-1-S1") public void createsRecord() {} }'
+    $sliceValidation=@{TestCasesPath=$sliceCases;Mode='implementation';JavaSourceRoot=$java}
+    Assert-Fail (Invoke-Validator $sliceValidation) 'full implementation still requires all methods'
+    $sliceValidation.ScenarioIds=@('AC-1-S1')
+    Assert-Pass (Invoke-Validator $sliceValidation) 'first reviewed slice before remaining methods exist'
+    Write-Text (Join-Path $java 'UnrelatedIT.java') 'package other.change; class UnrelatedIT { @TestScenarioId("OTHER-1") public void unrelated() {} }'
+    Assert-Pass (Invoke-Validator $sliceValidation) 'selected classes do not validate another change in the shared repository'
+    $sliceValidation.ScenarioIds=@('UNKNOWN')
+    Assert-Fail (Invoke-Validator $sliceValidation) 'unknown slice cannot hide missing implementation'
+
     $previous = Join-Path $root 'previous.yaml'; Write-Text $previous (Get-SourceText)
     $removed = Join-Path $root 'removed.yaml'; Write-Text $removed (Get-SourceText $false)
     $previousHash = Get-Sha256 ([IO.File]::ReadAllBytes($previous)); $currentHash = Get-Sha256 ([IO.File]::ReadAllBytes($removed)); $identity='design-verifier-1'

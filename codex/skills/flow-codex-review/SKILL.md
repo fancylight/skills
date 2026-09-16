@@ -1,9 +1,11 @@
----
+﻿---
 name: flow-codex-review
 description: 从原要求、业务预期和 OpenSpec 对一个 Flow spec 实现执行只读审核。单对话标明自查；用户授权独立审核时由独立审核者执行。
 ---
 
 # Codex Flow 审核
+
+审核业务判断时先读取 `../flow-codex-core/references/design-challenge.md`，在现有审核中核对原始依据和可证伪输入；结构检查不得自动产生语义 PASS。
 
 先按 `../flow-codex-core/references/first-delivery.md` 从原要求及样本推导预期和反例，再核对作者设计与实现。单对话允许本阶段只读自查，输出标明 self；不将其包装为独立审核。
 

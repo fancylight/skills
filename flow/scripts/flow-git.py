@@ -83,7 +83,11 @@ def context(repo):
     data = read(git_dir(repo) / CONTEXT)
     if data['kind'] == 'flow':
         current = metadata(data['change_file'])
-        require(current['requirement_id'] == data['requirement_id'] and current['branch'] == data['branch'],
+        expected = data.get('legacy_root_branch', data['branch'])
+        if 'legacy_root_branch' in data:
+            require(current.get('legacy') and data.get('legacy_git_dir') == str(git_dir(repo)),
+                    '存量服务分支例外仅对已核实的 Git 工作目录有效。')
+        require(current['requirement_id'] == data['requirement_id'] and current['branch'] == expected,
                 '需求绑定已变化；先核对并重新绑定，禁止沿用旧编号。')
         data['legacy'] = bool(current.get('legacy'))
     return data
@@ -150,11 +154,15 @@ def adopt(args):
 
 def bind(args):
     if args.change:
-        require(not args.issue and not args.branch and not args.existing, '--change 不接受 adhoc 的编号/分支覆盖。')
+        require(not args.issue and not args.branch, '--change 不接受 adhoc 的编号/分支覆盖。')
         data = metadata(args.change)
         git(args.repo, 'check-ref-format', '--branch', data['branch'])
         binding = dict(kind='flow', change_file=str(Path(args.change).resolve()),
                        requirement_id=data['requirement_id'], branch=data['branch'])
+        if args.existing:
+            require(data.get('legacy'), '仅存量需求允许核实已有服务分支例外。')
+            binding.update(branch=branch(args.repo), legacy_root_branch=data['branch'],
+                           legacy_git_dir=str(git_dir(args.repo)))
     else:
         require(args.adhoc, '必须指定 --change 或明确 --adhoc。')
         expected = args.branch or branch(args.repo)
@@ -184,6 +192,24 @@ def create_branch(args):
             '工作目录有未确认改动；仅允许本次 init 产生的未跟踪 change.json，不自动切换。')
     git(args.repo, 'rev-parse', '--verify', 'refs/heads/' + args.base)
     git(args.repo, 'switch', '--no-track', '-c', ctx['branch'], args.base)
+    return {'branch': branch(args.repo)}
+
+
+def switch_branch(args):
+    ctx = context(args.repo)
+    require(args.branch == ctx['branch'], '目标分支与绑定需求不符：预期 ' + ctx['branch'])
+    git(args.repo, 'check-ref-format', '--branch', args.branch)
+    git(args.repo, 'show-ref', '--verify', 'refs/heads/' + args.branch)
+    directory = git_dir(args.repo)
+    require(not any((directory / marker).exists() for marker in (
+        'MERGE_HEAD', 'CHERRY_PICK_HEAD', 'REVERT_HEAD', 'rebase-merge', 'rebase-apply', 'sequencer')),
+        '存在进行中的合并、变基或拣选；先处理当前操作，不自动切换。')
+    require(not git(args.repo, 'status', '--porcelain=v1', '--untracked-files=no'),
+            '已跟踪文件有未提交改动；先确认并处理，不自动 stash 或丢弃。')
+    # Git checks real path collisions; unrelated untracked evidence must survive.
+    # Also protect ignored files, which Git otherwise permits overwriting.
+    git(args.repo, 'switch', '--no-guess', '--no-overwrite-ignore', args.branch)
+    check_branch(args.repo)
     return {'branch': branch(args.repo)}
 
 
@@ -285,7 +311,7 @@ def hook(payload):
         write_op |= operation == 'worktree' and bool(tail) and tail[0] in ('add', 'move')
         if write_op or (uncertain and operation not in ('status', 'diff', 'log', 'show', 'rev-parse', 'fetch')):
             return {'hookSpecificOutput': {'hookEventName': 'PreToolUse', 'permissionDecision': 'deny',
-                    'permissionDecisionReason': 'Flow Git：Agent 写分支/提交请使用 flow-git.py create-branch / commit；先 bind 并 check-branch。复杂 Git 操作需单独审查，不能用交互 shell 或脚本绕过。手动终端提交不受影响。'}}
+                    'permissionDecisionReason': 'Flow Git：先 bind；新建分支用 flow-git.py create-branch，切换已有分支用 switch-branch --repo REPO --branch BRANCH，提交用 commit。切换后 check-branch。复杂 Git 操作需单独审查，不能用交互 shell 或脚本绕过。手动终端提交不受影响。'}}
         if operation == 'push':
             try:
                 check_branch(repo)
@@ -313,13 +339,15 @@ def parser():
         b.add_argument('--' + name)
     for name in ('existing', 'replace'):
         b.add_argument('--' + name, action='store_true')
-    for action in ('check-branch', 'check-commit', 'commit', 'create-branch', 'audit'):
+    for action in ('check-branch', 'check-commit', 'commit', 'create-branch', 'switch-branch', 'audit'):
         cmd = sub.add_parser(action)
         cmd.add_argument('--repo', required=True)
         if action in ('check-commit', 'commit'):
             cmd.add_argument('--message-file', required=True)
         if action == 'create-branch':
             cmd.add_argument('--base', required=True, help='Existing local branch, e.g. main; no inferred base')
+        if action == 'switch-branch':
+            cmd.add_argument('--branch', required=True, help='Existing local branch matching the bound requirement')
         if action == 'audit':
             cmd.add_argument('--base', required=True)
             cmd.add_argument('--target', default='HEAD')
@@ -340,7 +368,7 @@ def main():
             result = {'status': 'PASS'}
         else:
             result = {'init': initialize, 'adopt': adopt, 'bind': bind, 'commit': commit,
-                      'create-branch': create_branch, 'audit': audit}[args.action](args)
+                      'create-branch': create_branch, 'switch-branch': switch_branch, 'audit': audit}[args.action](args)
         print(json.dumps(result, ensure_ascii=False))
         return 1 if args.action == 'audit' and result['agent_fail'] else 0
     except (ValueError, OSError, KeyError, TypeError) as exc:

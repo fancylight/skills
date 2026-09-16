@@ -18,6 +18,26 @@ function Get-TestConfigurationContentHash([string]$Path, [string]$Ownership, [st
     return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
 }
 
+function Get-TestStateIntegrityHashFromRaw([string]$Raw) {
+    # Caller parses valid JSON first. Preserve the writer's escaping and number
+    # spelling; PS 5 and 7 serialize identical objects differently.
+    $parts=[regex]::Matches($Raw,'"(?:\\.|[^"\\])*"|[^\s]')
+    $builder=[Text.StringBuilder]::new(); $depth=0; $blank=$false; $previous=''; $found=0
+    foreach($part in $parts) {
+        $value=$part.Value
+        if($blank -and $value -ne ':') { [void]$builder.Append('""'); $blank=$false }
+        else {
+            [void]$builder.Append($value)
+            if($depth -eq 1 -and $value -eq '"integrityHash"' -and $previous -in @('{',',')) { $blank=$true; $found++ }
+        }
+        if($value -in @('{','[')){$depth++} elseif($value -in @('}',']')){$depth--}
+        $previous=$value
+    }
+    if($found -ne 1 -or $blank){throw 'State must contain exactly one root integrityHash'}
+    $sha=[Security.Cryptography.SHA256]::Create()
+    try{return -join($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($builder.ToString()))|ForEach-Object{$_.ToString('x2')})}finally{$sha.Dispose()}
+}
+
 function Protect-TestRuntimeText([string]$Text, [string[]]$SensitiveValues = @()) {
     $safe = $Text
     foreach ($value in @($SensitiveValues | Where-Object { $_ } | Sort-Object Length -Descending -Unique)) {

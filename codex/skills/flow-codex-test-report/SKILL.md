@@ -1,9 +1,11 @@
----
+﻿---
 name: flow-codex-test-report
 description: 在审核、冒烟和可恢复提交完成后记录 st-api 集成测试 spec，并经报告租约更新根 task。不得以 local-only 标记可发布完成。
 ---
 
 # Codex Flow 集成测试汇报
+
+正式测试先读取 `../flow-codex-core/references/test-execution-cycle.md`。已接入 execution 的需求使用 `flow-test.ps1 status`，按其 prepare/advance/resume 路径推进；以下旧 next/租约步骤仅用于尚未接入的需求。允许已审核的最小切片先正式运行，其余场景保持未验证；同一对话继续，不新增用户阶段。
 
 需求命名、分支与提交遵循 `../flow-codex-core/references/git-conventions.md`；已有需求读取根 change.json；实际写入 Git 仓库前按该规则绑定并校验，提交使用公共脚本，中文描述贯穿业务、文档和测试。
 

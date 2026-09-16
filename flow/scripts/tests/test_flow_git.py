@@ -65,6 +65,20 @@ class FlowGitTest(unittest.TestCase):
         self.cli('bind', '--repo', repo, '--change', self.change)
         self.cli('create-branch', '--repo', repo, '--base', 'main')
 
+    def test_legacy_service_branch_is_workdir_bound(self):
+        legacy = self.root / '.flow/changes/legacy'
+        legacy.mkdir(parents=True)
+        self.cli('adopt', '--change-dir', legacy, '--repo', self.repo,
+                 '--issue', 'glw-92524', '--title', '存量需求')
+        service = self.new_repo('service')
+        flow.git(service, 'switch', '-c', 'feature/legacy-st-local')
+        self.cli('bind', '--repo', service, '--change', legacy / 'change.json', '--existing')
+        self.assertEqual(flow.check_branch(service)['requirement_id'], 'glw-92524')
+        self.cli('bind', '--repo', self.repo, '--change', self.change, '--existing', ok=False)
+        copied = flow.read(flow.git_dir(service) / flow.CONTEXT)
+        flow.write(flow.git_dir(self.repo) / flow.CONTEXT, copied)
+        with self.assertRaises(ValueError):
+            flow.context(self.repo)
     def message(self, value):
         path = self.root / '消息.txt'
         path.write_text(value, encoding='utf-8')
@@ -113,6 +127,86 @@ class FlowGitTest(unittest.TestCase):
         extra.unlink()
         self.cli('create-branch', '--repo', self.repo, '--base', 'main')
         self.assertEqual(flow.branch(self.repo), data['branch'])
+
+    def test_switch_existing_bound_branch_preserves_history(self):
+        self.bind()
+        flow.git(self.repo, 'commit', '--allow-empty', '-m', 'existing feature work')
+        expected_head = flow.git(self.repo, 'rev-parse', 'HEAD')
+        flow.git(self.repo, 'switch', 'main')
+        result = self.cli('switch-branch', '--repo', self.repo, '--branch', self.expected)
+        self.assertEqual(result['branch'], self.expected)
+        self.assertEqual(flow.git(self.repo, 'rev-parse', 'HEAD'), expected_head)
+        self.assertEqual(flow.git(self.repo, 'rev-parse', 'main'), self.base)
+        self.cli('check-branch', '--repo', self.repo)
+        command = 'python flow-git.py switch-branch --repo . --branch ' + self.expected
+        self.assertEqual(flow.hook({'cwd': str(self.repo), 'tool_input': {'cmd': command}}), {})
+
+    def test_switch_rejects_wrong_missing_or_stale_binding(self):
+        self.cli('bind', '--repo', self.repo, '--change', self.change)
+        self.cli('switch-branch', '--repo', self.repo, '--branch', self.expected, ok=False)
+        self.assertEqual(flow.branch(self.repo), 'main')
+        self.cli('create-branch', '--repo', self.repo, '--base', 'main')
+        flow.git(self.repo, 'switch', 'main')
+        self.cli('switch-branch', '--repo', self.repo, '--branch', 'main', ok=False)
+        data = flow.read(self.change)
+        data['requirement_id'] = 'glw-123'
+        flow.write(self.change, data)
+        self.cli('switch-branch', '--repo', self.repo, '--branch', self.expected, ok=False)
+        self.assertEqual(flow.branch(self.repo), 'main')
+
+    def test_switch_preserves_dirty_work_and_in_progress_operations(self):
+        self.bind()
+        flow.git(self.repo, 'switch', 'main')
+        for staged in (False, True):
+            (self.repo / 'a.txt').write_text('user changes\n', encoding='utf-8')
+            if staged:
+                flow.git(self.repo, 'add', 'a.txt')
+            self.cli('switch-branch', '--repo', self.repo, '--branch', self.expected, ok=False)
+            self.assertEqual(flow.branch(self.repo), 'main')
+            self.assertEqual((self.repo / 'a.txt').read_text(), 'user changes\n')
+        flow.git(self.repo, 'restore', '--staged', 'a.txt')
+        flow.git(self.repo, 'restore', 'a.txt')
+        merge_head = flow.git_dir(self.repo) / 'MERGE_HEAD'
+        merge_head.write_text(self.base + '\n', encoding='utf-8')
+        self.cli('switch-branch', '--repo', self.repo, '--branch', self.expected, ok=False)
+        self.assertTrue(merge_head.exists())
+        self.assertEqual(flow.branch(self.repo), 'main')
+
+    def test_switch_preserves_untracked_evidence_same_and_different_heads(self):
+        self.bind()
+        flow.git(self.repo, 'switch', 'main')
+        evidence = self.repo / 'changes/attendance-display/evidence/result.bin'
+        evidence.parent.mkdir(parents=True)
+        content = b'original evidence\x00\xff\n'
+        evidence.write_bytes(content)
+        self.cli('switch-branch', '--repo', self.repo, '--branch', self.expected)
+        self.assertEqual(evidence.read_bytes(), content)
+        self.assertEqual(flow.git(self.repo, 'rev-parse', 'HEAD'), self.base)
+        (self.repo / 'feature.txt').write_text('feature', encoding='utf-8')
+        flow.git(self.repo, 'add', 'feature.txt')
+        flow.git(self.repo, 'commit', '-m', 'feature change')
+        expected_head = flow.git(self.repo, 'rev-parse', 'HEAD')
+        flow.git(self.repo, 'switch', 'main')
+        self.cli('switch-branch', '--repo', self.repo, '--branch', self.expected)
+        self.assertEqual(evidence.read_bytes(), content)
+        self.assertEqual(flow.git(self.repo, 'rev-parse', 'HEAD'), expected_head)
+        self.assertEqual(flow.git(self.repo, 'diff', '--cached', '--name-only'), '')
+
+    def test_switch_rejects_untracked_and_ignored_file_collisions(self):
+        self.bind()
+        collision = self.repo / 'collision.txt'
+        collision.write_text('tracked on feature', encoding='utf-8')
+        flow.git(self.repo, 'add', 'collision.txt')
+        flow.git(self.repo, 'commit', '-m', 'feature file')
+        flow.git(self.repo, 'switch', 'main')
+        for ignored in (False, True):
+            with self.subTest(ignored=ignored):
+                if ignored:
+                    (flow.git_dir(self.repo) / 'info/exclude').write_text('collision.txt\n', encoding='utf-8')
+                collision.write_text('precious local evidence', encoding='utf-8')
+                self.cli('switch-branch', '--repo', self.repo, '--branch', self.expected, ok=False)
+                self.assertEqual(flow.branch(self.repo), 'main')
+                self.assertEqual(collision.read_text(), 'precious local evidence')
 
     def test_commit_audit_manual_unaffected(self):
         self.bind()

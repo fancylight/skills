@@ -1,9 +1,11 @@
----
+﻿---
 name: flow-codex-verify
 description: 只读检查 Flow 的领域事实、根产物格式、设计 SQL 数据访问契约与发布就绪；domain 模式独立抽查领域事实证据，design 模式校验 Fact ID 消费、OpenSpec 传导、操作链路与设计文档一致性。不验证业务运行时行为与跨服务 api.md 契约。
 ---
 
 # Codex Flow 验证
+
+审核业务判断时先读取 `../flow-codex-core/references/design-challenge.md`，在现有审核中核对原始依据和可证伪输入；结构检查不得自动产生语义 PASS。
 
 按 `../flow-codex-core/references/first-delivery.md` 核对业务依据；独立抽查要求直接查原始事实而非复述设计，单对话可执行并标明 self。用户另要求独立审核时，作者自查不能替代。
 
@@ -69,7 +71,7 @@ Spec 粒度（1 c = 1 repo）在 design 写 task 时须遵守铁律；verify §A
 - 缺 `操作链路.md`：默认 D.1.1 WARN、其余 SKIP；根 config 设 `journey_required: true` 时 D.1.1 升 ERROR。文件存在时 D.1.2/D.2.* 一律 ERROR
 - 报 ERROR 须同时给出链路侧（`J{n} 步骤 {#}`）与设计侧（矩阵行 / §3.2.4 行）位置
 - 输出格式与 §A 相同：`[ERROR|WARN|PASS] D.x.x: …`
-- **只读**：不补写链路、不编辑产物、不判断链路业务正确性
+- **只读**：不补写链路、不编辑产物；对本次新增或改变的链路追踪数据来源及消费者，判断关键业务条件是否正确
 
 ## §E 设计文档一致性
 

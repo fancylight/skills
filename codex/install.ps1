@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$TargetDir = (Join-Path $env:USERPROFILE ".agents\skills"),
     [switch]$WhatIf,
     [switch]$InstallGitHook,
@@ -155,7 +155,7 @@ if (Test-Path -LiteralPath $sharedTemplatesDir) {
     # codex/scripts/*.ps1 are temporary shims only — always install from the shared source.
     $guardScriptsDir = Join-Path $projectRoot 'flow\scripts'
     New-Item -ItemType Directory -Force -Path $coreScriptsDir -WhatIf:$WhatIf | Out-Null
-    @('validate-test-artifacts.ps1', 'test-scope-guard.ps1', 'validate-domain-artifact.ps1', 'validate-test-cases.ps1', 'flow-test-controller.ps1', 'controller-scope-review.ps1', 'resolve-test-environment.ps1', 'validate-test-environment.ps1', 'migrate-test-environment-manifest.ps1', 'check-java-style.ps1') | ForEach-Object {
+    @('validate-test-artifacts.ps1', 'test-scope-guard.ps1', 'validate-domain-artifact.ps1', 'validate-test-cases.ps1', 'flow-test-controller.ps1', 'flow-test.ps1', 'controller-execution.ps1', 'controller-scope-review.ps1', 'resolve-test-environment.ps1', 'validate-test-environment.ps1', 'migrate-test-environment-manifest.ps1', 'check-java-style.ps1') | ForEach-Object {
         $source = Join-Path $guardScriptsDir $_
         if (-not (Test-Path -LiteralPath $source)) { throw "Required shared guard script not found: $source" }
         $raw = Get-Content -LiteralPath $source -Raw -Encoding UTF8
