@@ -1,4 +1,4 @@
-﻿---
+---
 name: flow-codex-system-test
 description: 使用 system-test manifest runner 执行 Flow change 的 API/UI/E2E/CDC 测试并收集原始证据。可用于编排执行或 standalone 复现；runner PASS 不等同完整 Flow 完成。
 ---

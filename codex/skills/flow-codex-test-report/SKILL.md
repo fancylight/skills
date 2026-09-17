@@ -1,4 +1,4 @@
-﻿---
+---
 name: flow-codex-test-report
 description: 在审核、冒烟和可恢复提交完成后记录 st-api 集成测试 spec，并经报告租约更新根 task。不得以 local-only 标记可发布完成。
 ---

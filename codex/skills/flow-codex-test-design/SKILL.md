@@ -1,4 +1,4 @@
-﻿---
+---
 name: flow-codex-test-design
 description: 在业务代码已审核提交后，基于概要设计验收、as-built revision 和本地环境设计可独立实施的 Flow 集成测试。先审核业务用例，再以 test-cases.yaml 为唯一场景源设计技术执行，产出确定性 sidecar、test-design、test-plan、manifest 与 fixtures 契约，不编写 JUnit。
 ---

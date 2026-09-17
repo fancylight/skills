@@ -8,6 +8,12 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- 补齐 Codex Git 的 create-worktree 入口，支持明确的本地及远端跟踪基线，创建后绑定新工作目录并保留源目录状态；修复 Hook 拦截 worktree 却只提示 create-branch 的流程死路，增加真实临时仓回归。
+
+- 修复 11 个 Codex 技能入口的 UTF-8 BOM，恢复 design、verify、review 及测试技能的可发现性；校验和安装共用原始字节检查，安装前拒绝不合格源文件，复制后复核入口，避免文本读取隐藏编码错误。
+
 ### Changed
 
 - Codex 设计及实现审核要求原始依据与可证伪输入；新增正式测试切片与统一执行入口，沿用 controller 状态管理修复、历史证据、结果审核及30分钟总预算。runner 保留首个失败并单列清理问题；PowerShell 7 的状态读取保留原始日期字符串。

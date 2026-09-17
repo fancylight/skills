@@ -1,4 +1,4 @@
-﻿---
+---
 name: flow-codex-test-apply
 description: 在 system-test 仓按已验证的 test-design、test-plan 和 manifest 实现 st-api 集成测试代码。用于 test-receive 后，不修改业务源码。
 ---

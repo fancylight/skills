@@ -30,6 +30,8 @@
 
 ## 验收与统计
 
+已授权的新需求 worktree 使用 `flow-git.py create-worktree --repo REPO --change CHANGE_JSON --path NEW_PATH --base origin/main`，也支持明确的本地基线。脚本从需求元数据取分支，在新工作目录写入独立绑定，不切换或重新绑定源目录。重复路径、重名分支、无效基线会被拒绝；不自动拉取、覆盖或设置 upstream。Hook 对直接创建命令提示这一正式入口，Agent 无需将操作转交用户终端。
+
 ```powershell
 ./codex/validate.ps1
 & '<Python绝对路径>' -m unittest discover -s flow/scripts/tests -p test_flow_git.py -v

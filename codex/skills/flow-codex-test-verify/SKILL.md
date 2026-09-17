@@ -1,4 +1,4 @@
-﻿---
+---
 name: flow-codex-test-verify
 description: 只读验证 Flow 集成测试的 canonical test-cases、派生 sidecar、设计、实现生命周期和最终运行证据。用于 test-design 后、test 前和 system-test 后的硬门禁；不编写测试、不启动服务、不修改 task。
 ---

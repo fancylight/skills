@@ -22,6 +22,7 @@ task、概要设计、业务和 st-api spec 必须读取这一身份；一个根
 python SCRIPT bind --repo REPO --change ROOT/.flow/changes/CHANGE/change.json
 python SCRIPT check-branch --repo REPO
 python SCRIPT create-branch --repo REPO --base main
+python SCRIPT create-worktree --repo REPO --change ROOT/.flow/changes/CHANGE/change.json --path NEW_PATH --base origin/main
 python SCRIPT switch-branch --repo REPO --branch feature/CHANGE
 python SCRIPT check-commit --repo REPO --message-file MESSAGE_FILE
 python SCRIPT commit --repo REPO --message-file MESSAGE_FILE
@@ -29,6 +30,7 @@ python SCRIPT audit --repo REPO --base START_REVISION --target HEAD
 ```
 
 - bind 将引用保存在该工作目录的实际 Git dir，worktree 之间隔离；不会 checkout。已有不同绑定时先核对任务，用户已授权切换任务才能 `--replace`。
+- 用户已授权创建新需求 worktree 时使用 create-worktree。直接读取 change.json 创建其完整分支并绑定新工作目录，不必先绑定或切换源目录；源目录已有任务绑定及未提交文件保留。必须明确新路径和已存在的本地/远端跟踪基线（main、origin/main 或完整 refs/heads/...、refs/remotes/...），有歧义时使用完整引用；不自动 fetch、不设置 upstream。目标路径已存在或分支重名即拒绝，不覆盖、不重置。绑定失败保留已创建目录并按错误提示 bind、check-branch 恢复；不能重复创建或让用户手动绕过 Hook。此入口仅创建新分支，挂载已有分支及移动 worktree 须按具体任务另行审查。
 - 存量 Flow 服务分支与根需求分支不同且已核实时，可用 `bind --change <change.json> --existing` 保留当前分支。仅允许 legacy 需求；例外绑定根需求身份、原根分支及本 Git dir，不能复制到其他工作目录或用于新需求。
 - 开始修改前执行 check-branch；不匹配先说明原因，不能静默切换。新分支在用户授权创建后用 create-branch，显式给出已有本地基线（GLM 使用 main），禁止自动 upstream。要求干净工作区，唯一例外是本次 init 创建且已绑定的未跟踪 change.json；先创建分支再写领域文档。已有正确分支直接使用。
 - commit 前检查 diff，并用显式路径暂存本任务文件，检查完整暂存区不混入其他任务。消息写 UTF-8 文件；脚本不代替文件范围审核，不自动 stage、push、amend 或修改历史。失败先查输出及 HEAD，不盲目重试提交。

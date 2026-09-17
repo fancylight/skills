@@ -195,6 +195,36 @@ def create_branch(args):
     return {'branch': branch(args.repo)}
 
 
+def create_worktree(args):
+    # Bind the destination directly; never rebind or switch the source checkout.
+    data = metadata(args.change)
+    git(args.repo, 'check-ref-format', '--branch', data['branch'])
+    target = Path(args.path).resolve()
+    require(not target.exists(), '目标路径已存在；不覆盖或清理，请使用新的明确路径。')
+    refs = ([args.base] if args.base.startswith(('refs/heads/', 'refs/remotes/')) else
+            ['refs/heads/' + args.base, 'refs/remotes/' + args.base])
+    matches = []
+    for ref in refs:
+        try:
+            git(args.repo, 'show-ref', '--verify', ref)
+            matches.append(ref)
+        except ValueError:
+            pass
+    require(len(matches) == 1, '基线不存在或有歧义；显式指定已存在的 refs/heads/... 或 refs/remotes/...，不自动 fetch。')
+    revision = git(args.repo, 'rev-parse', '--verify', matches[0] + '^{commit}')
+    git(args.repo, 'worktree', 'add', '--no-track', '-b', data['branch'], str(target), revision)
+    try:
+        save_context(target, dict(kind='flow', change_file=str(Path(args.change).resolve()),
+                                  requirement_id=data['requirement_id'], branch=data['branch']))
+        check_branch(target)
+    except (ValueError, OSError) as exc:
+        raise ValueError('worktree 已创建并保留于 ' + str(target) +
+                         '；绑定失败，请执行 bind --repo "' + str(target) +
+                         '" --change "' + str(Path(args.change).resolve()) +
+                         '" 后 check-branch，不要重复创建：' + str(exc)) from exc
+    return dict(path=str(target), branch=data['branch'], base=matches[0], revision=revision)
+
+
 def switch_branch(args):
     ctx = context(args.repo)
     require(args.branch == ctx['branch'], '目标分支与绑定需求不符：预期 ' + ctx['branch'])
@@ -309,6 +339,9 @@ def hook(payload):
         write_op = operation in ('commit', 'switch', 'checkout', 'merge', 'rebase', 'cherry-pick', 'revert')
         write_op |= operation == 'branch' and bool(tail) and not any(t in tail for t in ('--show-current', '--list', '-l', '-a', '-r', '-v', '-vv', '--contains'))
         write_op |= operation == 'worktree' and bool(tail) and tail[0] in ('add', 'move')
+        if operation == 'worktree' and tail and tail[0] == 'add':
+            return {'hookSpecificOutput': {'hookEventName': 'PreToolUse', 'permissionDecision': 'deny',
+                    'permissionDecisionReason': 'Flow Git：新建需求 worktree 使用 flow-git.py create-worktree --repo REPO --change CHANGE_JSON --path NEW_PATH --base origin/main（或明确的本地基线）。新分支从元数据读取，绑定写入新 worktree，不必先绑定源目录。已有分支挂载或其他参数需单独审查；不要让用户手动绕过。'}}
         if write_op or (uncertain and operation not in ('status', 'diff', 'log', 'show', 'rev-parse', 'fetch')):
             return {'hookSpecificOutput': {'hookEventName': 'PreToolUse', 'permissionDecision': 'deny',
                     'permissionDecisionReason': 'Flow Git：先 bind；新建分支用 flow-git.py create-branch，切换已有分支用 switch-branch --repo REPO --branch BRANCH，提交用 commit。切换后 check-branch。复杂 Git 操作需单独审查，不能用交互 shell 或脚本绕过。手动终端提交不受影响。'}}
@@ -339,13 +372,16 @@ def parser():
         b.add_argument('--' + name)
     for name in ('existing', 'replace'):
         b.add_argument('--' + name, action='store_true')
-    for action in ('check-branch', 'check-commit', 'commit', 'create-branch', 'switch-branch', 'audit'):
+    for action in ('check-branch', 'check-commit', 'commit', 'create-branch', 'create-worktree', 'switch-branch', 'audit'):
         cmd = sub.add_parser(action)
         cmd.add_argument('--repo', required=True)
         if action in ('check-commit', 'commit'):
             cmd.add_argument('--message-file', required=True)
         if action == 'create-branch':
             cmd.add_argument('--base', required=True, help='Existing local branch, e.g. main; no inferred base')
+        if action == 'create-worktree':
+            for name in ('change', 'path', 'base'):
+                cmd.add_argument('--' + name, required=True)
         if action == 'switch-branch':
             cmd.add_argument('--branch', required=True, help='Existing local branch matching the bound requirement')
         if action == 'audit':
@@ -368,7 +404,8 @@ def main():
             result = {'status': 'PASS'}
         else:
             result = {'init': initialize, 'adopt': adopt, 'bind': bind, 'commit': commit,
-                      'create-branch': create_branch, 'switch-branch': switch_branch, 'audit': audit}[args.action](args)
+                      'create-branch': create_branch, 'create-worktree': create_worktree,
+                      'switch-branch': switch_branch, 'audit': audit}[args.action](args)
         print(json.dumps(result, ensure_ascii=False))
         return 1 if args.action == 'audit' and result['agent_fail'] else 0
     except (ValueError, OSError, KeyError, TypeError) as exc:

@@ -1,4 +1,4 @@
-﻿---
+---
 name: flow-codex-design
 description: 为 Codex 编排 Flow 领域发现与后续设计。首次根调用只创建领域模型并输出 DOMAIN_DRAFT，不在同一动作生成概要设计、OpenSpec 或其他方案产物；后续受验证阶段控制时使用。
 ---

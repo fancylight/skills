@@ -1,4 +1,4 @@
-﻿---
+---
 name: flow-codex-test-assign
 description: 向 system-test 仓派发 st-api 集成测试 spec。仅在当前轮 flow-codex-test-verify design PASS 后使用，不修改业务派发链路。
 ---

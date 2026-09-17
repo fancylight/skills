@@ -1,5 +1,6 @@
 $ErrorActionPreference = "Stop"
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+. (Join-Path $scriptDir 'scripts/skill-entry.ps1')
 $skillsDir = Join-Path $scriptDir "skills"
 $errors = @()
 $requiredSkills = @(
@@ -57,7 +58,13 @@ Get-ChildItem -LiteralPath $skillsDir -Directory | ForEach-Object {
         $errors += "Missing agents/openai.yaml: $skillName"
     }
 
-    $content = Get-Content -LiteralPath $skillFile -Raw -Encoding utf8
+    try {
+        $content = Read-FlowSkillEntry -Path $skillFile -Name $skillName
+    }
+    catch {
+        $errors += $_.Exception.Message
+        return
+    }
     $frontmatterPattern = "(?s)^---\r?\nname: $([regex]::Escape($skillName))\r?\ndescription: .+?\r?\n---"
     if ($content -notmatch $frontmatterPattern) {
         $errors += "Invalid frontmatter or folder mismatch: $skillName"

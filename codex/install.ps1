@@ -8,6 +8,7 @@
 
 $ErrorActionPreference = "Stop"
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+. (Join-Path $scriptDir 'scripts/skill-entry.ps1')
 $projectRoot = Split-Path -Parent $scriptDir
 $skillsDir = Join-Path $scriptDir "skills"
 $sharedTemplatesDir = Join-Path $projectRoot "flow\templates"
@@ -25,6 +26,11 @@ if ($InstallGitHook) {
 
 if (-not (Test-Path -LiteralPath $skillsDir)) {
     throw "Codex skills directory not found: $skillsDir"
+}
+
+# Validate every entry before removing or replacing any installed skill.
+Get-ChildItem -LiteralPath $skillsDir -Directory | ForEach-Object {
+    $null = Read-FlowSkillEntry -Path (Join-Path $_.FullName 'SKILL.md') -Name $_.Name
 }
 
 New-Item -ItemType Directory -Force -Path $TargetDir -WhatIf:$WhatIf | Out-Null
@@ -70,6 +76,9 @@ Get-ChildItem -LiteralPath $skillsDir -Directory | ForEach-Object {
         $targetFile = Join-Path $destination $relativeFile
         New-Item -ItemType Directory -Force -Path (Split-Path -Parent $targetFile) -WhatIf:$WhatIf | Out-Null
         Copy-Item -LiteralPath $_.FullName -Destination $targetFile -Force -WhatIf:$WhatIf
+    }
+    if (-not $WhatIf) {
+        $null = Read-FlowSkillEntry -Path (Join-Path $destination 'SKILL.md') -Name $_.Name
     }
     Write-Output "Installed $($_.Name) -> $destination"
 }

@@ -1,4 +1,4 @@
-﻿---
+---
 name: flow-codex-review
 description: 从原要求、业务预期和 OpenSpec 对一个 Flow spec 实现执行只读审核。单对话标明自查；用户授权独立审核时由独立审核者执行。
 ---

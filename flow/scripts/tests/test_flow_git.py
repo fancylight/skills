@@ -88,6 +88,69 @@ class FlowGitTest(unittest.TestCase):
         (self.repo / 'a.txt').write_text('changed\n', encoding='utf-8')
         flow.git(self.repo, 'add', 'a.txt')
 
+    def test_create_worktree_local_and_remote_preserves_source(self):
+        self.cli('bind', '--repo', self.repo, '--adhoc', '--existing')
+        before = (flow.git_dir(self.repo) / flow.CONTEXT).read_bytes()
+        (self.repo / 'a.txt').write_text('uncommitted source work', encoding='utf-8')
+        for index, base in enumerate(('main', 'origin/main')):
+            repo = self.repo if index == 0 else self.new_repo('remote-source')
+            if index:
+                flow.git(repo, 'fetch', str(self.repo), 'main')
+                flow.git(repo, 'update-ref', 'refs/remotes/origin/main', self.base)
+            target = self.root / ('新 worktree ' + str(index))
+            result = self.cli('create-worktree', '--repo', repo, '--change', self.change,
+                              '--path', target, '--base', base)
+            try:
+                self.assertEqual(result['branch'], self.expected)
+                self.assertEqual(flow.git(target, 'rev-parse', 'HEAD'), self.base)
+                self.assertEqual(flow.check_branch(target)['requirement_id'], 'glw-92995')
+                self.assertNotEqual(flow.git_dir(repo), flow.git_dir(target))
+                self.assertEqual(flow.branch(repo), 'main')
+                self.assertEqual(flow.git(target, 'for-each-ref', '--format=%(upstream)',
+                                          'refs/heads/' + self.expected), '')
+                self.assertEqual((target / 'a.txt').read_text(), 'baseline\n')
+                self.cli('check-commit', '--repo', target,
+                         '--message-file', self.message('glw-92995 docs 更新工作目录验证'))
+                self.cli('check-commit', '--repo', target,
+                         '--message-file', self.message('glw-1 docs 错误编号'), ok=False)
+            finally:
+                flow.git(repo, 'worktree', 'remove', str(target))
+        self.assertEqual((flow.git_dir(self.repo) / flow.CONTEXT).read_bytes(), before)
+        self.assertEqual((self.repo / 'a.txt').read_text(), 'uncommitted source work')
+
+    def test_create_worktree_rejects_invalid_inputs_without_mutation(self):
+        target = self.root / 'destination'
+        args = ('create-worktree', '--repo', self.repo, '--change', self.change, '--path', target)
+        before = flow.git(self.repo, 'worktree', 'list', '--porcelain')
+        self.cli(*args, '--base', 'origin/missing', ok=False)
+        self.assertFalse(target.exists())
+        flow.git(self.repo, 'update-ref', 'refs/remotes/main', self.base)
+        self.cli(*args, '--base', 'main', ok=False)
+        self.assertFalse(target.exists())
+        flow.git(self.repo, 'update-ref', '-d', 'refs/remotes/main')
+        target.mkdir()
+        marker = target / 'user.txt'
+        marker.write_text('preserve')
+        self.cli(*args, '--base', 'main', ok=False)
+        self.assertEqual(marker.read_text(), 'preserve')
+        target = self.root / 'unused'
+        flow.git(self.repo, 'branch', self.expected)
+        self.cli('create-worktree', '--repo', self.repo, '--change', self.change,
+                 '--path', target, '--base', 'main', ok=False)
+        self.assertFalse(target.exists())
+        self.assertEqual(flow.git(self.repo, 'worktree', 'list', '--porcelain'), before)
+        self.assertEqual(flow.branch(self.repo), 'main')
+
+    def test_worktree_hook_points_to_supported_entry(self):
+        self.cli('bind', '--repo', self.repo, '--adhoc', '--existing')
+        payload = {'cwd': str(self.repo), 'tool_input': {'cmd':
+                   'git worktree add -b feature/example ../example origin/main'}}
+        result = flow.hook(payload)['hookSpecificOutput']
+        self.assertEqual(result['permissionDecision'], 'deny')
+        self.assertIn('create-worktree --repo', result['permissionDecisionReason'])
+        payload['tool_input']['cmd'] = 'python flow-git.py create-worktree --repo REPO --change CHANGE --path DEST --base origin/main'
+        self.assertEqual(flow.hook(payload), {})
+
     def test_identity_and_no_overwrite(self):
         self.assertEqual(flow.metadata(self.change)['requirement_id'], 'glw-92995')
         self.assertEqual(self.change.parent.name, 'attendance-display-20260930')
@@ -326,6 +389,12 @@ class FlowGitTest(unittest.TestCase):
                                 capture_output=True, encoding='utf-8')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(json.loads(result.stdout)['hookSpecificOutput']['permissionDecision'], 'deny')
+        result = subprocess.run(command, input=json.dumps({'cwd': str(self.repo), 'tool_input': {
+            'command': 'git worktree add -b feature/example ../example origin/main'}}),
+            capture_output=True, encoding='utf-8')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('create-worktree --repo',
+                      json.loads(result.stdout)['hookSpecificOutput']['permissionDecisionReason'])
 
 
 if __name__ == '__main__':

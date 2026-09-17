@@ -1,4 +1,4 @@
-﻿---
+---
 name: flow-codex-test-receive
 description: 将 st-api 集成测试 spec 加载到 config 中 type=system-test 的执行 agent。在 flow-codex-test-assign 后、编写测试代码前使用。
 ---

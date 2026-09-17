@@ -1,4 +1,4 @@
-﻿---
+---
 name: flow-codex-verify
 description: 只读检查 Flow 的领域事实、根产物格式、设计 SQL 数据访问契约与发布就绪；domain 模式独立抽查领域事实证据，design 模式校验 Fact ID 消费、OpenSpec 传导、操作链路与设计文档一致性。不验证业务运行时行为与跨服务 api.md 契约。
 ---

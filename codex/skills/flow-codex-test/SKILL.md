@@ -1,4 +1,4 @@
-﻿---
+---
 name: flow-codex-test
 description: 在测试实现生命周期独立验证后编排 Flow 集成测试 runner，并仅在最终结果验证通过时更新完成状态。
 ---
