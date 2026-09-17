@@ -16,11 +16,11 @@ $codexOverridesDir = Join-Path $sharedTemplatesDir "codex"
 
 if ($InstallGitHook) {
     if (-not $PythonPath -or -not (Test-Path -LiteralPath $PythonPath -PathType Leaf)) {
-        throw '-InstallGitHook requires -PythonPath pointing to a verified Python 3.10+ executable.'
+        throw '-InstallGitHook requires -PythonPath pointing to a verified Python 3.11+ executable.'
     }
     if (-not $WhatIf) {
-        & $PythonPath -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)'
-        if ($LASTEXITCODE -ne 0) { throw 'Flow Git requires Python 3.10+.' }
+        & $PythonPath -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)'
+        if ($LASTEXITCODE -ne 0) { throw 'Flow Git requires Python 3.11+.' }
     }
 }
 

@@ -365,26 +365,47 @@ class FlowGitTest(unittest.TestCase):
         self.assertEqual(result, {})
 
     def test_install_idempotent_preserves_and_remove(self):
+        import tomllib
         home = self.root / 'codex-home'
         home.mkdir()
         config = home / 'config.toml'
-        config.write_text('[hooks]\n# existing GPT-6 guard\n', encoding='utf-8')
-        original = {'description': 'preserve', 'hooks': {'UserPromptSubmit': [{'hooks': [{'type': 'mcp_tool', 'server': 'gpt6_guard'}]}]}}
+        original = '[hooks]\n# existing GPT-6 guard\n[[hooks.UserPromptSubmit]]\n[[hooks.UserPromptSubmit.hooks]]\ntype = "mcp_tool"\nserver = "gpt6_guard"\n[hooks.state.old]\nenabled = false\ntrusted_hash = "preserve"\n'
+        config.write_text(original, encoding='utf-8')
+        installer.update(home, SCRIPT, sys.executable)
+        first = config.read_bytes()
+        self.assertFalse((home / 'hooks.json').exists())
+        self.assertFalse(installer.update(home, SCRIPT, sys.executable)['changed'])
+        self.assertEqual(first, config.read_bytes())
+        current = tomllib.loads(config.read_text())
+        self.assertEqual(current['hooks']['state']['old'], {'enabled': False, 'trusted_hash': 'preserve'})
+        installer.update(home, remove=True)
+        self.assertEqual(config.read_text(), original)
+
+    def test_migrate_legacy_flow_only_and_preserve_other_json(self):
+        home = self.root / 'legacy-home'
+        home.mkdir()
+        original = {'hooks': {'PreToolUse': [{'hooks': [{'statusMessage': installer.MARKER}]}]}}
         flow.write(home / 'hooks.json', original)
         installer.update(home, SCRIPT, sys.executable)
-        first = (home / 'hooks.json').read_bytes()
-        self.assertFalse(installer.update(home, SCRIPT, sys.executable)['changed'])
-        self.assertEqual(first, (home / 'hooks.json').read_bytes())
-        self.assertEqual(config.read_text(), '[hooks]\n# existing GPT-6 guard\n')
+        self.assertFalse((home / 'hooks.json').exists())
+        self.assertEqual(flow.read(home / 'hooks.json.before-flow-inline'), original)
+        first = (home / 'config.toml').read_bytes()
+        other = {'hooks': {'UserPromptSubmit': [{'hooks': [{'type': 'mcp_tool', 'server': 'other'}]}]}}
+        flow.write(home / 'hooks.json', other)
+        with self.assertRaisesRegex(ValueError, 'non-Flow'):
+            installer.update(home, SCRIPT, sys.executable)
+        self.assertEqual((home / 'config.toml').read_bytes(), first)
+        self.assertEqual(flow.read(home / 'hooks.json'), other)
         installer.update(home, remove=True)
-        self.assertEqual(flow.read(home / 'hooks.json'), original)
+        self.assertEqual(flow.read(home / 'hooks.json'), other)
 
     @unittest.skipUnless(sys.platform == 'win32', 'Windows command hook')
     def test_installed_windows_command_real_execution(self):
         self.bind()
         home = self.root / 'codex-home'
         installer.update(home, SCRIPT, sys.executable)
-        command = flow.read(home / 'hooks.json')['hooks']['PreToolUse'][0]['hooks'][0]['commandWindows']
+        import tomllib
+        command = tomllib.loads((home / 'config.toml').read_text(encoding='utf-8'))['hooks']['PreToolUse'][0]['hooks'][0]['commandWindows']
         result = subprocess.run(command, input=json.dumps({'cwd': str(self.repo), 'tool_input': {'command': 'git commit -m bad'}}),
                                 capture_output=True, encoding='utf-8')
         self.assertEqual(result.returncode, 0, result.stderr)

@@ -10,6 +10,8 @@
 
 ### Fixed
 
+- Flow Hook 统一写入 config.toml 的独立标记块，迁移旧版仅含 Flow 的 hooks.json 并保留备份，消除同层双来源提示；重复安装和撤销保留其他配置及信任/启停记录。
+
 - 补齐 Codex Git 的 create-worktree 入口，支持明确的本地及远端跟踪基线，创建后绑定新工作目录并保留源目录状态；修复 Hook 拦截 worktree 却只提示 create-branch 的流程死路，增加真实临时仓回归。
 
 - 修复 11 个 Codex 技能入口的 UTF-8 BOM，恢复 design、verify、review 及测试技能的可发现性；校验和安装共用原始字节检查，安装前拒绝不合格源文件，复制后复核入口，避免文本读取隐藏编码错误。

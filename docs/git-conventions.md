@@ -7,10 +7,10 @@
 ## 安装与撤销
 
 ```powershell
-./codex/install.ps1 -InstallGitHook -PythonPath '<已验证的 Python 3.10+ 绝对路径>'
+./codex/install.ps1 -InstallGitHook -PythonPath '<已验证的 Python 3.11+ 绝对路径>'
 ```
 
-安装默认复制全局 skills 到 `~/.agents/skills`；`-InstallGitHook` 显式合并用户级 `~/.codex/hooks.json`。可用 `-CodexHome` 指定 Codex 配置目录，`-TargetDir` 指定 skills 安装路径。重复执行不重复添加 handler，不改 config.toml、GPT-6 guard 或 hook 信任。首次修改前备份 `hooks.before-flow-git.json`。
+安装默认复制全局 skills 到 `~/.agents/skills`；`-InstallGitHook` 将 Flow 定义写入用户级 `~/.codex/config.toml` 的独立标记块。可用 `-CodexHome` 指定 Codex 配置目录，`-TargetDir` 指定 skills 安装路径。重复执行不重复添加 handler，保留块外配置、GPT-6 guard 和 hook 信任/启停记录。旧 hooks.json 仅含 Flow 时自动迁移，原文件备份为 hooks.json.before-flow-inline，config.toml 备份为 config.toml.before-flow-inline；不复制旧来源的信任授权，迁移后检查 /hooks。旧 JSON 有其他 Hook 时在写入前拒绝迁移，避免擅自改变它们的来源。安装器使用 Python 3.11+ 的标准 TOML 解析器校验完整配置。
 
 新建项目由 Codex config 模板启用 `conventions.agent_git: flow-v1`；已有项目明确接入时添加该字段，并逐需求建立 change.json，不在全局项目配置保存活动任务号。显式 bind 的工作目录也会启用检查。
 
@@ -20,7 +20,7 @@
 & '<Python绝对路径>' ./codex/scripts/install-git-hook.py --codex-home '<Codex配置目录>' --remove
 ```
 
-不直接用整文件备份覆盖当前 hooks.json，以免删除用户后续改动。只安装 Skills、不安装 hook 时省略 `-InstallGitHook`。安装器不替用户升级 PATH 中的 Codex CLI。
+撤销只移除 Flow 标记块及旧 JSON 中的 Flow handler，保留用户后续配置与其他 Hook；不使用整文件备份覆盖当前配置。只安装 Skills、不安装 hook 时省略 `-InstallGitHook`。安装器不替用户升级 PATH 中的 Codex CLI。
 
 ## 信任与覆盖边界
 
