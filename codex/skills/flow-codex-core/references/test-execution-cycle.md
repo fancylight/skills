@@ -16,7 +16,9 @@
 
 默认复用本次业务开发 worktree 和测试仓 worktree，不额外创建业务运行副本；允许两个明确选定的 Git 工作目录位于编排根目录外。manifest 明确 SUT 路径与版本，启动时从该目录构建并核对构件身份。启动脚本仍限制在测试仓内、配置文件限制在其配置根内，路径放宽不允许任意脚本或配置越界。
 
-已有 controller 锁定旧运行副本时，先确认无 active run 且清理完整，然后在用户已授权的 revise 请求中填写 `sutRepository` 为现有业务开发 worktree。脚本核实两路径属于同一 Git common dir 后变更主仓绑定、记录历史，保留旧版本锁与证据；之后复核当前设计并用 resume 接纳当前版本。它不创建/切换/删除目录，不自动更新 manifest，也不授予执行预算。manifest/resolved manifest 与 controller 须最终指向同一工作目录；不得仅手改 state 或忽略版本不符。已有对话中的授权直接引用，不要求用户重复确认。
+已有 controller 绑定旧工作目录时，使用 `flow-test.ps1 rebind -StatePath STATE -RepairPath REQUEST_JSON`。同一个入口支持旧 state（无 execution）和新 state，不要求先 prepare、追加预算或新开设计阶段。请求包含 `grantedBy: user`、既有用户指令的 requestRef/requestText、reason，以及需要更新的 `systemTestRepository` / `sutRepository`；用户已要求“整理工作目录后继续测试”即复用该授权，不为同步绑定再次询问。
+
+工具先验证全部目标属于各自原仓的 Git common dir、目标测试仓包含当前 change，且无 active run、待清理资源或进程登记。成功后统一更新当前仓路径、同仓 harness 路径，保留预算、版本锁和历史证据，不改写历史路径。必要时仅复制已有认证及证据到新位置，绝不覆盖目标文件；目标代码仍须通过正式认证验证，不能仅因复制了证据而 PASS。状态标注待接纳，旧结果不冒充当前通过。重复相同迁移不修改状态。旧 state 随后走 prepare；已接入 execution 的 state 用 resume 接纳当前版本、重新核验受影响审核及环境。manifest/resolved manifest 的当前路径不符时按现有解析器更新，不要求用户处理机械字段。不同仓库、缺失需求文件或未清理进程应报告具体事实，不能把“旧绑定未同步”称为“用户目录错误”。不手改 state、不创建或删除 worktree。revise 的旧 sutRepository 参数保留兼容，纯目录迁移优先 rebind。
 
 ## 旧执行结束后的新设计与开发
 

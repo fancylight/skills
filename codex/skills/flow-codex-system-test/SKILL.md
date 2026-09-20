@@ -5,6 +5,9 @@ description: 使用 system-test manifest runner 执行 Flow change 的 API/UI/E2
 
 # Codex Flow 系统测试执行
 
+用户已授权整理/切换现有工作目录并继续测试时，旧 controller 绑定不符由 Agent 按 test-execution-cycle.md 的 rebind 同步业务仓/测试仓；兼容无 execution 的旧状态，不重复确认，不先启动测试来获得迁移资格。仅真实仓库身份冲突、缺失产物或残留运行资源需要具体处理，不能把过时绑定当成用户目录错误。
+
+
 业务服务默认直接从本次已有业务开发 worktree 构建和启动；测试代码使用已有测试仓 worktree。两者可以位于编排根目录外，不要求另建第三个“运行副本”。保留 manifest 明确路径、Git revision、构件指纹及启动契约校验。仅存在明确隔离需要且用户已授权时才增加副本，不能为满足目录限制复制代码。
 
 

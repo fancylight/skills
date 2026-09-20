@@ -5,6 +5,9 @@ description: 在测试实现生命周期独立验证后编排 Flow 集成测试 
 
 # Codex Flow 集成测试编排
 
+用户已授权整理/切换现有工作目录并继续测试时，旧 controller 绑定不符由 Agent 按 test-execution-cycle.md 的 rebind 同步业务仓/测试仓；兼容无 execution 的旧状态，不重复确认，不先启动测试来获得迁移资格。仅真实仓库身份冲突、缺失产物或残留运行资源需要具体处理，不能把过时绑定当成用户目录错误。
+
+
 旧执行预算耗尽后，用户新授权的设计/开发按 core/references/test-execution-cycle.md 的 revise / review-design 推进，读取 developmentNext；不得把旧 budget-exhausted 当成整个需求永久停止。原轮修复重跑仍受旧预算约束，设计/编码授权不隐含新运行预算。
 
 
@@ -16,7 +19,9 @@ description: 在测试实现生命周期独立验证后编排 Flow 集成测试 
 
 执行已有用例先读取 ../flow-codex-core/references/test-execution.md；复用适用的项目执行路径，不重新设计测试或维护环境。
 
-## 前置（硬门禁）
+## 尚未迁移的旧流程前置
+
+已完成 rebind 的需求以 flow-test.ps1 status 返回的 prepare/resume 为准，不再套用本节旧 next 的 BLOCKED；prepare 仍检查执行授权，不会由目录迁移自动授权运行。以下仅用于未接入新入口的旧流程。
 
 每轮只执行 controller `next` 返回的一个动作。`BLOCKED` 立即停止，`COMPLETE` 才输出完成；不得根据本文步骤、用户“尽量完成”或 skill 建议自行选择后续 skill。`VERIFY_ENVIRONMENT` 对 v2 resolved manifest 调用 core
 `assets/scripts/validate-test-environment.ps1`；v1 继续消费认证 harness 的最小配置探针。只有结构化 PASS 才调用

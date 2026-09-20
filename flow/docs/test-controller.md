@@ -4,6 +4,8 @@
 `.flow/changes/<change>/automation-state.yaml`。只用安装后的
 `assets/scripts/flow-test-controller.ps1` 读取或写入；manifest、task、agent 口述和 Goal 建议都不能直接改变 phase、授权或 revision。
 
+目录绑定修复统一使用 flow-test.ps1 rebind（兼容旧状态及 execution 状态），支持 systemTestRepository / sutRepository，复用既有用户授权。迁移不重置预算、不授予审核通过，随后按当前状态 prepare/resume；详细契约见 test-execution-cycle.md。
+
 ## 正式切片与恢复入口
 
 Codex 的 v2 需求使用 `assets/scripts/flow-test.ps1 prepare / advance / resume / status`，仍读写本文件所述唯一 state。详细审核输入、选择范围、30分钟总预算和恢复契约见安装后的 `references/test-execution-cycle.md`。新增用户授权开发使用 revise / review-design，不受旧执行预算阻断；developmentNext 与执行 next 分别展示。接纳运行候选仍走 resume，只有明确的新运行授权才能开始新预算轮次并追加 budgetHistory。`execution` 为现有 controller 的附加字段，不是第二套状态机；runs/history 继续保留。

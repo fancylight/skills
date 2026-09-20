@@ -165,3 +165,50 @@ $rebind|ConvertTo-Json|Set-Content $requestPath -Encoding utf8
 Assert-Controller { & $controller execution -Action revise -StatePath $slice.state -ReportPath $requestPath } $true 'review-design' 'existing-business-worktree-rebound'
 $afterRebind=Get-Content $slice.state -Raw|ConvertFrom-Json
 if($afterRebind.repositories.sut -ne $targetSut -or $afterRebind.execution.deadlineUtc -ne $beforeRebind.execution.deadlineUtc -or $afterRebind.runs.Count -ne $beforeRebind.runs.Count -or $afterRebind.execution.development.accepted){throw 'rebind reset budget/history or granted executable acceptance'}
+
+# A test-worktree migration must work for both old and execution-enabled states.
+$legacy=New-LeasedCase 'legacy-rebind' 'legacy-rebind-change'
+$embedded=Join-Path $legacy.repo 'platform'
+Copy-Item -LiteralPath $harnessRoot -Destination $embedded -Recurse
+Invoke-Git $legacy.repo @('add','.')|Out-Null
+Invoke-Git $legacy.repo @('commit','--quiet','-m','embed tested harness')|Out-Null
+$legacyState=Get-Content $legacy.state -Raw|ConvertFrom-Json
+$legacyState.harnessCertification.root=$embedded
+$legacyState.harnessCertification.path=Join-Path $embedded 'self-test/controller-certification.json'
+Re-sign-State $legacy.state $legacyState
+$legacyTarget=Join-Path $root 'legacy-test-worktree'
+Invoke-Git $legacy.repo @('worktree','add','--detach',$legacyTarget,'HEAD')|Out-Null
+$migrationPath=Join-Path $root 'repository-migration.json'
+$migration=@{grantedBy='user';requestRef='user/organize-and-continue';requestText='Clean up the existing test worktree and continue testing';reason='Use the selected existing worktree';systemTestRepository=$legacyTarget}
+$migration|ConvertTo-Json|Set-Content $migrationPath -Encoding utf8
+Assert-Controller { & $entry rebind -StatePath $legacy.state -RepairPath $migrationPath } $true 'prepare' 'legacy-state-migrates-before-prepare'
+$legacyState=Get-Content $legacy.state -Raw|ConvertFrom-Json
+if($legacyState.repositories.systemTest -ne $legacyTarget -or $legacyState.execution){throw 'legacy rebind failed or silently started execution budget'}
+if($legacyState.harnessCertification.root -ne (Join-Path $legacyTarget 'platform')){throw 'embedded harness root not migrated'}
+& (Join-Path $legacyState.harnessCertification.root 'scripts/harness-certification.ps1') verify -HarnessRoot $legacyState.harnessCertification.root -CertificationPath $legacyState.harnessCertification.path | Out-Null
+if($LASTEXITCODE -ne 0){throw 'relocated harness evidence no longer verifies'}
+$legacyHash=(Get-FileHash $legacy.state).Hash
+Assert-Controller { & $entry rebind -StatePath $legacy.state -RepairPath $migrationPath } $true 'prepare' 'rebind-idempotent'
+if((Get-FileHash $legacy.state).Hash -ne $legacyHash){throw 'repeated rebind changed state'}
+$testTarget=Join-Path $root 'selected-test-worktree'
+Invoke-Git $slice.repo @('worktree','add','--detach',$testTarget,'HEAD')|Out-Null
+$migration.systemTestRepository=$testTarget
+$migration|ConvertTo-Json|Set-Content $migrationPath -Encoding utf8
+$beforeMove=Get-Content $slice.state -Raw|ConvertFrom-Json
+$busy=Get-Content $slice.state -Raw|ConvertFrom-Json
+$busy.activeRun=@{runId='still-running'}
+Re-sign-State $slice.state $busy
+Assert-Controller { & $controller execution -Action rebind -StatePath $slice.state -ReportPath $migrationPath } $false 'ERROR_ACTIVE_RUN' 'active-run-cannot-be-detached'
+Re-sign-State $slice.state $beforeMove
+Assert-Controller { & $entry rebind -StatePath $slice.state -RepairPath $migrationPath } $true 'candidateDrift' 'execution-state-test-worktree-migrated'
+$moved=Get-Content $slice.state -Raw|ConvertFrom-Json
+if($moved.repositories.systemTest -ne $testTarget -or $moved.execution.deadlineUtc -ne $beforeMove.execution.deadlineUtc -or $moved.runs.Count -ne $beforeMove.runs.Count -or -not $moved.execution.repositoryBindingPending){throw 'migration changed budget/history or failed to invalidate current evidence'}
+$designStatus=(& $controller execution -Action status -StatePath $slice.state|Out-String)|ConvertFrom-Json
+$designReport.designKey=$designStatus.designBinding.key;$designReport.testRevision=$designStatus.designBinding.test;$designReport.sutRevision=$designStatus.designBinding.sut
+$designReport|ConvertTo-Json -Depth 6|Set-Content $designPath -Encoding utf8
+Assert-Controller { & $entry review-design -StatePath $slice.state -ReviewPath $designPath } $true 'implement-then-resume' 'review-continues-in-target-worktree'
+$repair.Remove('budgetGrant')
+$repair|ConvertTo-Json -Depth 6|Set-Content $repairPath -Encoding utf8
+Assert-Controller { & $entry resume -StatePath $slice.state -RepairPath $repairPath } $true 'review-selected-slice' 'candidate-accepted-from-target-worktree'
+$moved=Get-Content $slice.state -Raw|ConvertFrom-Json
+if($moved.execution.repositoryBindingPending -or $moved.execution.binding.test -ne (Invoke-Git $testTarget @('rev-parse','HEAD')|Select-Object -First 1).Trim() -or $moved.execution.key -eq $beforeMove.execution.key){throw 'target binding/evidence invalidation incomplete'}

@@ -1,6 +1,6 @@
 ﻿[CmdletBinding()]
 param(
-    [Parameter(Mandatory=$true,Position=0)] [ValidateSet('prepare','advance','resume','status','revise','review-design')] [string]$Command,
+    [Parameter(Mandatory=$true,Position=0)] [ValidateSet('prepare','advance','resume','status','revise','review-design','rebind')] [string]$Command,
     [Parameter(Mandatory=$true)] [string]$StatePath,
     [string[]]$ScenarioIds,
     [string]$ReviewPath,
@@ -32,6 +32,7 @@ try {
     if ($Command -ne 'status') { $lock=[IO.File]::Open($lockPath,'OpenOrCreate','ReadWrite','None') }
     switch ($Command) {
         'status' { Invoke-Controller 'status'; break }
+        'rebind' { Invoke-Controller 'rebind' @{ReportPath=$RepairPath}; break }
         'revise' { Invoke-Controller 'revise' @{ReportPath=$RepairPath}; break }
         'review-design' { Invoke-Controller 'review-design' @{ReportPath=$ReviewPath}; break }
         'prepare' { Invoke-Controller 'prepare' @{ScenarioIds=$ScenarioIds}; break }

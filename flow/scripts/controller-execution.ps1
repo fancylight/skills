@@ -38,6 +38,7 @@ function Get-ExecutionBinding($State) {
         contractHash=(Get-FileHashValue $contractPath); allScenarioIds=$all; certification=$cert.certificationHash
         environmentInputs=(Get-ExecutionEnvironmentInputs $State $resolved)
     }
+    if($State.repositoryBindingKey){$binding | Add-Member -NotePropertyName repositoryBindingKey -NotePropertyValue $State.repositoryBindingKey}
     return $binding
 }
 function Get-ExecutionKey($Binding) { return Get-StringHash ($Binding | ConvertTo-Json -Depth 8 -Compress) }
@@ -132,6 +133,7 @@ function Get-ExecutionSummary($State) {
             }
         }
     }
+    if($cycle.repositoryBindingPending){$drift=$true}
     $rows = @($cycle.binding.allScenarioIds | Where-Object { $_ } | ForEach-Object {
         $id = $_
         $matching = @($State.runs | Where-Object { $_.executionKey -eq $cycle.key -and $id -in @($_.scenarioIds) })
@@ -167,8 +169,72 @@ function Get-ExecutionSummary($State) {
         invalidations=@($cycle.invalidations); next=$(if ($State.activeRun) {'recover-active-run'} elseif ($cycle.cleanupRequired) {'restore-owned-resources'} elseif ($complete) {'complete'} elseif (@($rows | Where-Object {$_.result -eq 'AWAITING_REVIEW'}).Count) {'review-results'} elseif ([DateTime]::UtcNow -ge [DateTime]::Parse($cycle.deadlineUtc).ToUniversalTime().AddSeconds(-120)) {'budget-exhausted'} elseif ($drift -or -not $cycle.binding -or $State.phase -in @('TEST_EXECUTED_FAIL','TEST_ENVIRONMENT_FAILED')) {'resume'} elseif ($selectedComplete) {'select-next-slice'} elseif (-not $cycle.review) {'review-selected-slice'} else {'advance'})
     }
 }
+function Rebind-TestRepositories($State,$Report) {
+    if($Report.grantedBy -ne 'user' -or -not $Report.requestRef -or -not $Report.requestText -or -not $Report.reason){Stop-Controller 'ERROR_REBIND_AUTHORIZATION' 'Reference the existing user instruction to use/organize these worktrees; no new confirmation is needed'}
+    $moves=@()
+    foreach($item in @(@{field='systemTestRepository';role='systemTest'},@{field='sutRepository';role='sut'})){
+        $value=$Report.($item.field)
+        if(-not $value){continue}
+        $old=Get-CanonicalGitRepo $State.repositories.($item.role)
+        $target=Get-CanonicalGitRepo ([string]$value)
+        if($old -eq $target){continue}
+        $oldCommon=(@(Get-GitOutput $old @('rev-parse','--path-format=absolute','--git-common-dir')) -join '').Trim()
+        $newCommon=(@(Get-GitOutput $target @('rev-parse','--path-format=absolute','--git-common-dir')) -join '').Trim()
+        if((Get-CanonicalPath $oldCommon) -ne (Get-CanonicalPath $newCommon)){Stop-Controller 'ERROR_REPOSITORY_IDENTITY' 'Target must be an existing worktree of the same Git repository'}
+        if($item.role -eq 'systemTest' -and -not (Test-Path -LiteralPath (Join-Path $target "changes/$($State.changeName)") -PathType Container)){Stop-Controller 'ERROR_CHANGE_DIRECTORY' 'Target test worktree lacks this change; restore its reviewed artifacts before rebinding'}
+        $moves += [pscustomobject]@{role=$item.role;previous=$old;target=$target;head=(Get-GitHead $target)}
+    }
+    if(-not $moves.Count){return}
+    if($State.activeRun -or $State.execution.cleanupRequired){Stop-Controller 'ERROR_ACTIVE_RUN' 'Recover the current run before rebinding; old run ownership must remain unchanged'}
+    foreach($repo in @($State.repositories.systemTest)+@($moves | Where-Object {$_.role -eq 'systemTest'} | ForEach-Object {$_.target})){
+        if(Test-Path -LiteralPath (Join-Path $repo ".runtime/$($State.changeName)/v2-owned-processes.json")){Stop-Controller 'ERROR_CLEANUP_REQUIRED' 'An owned-process registry remains in the source or target test worktree; recover those resources first'}
+    }
+    $proof=Save-ExecutionEvidence $ReportPath
+    foreach($move in $moves){
+        if($move.role -eq 'systemTest' -and (Test-PathWithin $State.harnessCertification.root $move.previous)){
+            $oldRoot=Get-CanonicalPath $State.harnessCertification.root
+            $newRoot=$move.target+$oldRoot.Substring($move.previous.Length)
+            $oldReceipt=Get-CanonicalPath $State.harnessCertification.path
+            $newReceipt=$newRoot+$oldReceipt.Substring($oldRoot.Length)
+            # Copy only immutable certification evidence, never overwrite target files.
+            # Full certification is still verified by prepare/resume against target code.
+            if((Test-Path -LiteralPath $oldReceipt -PathType Leaf) -and (Test-PathWithin $oldReceipt $oldRoot)){
+                $cert=Read-StructuredJson $oldReceipt 'existing harness certification'
+                $paths=@($oldReceipt)+@(Join-Path $oldRoot $cert.selfTestReportPath)+@($cert.scenarioEvidence | ForEach-Object {Join-Path $oldRoot $_.path})
+                foreach($source in $paths){
+                    $source=Get-CanonicalPath $source
+                    if(-not (Test-PathWithin $source $oldRoot)){Stop-Controller 'ERROR_EVIDENCE' 'Certification evidence escapes its old harness root'}
+                    $destination=$newRoot+$source.Substring($oldRoot.Length)
+                    if((Test-Path -LiteralPath $source -PathType Leaf) -and -not (Test-Path -LiteralPath $destination)){
+                        [void](New-Item -ItemType Directory -Force -Path (Split-Path -Parent $destination))
+                        Copy-Item -LiteralPath $source -Destination $destination
+                    }
+                }
+            }
+            $State.harnessCertification.root=$newRoot;$State.harnessCertification.path=$newReceipt
+        }
+        $State.repositories.($move.role)=$move.target
+        Add-History $State $State.phase $State.phase ("rebound " + $move.role + ': ' + $move.previous + ' -> ' + $move.target)
+    }
+    if(-not $State.PSObject.Properties['repositoryBindings']){$State | Add-Member -NotePropertyName repositoryBindings -NotePropertyValue @()}
+    $State.repositoryBindings += [pscustomobject]@{at=[DateTime]::UtcNow.ToString('o');requestRef=$Report.requestRef;moves=$moves;evidence=$proof}
+    $State | Add-Member -Force -NotePropertyName repositoryBindingKey -NotePropertyValue (Get-StringHash ($State.repositories|ConvertTo-Json -Compress))
+    $State.verifier=$null
+    foreach($lease in @($State.leases)){$lease.active=$false}
+    if($State.execution){
+        $State.execution.review=$null
+        if($State.execution.development){$State.execution.development.accepted=$false}
+        $State.execution | Add-Member -Force -NotePropertyName repositoryBindingPending -NotePropertyValue $true
+    }
+    Write-State $State
+}
 function Invoke-Execution($State) {
     if ($Action -eq 'status') { Get-ExecutionSummary $State | ConvertTo-Json -Depth 16; return }
+    if ($Action -eq 'rebind') {
+        $report=Read-StructuredJson $ReportPath 'worktree binding request'
+        Rebind-TestRepositories $State $report
+        Get-ExecutionSummary $State | ConvertTo-Json -Depth 16; return
+    }
     if ($Action -eq 'prepare') {
         if ($State.PSObject.Properties['execution']) { Get-ExecutionSummary $State | ConvertTo-Json -Depth 16; return }
         Require-Ceiling $State 'execution'
@@ -198,15 +264,7 @@ function Invoke-Execution($State) {
         if($cycle.development -and $cycle.development.requestRef -eq $report.requestRef){Get-ExecutionSummary $State | ConvertTo-Json -Depth 16;return}
         if(-not $cycle.PSObject.Properties['developmentHistory']){$cycle | Add-Member -NotePropertyName developmentHistory -NotePropertyValue @()}
         if(@($cycle.developmentHistory | Where-Object {$_.requestRef -eq $report.requestRef}).Count){Stop-Controller 'ERROR_DEVELOPMENT_REPLAY' 'This development request was already used.'}
-        if($report.sutRepository){
-            if($State.activeRun -or $cycle.cleanupRequired){Stop-Controller 'ERROR_ACTIVE_RUN' 'Finish/recover the old run resources before changing its repository binding'}
-            $target=Get-CanonicalPath ([string]$report.sutRepository)
-            $oldCommon=(@(Get-GitOutput $State.repositories.sut @('rev-parse','--path-format=absolute','--git-common-dir')) -join '').Trim()
-            $newCommon=(@(Get-GitOutput $target @('rev-parse','--path-format=absolute','--git-common-dir')) -join '').Trim()
-            if(-not $oldCommon -or -not $newCommon -or (Get-CanonicalPath $oldCommon) -ne (Get-CanonicalPath $newCommon)){Stop-Controller 'ERROR_REPOSITORY_IDENTITY' 'Select an existing worktree of the same business repository, not a different repository'}
-            Add-History $State $State.phase $State.phase ("business worktree binding changed from " + $State.repositories.sut + " to " + $target + '; old execution evidence and revision locks retained until resume')
-            $State.repositories.sut=$target
-        }
+        if($report.sutRepository -or $report.systemTestRepository){Rebind-TestRepositories $State $report}
         if($cycle.development){$cycle.developmentHistory += $cycle.development}
         $cycle | Add-Member -Force -NotePropertyName development -NotePropertyValue ([pscustomobject]@{requestRef=$report.requestRef;request=(Save-ExecutionEvidence $ReportPath);openedAt=[DateTime]::UtcNow.ToString('o');designKey=$null;designReview=$null;accepted=$false;executionRequestRef=$null})
         Add-History $State $State.phase $State.phase 'authorized development reopened; execution budget and active resources preserved'
@@ -351,6 +409,7 @@ function Invoke-Execution($State) {
             $cycle.development.accepted=$true
             if($report.budgetGrant.kind -eq 'new-cycle'){$cycle.development.executionRequestRef=$report.budgetGrant.requestRef}
         }
+        if($cycle.PSObject.Properties['repositoryBindingPending']){$cycle.repositoryBindingPending=$false}
         $cycle.selected=@($selected); $cycle.review=$null; $cycle.cleanupRequired=$false
         Set-ExecutionLocks $State $binding
         if ($report.rootCause -and $report.appliedRepair -and $report.repairReview -eq 'PASS') {
@@ -400,6 +459,7 @@ function Invoke-Execution($State) {
         if($cycle.development -and -not $cycle.development.accepted){Stop-Controller 'ERROR_CANDIDATE_NOT_ACCEPTED' 'Development is open; complete design/implementation and resume before execution'}
         Require-Ceiling $State 'execution'; Assert-DevelopmentReview $State; Assert-ExecutionTime $State; Assert-ExecutionCurrent $State
         if($cycle.development -and -not $cycle.development.executionRequestRef){Stop-Controller 'ERROR_EXECUTION_AUTHORIZATION' 'New development requires explicit new-cycle execution authorization; design/implementation approval alone cannot start tests'}
+        if($cycle.repositoryBindingPending){Stop-Controller 'ERROR_REBIND_PENDING' 'Accept the target candidate via resume and revalidate environment before execution'}
         if ($State.activeRun -or $cycle.cleanupRequired -or -not $cycle.review -or $State.phase -ne 'TEST_ENVIRONMENT_VERIFIED') { Stop-Controller 'ERROR_SLICE_NOT_READY' 'Active run, incomplete cleanup, or missing selected review/environment check; no input was delivered' }
         $selectionKey=(@($cycle.selected | Sort-Object) -join ',')
         if (@($State.runs | Where-Object { $_.executionKey -eq $cycle.key -and (@($_.scenarioIds | Sort-Object) -join ',') -eq $selectionKey }).Count -and -not $cycle.retryPermit) { Stop-Controller 'ERROR_REPEAT_WITHOUT_CHANGE' 'Same candidate and selection already ran. Diagnose and provide an actual reviewed repair; increasing timeout/restarting is not a repair.' }
