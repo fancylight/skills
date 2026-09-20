@@ -127,6 +127,29 @@ try {
     if (@($firstValue.cleanupPlan) -contains 'mysql') { throw 'external resource leaked into cleanup plan' }
     if (@($firstValue.cleanupPlan) -notcontains 'config-provider') { throw 'managed resource is missing from cleanup plan' }
 
+    $external = New-Fixture 'external-worktrees'
+    $businessTree=Join-Path $root 'external-business-tree'
+    $testTree=Join-Path $root 'external-test-tree'
+    & git -C $external.sutRepo worktree add --detach $businessTree $external.sutRevision 2>&1 | Out-Null
+    if($LASTEXITCODE -ne 0){throw 'business worktree fixture failed'}
+    & git -C $external.testRepo worktree add --detach $testTree $external.testRevision 2>&1 | Out-Null
+    if($LASTEXITCODE -ne 0){throw 'test worktree fixture failed'}
+    $external.testRepo=$testTree
+    $external.manifest=Join-Path $testTree 'changes/sample/manifest.yaml'
+    $external.output=Join-Path $testTree 'changes/sample/resolved-manifest.json'
+    $externalManifest=Get-Content $external.manifest -Raw|ConvertFrom-Json
+    $externalManifest.suts[0].repository=$businessTree
+    Write-Json $external.manifest $externalManifest
+    Assert-Pass (Invoke-Resolver $external) 'existing sibling business and test worktrees'
+    $resolved=Get-Content $external.output -Raw|ConvertFrom-Json
+    if([IO.Path]::GetFullPath($resolved.suts[0].repository) -ne [IO.Path]::GetFullPath($businessTree)){throw 'resolver substituted an extra business copy'}
+    $externalManifest.suts[0].revision=('b' * 40)
+    Write-Json $external.manifest $externalManifest
+    Assert-Error (Invoke-Resolver $external) 'ERROR_REVISION_DRIFT' 'external worktree still needs exact version'
+    $externalManifest.suts[0].repository=Join-Path $root 'missing-worktree'
+    Write-Json $external.manifest $externalManifest
+    Assert-Error (Invoke-Resolver $external) 'PATH_CONFLICT' 'missing external worktree rejected'
+
     $nativeStartup = New-Fixture 'native-startup-contract'
     Remove-Item -LiteralPath (Join-Path $nativeStartup.providerRepo 'src/main/resources/application-native.yml') -Force
     [void](Commit-All $nativeStartup.providerRepo 'native configuration supplied at startup')

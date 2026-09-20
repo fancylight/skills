@@ -5,6 +5,9 @@ description: 使用 system-test manifest runner 执行 Flow change 的 API/UI/E2
 
 # Codex Flow 系统测试执行
 
+业务服务默认直接从本次已有业务开发 worktree 构建和启动；测试代码使用已有测试仓 worktree。两者可以位于编排根目录外，不要求另建第三个“运行副本”。保留 manifest 明确路径、Git revision、构件指纹及启动契约校验。仅存在明确隔离需要且用户已授权时才增加副本，不能为满足目录限制复制代码。
+
+
 正式测试先读取 `../flow-codex-core/references/test-execution-cycle.md`。已接入 execution 的需求使用 `flow-test.ps1 status`，按其 prepare/advance/resume 路径推进；以下旧 next/租约步骤仅用于尚未接入的需求。允许已审核的最小切片先正式运行，其余场景保持未验证；同一对话继续，不新增用户阶段。
 
 初始化后，当前有效授权从 controller `authorization.maxPhase` 及 grants 读取；manifest.testAuthorization 仅为初始授权。用户追加授权按 core/references/test-controller.md 的 grant-authorization 入账，不从 next 推断、不要求重复授权、不改 manifest 来伪造授权。

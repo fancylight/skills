@@ -152,3 +152,16 @@ Assert-Controller { & $controller execution -Action resume -StatePath $slice.sta
 $dev=Get-Content $slice.state -Raw|ConvertFrom-Json
 if(@($dev.execution.budgetHistory).Count -ne 1 -or $dev.execution.budgetHistory[0].deadlineUtc -ne $expired -or $dev.runs.Count -ne 2){throw 'new cycle lost old budget/history'}
 Assert-Controller { & $controller execution -Action resume -StatePath $slice.state -ReportPath $repairPath } $false 'ERROR_BUDGET_GRANT' 'new-budget-authorization-not-replayable'
+
+# Rebind an existing business worktree without copying code or accepting old evidence.
+$targetSut=Join-Path $root 'business-development-worktree'
+Invoke-Git $slice.sut @('worktree','add','--detach',$targetSut,'HEAD')|Out-Null
+$beforeRebind=Get-Content $slice.state -Raw|ConvertFrom-Json
+$rebind=@{grantedBy='user';requestRef='user/use-existing-worktree';requestText='Use the existing business development worktree';reason='No extra runtime copy';sutRepository=$slice.repo}
+$rebind|ConvertTo-Json|Set-Content $requestPath -Encoding utf8
+Assert-Controller { & $controller execution -Action revise -StatePath $slice.state -ReportPath $requestPath } $false 'ERROR_REPOSITORY_IDENTITY' 'unrelated-repository-cannot-replace-sut'
+$rebind.sutRepository=$targetSut
+$rebind|ConvertTo-Json|Set-Content $requestPath -Encoding utf8
+Assert-Controller { & $controller execution -Action revise -StatePath $slice.state -ReportPath $requestPath } $true 'review-design' 'existing-business-worktree-rebound'
+$afterRebind=Get-Content $slice.state -Raw|ConvertFrom-Json
+if($afterRebind.repositories.sut -ne $targetSut -or $afterRebind.execution.deadlineUtc -ne $beforeRebind.execution.deadlineUtc -or $afterRebind.runs.Count -ne $beforeRebind.runs.Count -or $afterRebind.execution.development.accepted){throw 'rebind reset budget/history or granted executable acceptance'}

@@ -200,7 +200,8 @@ $resolvedOutput = Get-CanonicalPath $OutputPath
 
 if (-not (Test-Path -LiteralPath $orch -PathType Container)) { Stop-Resolver 'MISSING_ORCHESTRATOR_ROOT' "orchestrator root not found: $orch" }
 if (-not (Test-Path -LiteralPath $testRepo -PathType Container)) { Stop-Resolver 'MISSING_TEST_PLATFORM' "system-test repository not found: $testRepo" }
-if (-not (Test-PathWithin $testRepo $orch)) { Stop-Resolver 'PATH_CONFLICT' 'system-test repository must be inside the orchestrator root' }
+# Explicitly selected Git worktrees may live beside the orchestrator root.
+# Artifact paths remain confined to their owning repository below.
 if (-not (Test-PathWithin $manifestFile $testRepo)) { Stop-Resolver 'PATH_CONFLICT' 'change manifest must be inside the system-test repository' }
 
 $systemTestInputRevision = Get-GitHead $testRepo 'INVALID_TEST_PLATFORM' 'system-test repository'
@@ -297,7 +298,7 @@ $resolvedSuts = [System.Collections.Generic.List[object]]::new()
 foreach ($sut in @($manifest.suts)) {
     $sutId = [string]$sut.id
     $sutRepo = Expand-PathToken ([string]$sut.repository) $orch $testRepo
-    if (-not (Test-PathWithin $sutRepo $orch) -or -not (Test-Path -LiteralPath $sutRepo -PathType Container)) { Stop-Resolver 'PATH_CONFLICT' "SUT repository is unavailable or outside the orchestrator root: $sutId" }
+    if (-not (Test-Path -LiteralPath $sutRepo -PathType Container)) { Stop-Resolver 'PATH_CONFLICT' "SUT repository is unavailable: $sutId" }
     $actualRevision = Get-GitHead $sutRepo 'INVALID_SUT_REPOSITORY' "SUT $sutId"
     if ([string]::IsNullOrWhiteSpace([string]$sut.revision) -or $actualRevision -ne ([string]$sut.revision).ToLowerInvariant()) { Stop-Resolver 'ERROR_REVISION_DRIFT' "SUT revision differs from the manifest: $sutId" }
     if ([string]$sut.lifecycle -ne 'managed') { Stop-Resolver 'INVALID_SUT_START_CONTRACT' "P1 requires managed SUT lifecycle: $sutId" }

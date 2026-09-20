@@ -5,6 +5,9 @@ description: 在业务代码已审核提交后，基于概要设计验收、as-b
 
 # Codex Flow 集成测试设计
 
+业务服务默认直接从本次已有业务开发 worktree 构建和启动；测试代码使用已有测试仓 worktree。两者可以位于编排根目录外，不要求另建第三个“运行副本”。保留 manifest 明确路径、Git revision、构件指纹及启动契约校验。仅存在明确隔离需要且用户已授权时才增加副本，不能为满足目录限制复制代码。
+
+
 旧执行预算耗尽后，用户新授权的设计/开发按 core/references/test-execution-cycle.md 的 revise / review-design 推进，读取 developmentNext；不得把旧 budget-exhausted 当成整个需求永久停止。原轮修复重跑仍受旧预算约束，设计/编码授权不隐含新运行预算。
 
 

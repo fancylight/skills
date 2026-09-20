@@ -198,6 +198,15 @@ function Invoke-Execution($State) {
         if($cycle.development -and $cycle.development.requestRef -eq $report.requestRef){Get-ExecutionSummary $State | ConvertTo-Json -Depth 16;return}
         if(-not $cycle.PSObject.Properties['developmentHistory']){$cycle | Add-Member -NotePropertyName developmentHistory -NotePropertyValue @()}
         if(@($cycle.developmentHistory | Where-Object {$_.requestRef -eq $report.requestRef}).Count){Stop-Controller 'ERROR_DEVELOPMENT_REPLAY' 'This development request was already used.'}
+        if($report.sutRepository){
+            if($State.activeRun -or $cycle.cleanupRequired){Stop-Controller 'ERROR_ACTIVE_RUN' 'Finish/recover the old run resources before changing its repository binding'}
+            $target=Get-CanonicalPath ([string]$report.sutRepository)
+            $oldCommon=(@(Get-GitOutput $State.repositories.sut @('rev-parse','--path-format=absolute','--git-common-dir')) -join '').Trim()
+            $newCommon=(@(Get-GitOutput $target @('rev-parse','--path-format=absolute','--git-common-dir')) -join '').Trim()
+            if(-not $oldCommon -or -not $newCommon -or (Get-CanonicalPath $oldCommon) -ne (Get-CanonicalPath $newCommon)){Stop-Controller 'ERROR_REPOSITORY_IDENTITY' 'Select an existing worktree of the same business repository, not a different repository'}
+            Add-History $State $State.phase $State.phase ("business worktree binding changed from " + $State.repositories.sut + " to " + $target + '; old execution evidence and revision locks retained until resume')
+            $State.repositories.sut=$target
+        }
         if($cycle.development){$cycle.developmentHistory += $cycle.development}
         $cycle | Add-Member -Force -NotePropertyName development -NotePropertyValue ([pscustomobject]@{requestRef=$report.requestRef;request=(Save-ExecutionEvidence $ReportPath);openedAt=[DateTime]::UtcNow.ToString('o');designKey=$null;designReview=$null;accepted=$false;executionRequestRef=$null})
         Add-History $State $State.phase $State.phase 'authorized development reopened; execution budget and active resources preserved'

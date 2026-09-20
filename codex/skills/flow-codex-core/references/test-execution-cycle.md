@@ -12,6 +12,12 @@
 
 首个切片完成后用实测耗时校准剩余成本。在原 test-plan 中明确等待条件和预计耗时，未证明拓扑可运行前不展开大规模测试实现。
 
+## 业务与测试工作目录
+
+默认复用本次业务开发 worktree 和测试仓 worktree，不额外创建业务运行副本；允许两个明确选定的 Git 工作目录位于编排根目录外。manifest 明确 SUT 路径与版本，启动时从该目录构建并核对构件身份。启动脚本仍限制在测试仓内、配置文件限制在其配置根内，路径放宽不允许任意脚本或配置越界。
+
+已有 controller 锁定旧运行副本时，先确认无 active run 且清理完整，然后在用户已授权的 revise 请求中填写 `sutRepository` 为现有业务开发 worktree。脚本核实两路径属于同一 Git common dir 后变更主仓绑定、记录历史，保留旧版本锁与证据；之后复核当前设计并用 resume 接纳当前版本。它不创建/切换/删除目录，不自动更新 manifest，也不授予执行预算。manifest/resolved manifest 与 controller 须最终指向同一工作目录；不得仅手改 state 或忽略版本不符。已有对话中的授权直接引用，不要求用户重复确认。
+
 ## 旧执行结束后的新设计与开发
 
 执行预算只约束该轮运行、排障、修复和重跑，不是需求的永久冻结。用户后来明确授权的新需求或设计/开发工作，通过 `flow-test.ps1 revise -StatePath STATE -RepairPath REQUEST_JSON` 登记；REQUEST_JSON 包含 `grantedBy: user`、原始 `requestRef/requestText`、`reason`。不能把原轮失败重试自行包装成新请求；不要求用户重复已表达的授权。该入口不启动服务、不接纳运行版本、不延长预算；旧 active run、清理要求和历史均保留。若有残留资源，只能继续不触碰这些资源的设计/代码工作。
