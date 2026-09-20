@@ -33,7 +33,7 @@ param(
     [string]$Reason,
     [int]$LeaseMinutes = 30,
     [switch]$SimulateWriteFailure,
-    [ValidateSet('prepare','resume','review','environment','start','finish','result','status','import')] [string]$Action,
+    [ValidateSet('prepare','resume','review','environment','start','finish','result','status','import','revise','review-design')] [string]$Action,
     [string[]]$ScenarioIds
 )
 

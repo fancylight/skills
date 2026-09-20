@@ -5,6 +5,9 @@ description: 在测试实现生命周期独立验证后编排 Flow 集成测试 
 
 # Codex Flow 集成测试编排
 
+旧执行预算耗尽后，用户新授权的设计/开发按 core/references/test-execution-cycle.md 的 revise / review-design 推进，读取 developmentNext；不得把旧 budget-exhausted 当成整个需求永久停止。原轮修复重跑仍受旧预算约束，设计/编码授权不隐含新运行预算。
+
+
 正式测试先读取 `../flow-codex-core/references/test-execution-cycle.md`。已接入 execution 的需求使用 `flow-test.ps1 status`，按其 prepare/advance/resume 路径推进；以下旧 next/租约步骤仅用于尚未接入的需求。允许已审核的最小切片先正式运行，其余场景保持未验证；同一对话继续，不新增用户阶段。
 
 初始化后，当前有效授权从 controller `authorization.maxPhase` 及 grants 读取；manifest.testAuthorization 仅为初始授权。用户追加授权按 core/references/test-controller.md 的 grant-authorization 入账，不从 next 推断、不要求重复授权、不改 manifest 来伪造授权。

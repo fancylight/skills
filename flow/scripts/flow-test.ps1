@@ -1,6 +1,6 @@
 ﻿[CmdletBinding()]
 param(
-    [Parameter(Mandatory=$true,Position=0)] [ValidateSet('prepare','advance','resume','status')] [string]$Command,
+    [Parameter(Mandatory=$true,Position=0)] [ValidateSet('prepare','advance','resume','status','revise','review-design')] [string]$Command,
     [Parameter(Mandatory=$true)] [string]$StatePath,
     [string[]]$ScenarioIds,
     [string]$ReviewPath,
@@ -32,6 +32,8 @@ try {
     if ($Command -ne 'status') { $lock=[IO.File]::Open($lockPath,'OpenOrCreate','ReadWrite','None') }
     switch ($Command) {
         'status' { Invoke-Controller 'status'; break }
+        'revise' { Invoke-Controller 'revise' @{ReportPath=$RepairPath}; break }
+        'review-design' { Invoke-Controller 'review-design' @{ReportPath=$ReviewPath}; break }
         'prepare' { Invoke-Controller 'prepare' @{ScenarioIds=$ScenarioIds}; break }
         'resume' {
             if ($ImportEvidencePath) { Invoke-Controller 'import' @{EvidencePath=$ImportEvidencePath}; break }
@@ -45,7 +47,7 @@ try {
         'advance' {
             if ($ResultReviewPath) { Invoke-Controller 'result' @{ReportPath=$ResultReviewPath}; break }
             $candidate=Read-ExecutionJson (Get-Content -LiteralPath $StatePath -Raw -Encoding utf8)
-            if (-not $candidate.execution -or [DateTime]::UtcNow -ge [DateTime]::Parse($candidate.execution.deadlineUtc).ToUniversalTime().AddSeconds(-120)) { throw 'Execution budget exhausted; only result review, status and owned-resource recovery are allowed.' }
+            if (-not $candidate.execution -or [DateTime]::UtcNow -ge [DateTime]::Parse($candidate.execution.deadlineUtc).ToUniversalTime().AddSeconds(-120)) { throw 'Execution budget exhausted; execution is blocked; authorized revise/review-design work, result review and owned-resource recovery remain available.' }
             if ($candidate.phase -in @('TEST_EXECUTED_FAIL','TEST_ENVIRONMENT_FAILED')) { throw 'Recorded failure requires resume with diagnosis and repair evidence before another attempt.' }
             $candidateRoot=Join-Path $candidate.repositories.systemTest "changes/$($candidate.changeName)"
             if ($ReviewPath) {
@@ -87,6 +89,9 @@ try {
         try {
             $summaryText=Invoke-Controller 'status' | Out-String
             $summary=Read-ExecutionJson $summaryText
+            if($summary.designReviewInputPath){
+                Write-ReviewInput $summary.designReviewInputPath @{designKey=$summary.designBinding.key;testRevision=$summary.designBinding.test;sutRevision=$summary.designBinding.sut;result='PENDING';review='self';reviewer='current-agent';summary='';counterexample='';evidencePaths=@();staticValidation=@{result='PENDING';evidencePaths=@()}}
+            }
             if ($summary.bindingKey) {
                 $review=[ordered]@{bindingKey=$summary.bindingKey;scenarioIds=@($summary.selected);review='self';reviewer='current-agent';result='PENDING';counterexample='';waitCondition='';estimatedSeconds=0}
                 foreach($gate in @('design','implementation','environment')){$review[$gate]=@{result='PENDING';summary='';evidencePaths=@()}}
@@ -109,7 +114,7 @@ try {
                 $lines += "- $($timing.runId)：$($timing.durationSeconds) 秒"
                 foreach($stage in @($timing.stages)) { $lines += "- $($timing.runId) / $($stage.phase)：$($stage.seconds) 秒" }
             }
-            $lines+=@('','## 当前阻断','',"下一动作：$($summary.next)；需要清理：$($summary.cleanupRequired)；候选漂移：$($summary.candidateDrift)。",'',"全量已审核通过：$($summary.complete)。未执行、陈旧或未完成审核的场景均不计为通过。")
+            $lines+=@('','## 当前阻断','',"执行动作：$($summary.next)；设计开发动作：$($summary.developmentNext)；需要清理：$($summary.cleanupRequired)；候选漂移：$($summary.candidateDrift)。",'',"全量已审核通过：$($summary.complete)。未执行、陈旧或未完成审核的场景均不计为通过。")
             [IO.File]::WriteAllText((Join-Path $directory 'execution-summary.md'),($lines -join "`n"),[Text.UTF8Encoding]::new($false))
         } catch { Write-Warning "Current summary could not be generated: $($_.Exception.Message)" }
         $lock.Dispose()

@@ -12,7 +12,17 @@
 
 首个切片完成后用实测耗时校准剩余成本。在原 test-plan 中明确等待条件和预计耗时，未证明拓扑可运行前不展开大规模测试实现。
 
-## 四个入口
+## 旧执行结束后的新设计与开发
+
+执行预算只约束该轮运行、排障、修复和重跑，不是需求的永久冻结。用户后来明确授权的新需求或设计/开发工作，通过 `flow-test.ps1 revise -StatePath STATE -RepairPath REQUEST_JSON` 登记；REQUEST_JSON 包含 `grantedBy: user`、原始 `requestRef/requestText`、`reason`。不能把原轮失败重试自行包装成新请求；不要求用户重复已表达的授权。该入口不启动服务、不接纳运行版本、不延长预算；旧 active run、清理要求和历史均保留。若有残留资源，只能继续不触碰这些资源的设计/代码工作。
+
+`status` 分别输出 `developmentNext` 和执行 `next`，并给出 `designBinding` 的 key/test/sut/missing。新设计可以在技术映射尚未完成时先审核业务输入与预期，列出技术缺口；不能为解锁而宣称完整设计 PASS。齐备后按 design 模式完成现有静态校验和语义自查，用 `flow-test.ps1 review-design -ReviewPath REVIEW_JSON` 登记。报告包含 `designKey/testRevision/sutRevision`、`result: PASS`、`review: self|independent`、reviewer/summary/counterexample/evidencePaths 及 `staticValidation: {result: PASS, evidencePaths: [...]}`。revise 自动生成 designReviewInputPath 指向的 PENDING 审核输入；完成文档修改后可用同一请求重复 revise 刷新输入，保持原预算和历史且不覆盖已填写文件。脚本只验证绑定和报告结构，不替代真实审核；不要求测试方法已经实现、服务启动或旧轮预算尚有余额。设计文件或 SUT 版本变化使设计审核失效。
+
+审核后在原授权范围内实现测试。实现就绪再用原 `resume` 接纳运行版本和场景映射，仍校验范围、业务修复审核和失效证据；已登记的新开发允许预算耗尽时完成接纳，但不会因此启动测试或增加时间。完整切片/环境/结果门禁保留。测试实施不得越权修改业务源码。
+
+用户明确授权新一轮测试时，resume 报告使用 `budgetGrant: {kind: new-cycle, grantedBy: user, requestRef, requestText, minutes: 30, developmentRequestRef}`，关联当前开发请求。只授权设计或编码不等于授权新一轮测试。确认旧运行结束及清理完成后，在校验运行候选前持久化开始计时（准备失败也消耗预算）；失败后去掉已登记的 budgetGrant 用 resume 继续，不重放授权。旧预算追加至 budgetHistory，运行与证据不删除；同一授权不得重放。普通原轮修复仍使用原预算及已有追加方式，切换入口、新提交或新目录不能续期。
+
+## 执行入口
 
 ```powershell
 $entry = '<core>/assets/scripts/flow-test.ps1'
@@ -49,7 +59,7 @@ $entry = '<core>/assets/scripts/flow-test.ps1'
 
 ## 中断、清理与预算
 
-默认从首次 prepare 开始30分钟，最后120秒预留清理。构建、启动、诊断、修改和重跑共用原截止时间；Agent 每次这些动作前读取 status，不在预算耗尽后继续后台修复。runner 使用同一截止时间限制启动与命令等待。切换入口或新目录不能续期。
+默认从首次 prepare 开始30分钟，最后120秒预留清理。构建、启动、诊断、修改和重跑共用原截止时间；Agent 每次这些动作前读取 status，不在预算耗尽后继续该轮后台修复；另行明确授权的新设计/开发按上节 revise 执行。runner 使用同一截止时间限制启动与命令等待。切换入口或新目录不能续期。
 
 到期报告已验证范围、当前阻断、原始证据和残留资源，不能宣称需求通过。只有用户明确追加预算，才通过修复审核中的 `budgetGrant: {grantedBy: user, requestRef, requestText, minutes}` 登记；不虚构用户授权或复用旧请求。
 

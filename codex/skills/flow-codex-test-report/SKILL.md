@@ -5,6 +5,9 @@ description: 在审核、冒烟和可恢复提交完成后记录 st-api 集成�
 
 # Codex Flow 集成测试汇报
 
+已接入 execution 且有 development 的后续开发，优先按 core/references/test-execution-cycle.md 的 revise / review-design / resume 推进；不套用下文旧 phase、派发租约或报告转换去阻断该路径。原授权范围、测试仓写入边界、代码审核和真实提交仍须满足；resume 不代表运行或结果 PASS。
+
+
 正式测试先读取 `../flow-codex-core/references/test-execution-cycle.md`。已接入 execution 的需求使用 `flow-test.ps1 status`，按其 prepare/advance/resume 路径推进；以下旧 next/租约步骤仅用于尚未接入的需求。允许已审核的最小切片先正式运行，其余场景保持未验证；同一对话继续，不新增用户阶段。
 
 需求命名、分支与提交遵循 `../flow-codex-core/references/git-conventions.md`；已有需求读取根 change.json；实际写入 Git 仓库前按该规则绑定并校验，提交使用公共脚本，中文描述贯穿业务、文档和测试。

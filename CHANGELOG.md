@@ -10,6 +10,8 @@
 
 ### Fixed
 
+- 分离旧测试执行预算与后续用户授权的设计/开发：新增 revise/review-design，保留运行门禁与历史；明确授权的新执行轮次记录独立预算历史，防止旧 budget-exhausted 永久阻断新需求。
+
 - Flow Hook 统一写入 config.toml 的独立标记块，迁移旧版仅含 Flow 的 hooks.json 并保留备份，消除同层双来源提示；重复安装和撤销保留其他配置及信任/启停记录。
 
 - 补齐 Codex Git 的 create-worktree 入口，支持明确的本地及远端跟踪基线，创建后绑定新工作目录并保留源目录状态；修复 Hook 拦截 worktree 却只提示 create-branch 的流程死路，增加真实临时仓回归。

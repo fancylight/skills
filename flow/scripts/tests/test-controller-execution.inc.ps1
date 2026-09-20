@@ -107,3 +107,48 @@ $resumed.execution.deadlineUtc=[DateTime]::UtcNow.AddSeconds(90).ToString('o')
 Re-sign-State $slice.state $resumed
 Assert-Controller { & $controller execution -Action start -StatePath $slice.state } $false 'ERROR_BUDGET_EXHAUSTED' 'cleanup-reservation'
 Assert-Controller { & $controller execution -Action prepare -StatePath $slice.state } $true 'budget-exhausted' 'entry-cannot-renew-budget'
+
+# Expired execution must not freeze later explicitly authorized development.
+$expired=(Get-Content $slice.state -Raw | ConvertFrom-Json).execution.deadlineUtc
+$requestPath=Join-Path $root 'new-development.json'
+@{grantedBy='user';requestRef='user/new-design';requestText='Design and implement the additional scenario; do not execute yet';reason='Newly authorized scope'}|ConvertTo-Json|Set-Content $requestPath -Encoding utf8
+$entry=Join-Path (Split-Path -Parent $PSScriptRoot) 'flow-test.ps1'
+Assert-Controller { & $entry revise -StatePath $slice.state -RepairPath $requestPath } $true 'review-design' 'expired-cycle-allows-new-design'
+Set-Content (Join-Path $changeRoot 'test-design.md') 'Synthetic design for controller protocol test' -Encoding utf8
+Set-Content (Join-Path $changeRoot 'test-plan.md') 'Synthetic plan; not a business semantic PASS' -Encoding utf8
+Invoke-Git $slice.repo @('add','.')|Out-Null
+Invoke-Git $slice.repo @('commit','--quiet','-m','new test design')|Out-Null
+# Break runtime-only mapping. Design review must not call executable binding.
+$resolvedFile=Join-Path $changeRoot 'resolved-manifest.json'
+$resolvedBytes=[IO.File]::ReadAllBytes($resolvedFile)
+[IO.File]::WriteAllText($resolvedFile,'incomplete runtime mapping')
+$dev=(& $controller execution -Action status -StatePath $slice.state|Out-String)|ConvertFrom-Json
+$designPath=Join-Path $root 'new-design-review.json'
+$designReport=@{designKey=$dev.designBinding.key;testRevision=$dev.designBinding.test;sutRevision=$dev.designBinding.sut;result='PENDING';review='self';reviewer='protocol-fixture';summary='Synthetic protocol acceptance';counterexample='Different identities';evidencePaths=@($casesPath);staticValidation=@{result='PASS';evidencePaths=@($casesPath)}}
+$designReport|ConvertTo-Json -Depth 6|Set-Content $designPath -Encoding utf8
+Assert-Controller { & $controller execution -Action review-design -StatePath $slice.state -ReportPath $designPath } $false 'ERROR_DESIGN_REVIEW' 'structure-does-not-award-semantic-pass'
+$designReport.result='PASS'
+$designReport|ConvertTo-Json -Depth 6|Set-Content $designPath -Encoding utf8
+Assert-Controller { & $entry review-design -StatePath $slice.state -ReviewPath $designPath } $true 'implement-then-resume' 'design-does-not-require-runtime-readiness'
+[IO.File]::WriteAllBytes($resolvedFile,$resolvedBytes)
+$repair.Remove('cleanupRestored');$repair.Remove('interruptedRunDiagnosis')
+$repair|ConvertTo-Json -Depth 6|Set-Content $repairPath -Encoding utf8
+Assert-Controller { & $controller execution -Action resume -StatePath $slice.state -ReportPath $repairPath } $true 'budget-exhausted' 'accept-current-version-without-running'
+$dev=Get-Content $slice.state -Raw|ConvertFrom-Json
+if($dev.execution.deadlineUtc -ne $expired -or $dev.runs.Count -ne 2 -or -not $dev.execution.development.accepted){throw 'development reset budget/history or failed to accept version'}
+Assert-Controller { & $controller execution -Action start -StatePath $slice.state } $false 'ERROR_BUDGET_EXHAUSTED' 'development-is-not-execution-authorization'
+# Changed design invalidates its review even if the previous execution was accepted.
+Add-Content (Join-Path $changeRoot 'test-design.md') 'changed design' -Encoding utf8
+Assert-Controller { & $controller execution -Action resume -StatePath $slice.state -ReportPath $repairPath } $false 'ERROR_DESIGN_REVIEW_REQUIRED' 'changed-design-needs-review'
+Invoke-Git $slice.repo @('add','.')|Out-Null
+Invoke-Git $slice.repo @('commit','--quiet','-m','reviewed design correction')|Out-Null
+$dev=(& $controller execution -Action status -StatePath $slice.state|Out-String)|ConvertFrom-Json
+$designReport.designKey=$dev.designBinding.key;$designReport.testRevision=$dev.designBinding.test
+$designReport|ConvertTo-Json -Depth 6|Set-Content $designPath -Encoding utf8
+Assert-Controller { & $controller execution -Action review-design -StatePath $slice.state -ReportPath $designPath } $true 'implement-then-resume' 'updated-design-reviewed'
+$repair.budgetGrant=@{kind='new-cycle';grantedBy='user';requestRef='user/new-execution';requestText='Execute the reviewed scope with 30 minutes';minutes=30;developmentRequestRef='user/new-design'}
+$repair|ConvertTo-Json -Depth 6|Set-Content $repairPath -Encoding utf8
+Assert-Controller { & $controller execution -Action resume -StatePath $slice.state -ReportPath $repairPath } $true 'review-selected-slice' 'explicit-new-execution-cycle'
+$dev=Get-Content $slice.state -Raw|ConvertFrom-Json
+if(@($dev.execution.budgetHistory).Count -ne 1 -or $dev.execution.budgetHistory[0].deadlineUtc -ne $expired -or $dev.runs.Count -ne 2){throw 'new cycle lost old budget/history'}
+Assert-Controller { & $controller execution -Action resume -StatePath $slice.state -ReportPath $repairPath } $false 'ERROR_BUDGET_GRANT' 'new-budget-authorization-not-replayable'

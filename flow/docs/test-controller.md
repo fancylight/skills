@@ -1,4 +1,4 @@
-﻿# 集成测试 Controller 协议
+# 集成测试 Controller 协议
 
 集成测试自动化的唯一 machine state 位于编排根
 `.flow/changes/<change>/automation-state.yaml`。只用安装后的
@@ -6,7 +6,7 @@
 
 ## 正式切片与恢复入口
 
-Codex 的 v2 需求使用 `assets/scripts/flow-test.ps1 prepare / advance / resume / status`，仍读写本文件所述唯一 state。详细审核输入、选择范围、30分钟总预算和恢复契约见安装后的 `references/test-execution-cycle.md`。`execution` 为现有 controller 的附加字段，不是第二套状态机；runs/history 继续保留。
+Codex 的 v2 需求使用 `assets/scripts/flow-test.ps1 prepare / advance / resume / status`，仍读写本文件所述唯一 state。详细审核输入、选择范围、30分钟总预算和恢复契约见安装后的 `references/test-execution-cycle.md`。新增用户授权开发使用 revise / review-design，不受旧执行预算阻断；developmentNext 与执行 next 分别展示。接纳运行候选仍走 resume，只有明确的新运行授权才能开始新预算轮次并追加 budgetHistory。`execution` 为现有 controller 的附加字段，不是第二套状态机；runs/history 继续保留。
 
 已接入需求的旧写命令返回新入口，旧 `next` 返回新动作。普通失败由当前对话按授权修复并 resume，不能把下列旧 BLOCKED 动作解释为必须重新取得同一授权。新切片必须经过实际 design/implementation/environment 审核，结果仍须语义审核；局部结果不能完成全量。未接入的旧需求继续兼容下述命令。
 

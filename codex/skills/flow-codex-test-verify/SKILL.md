@@ -20,7 +20,7 @@ description: 只读验证 Flow 集成测试的 canonical test-cases、派生 sid
 
 ## 输入与边界
 
-首先读取 controller `status`/`next`。design、implementation、result 分别只接受 `VERIFY_DESIGN`、`VERIFY_IMPLEMENTATION`、`VERIFY_RESULT`；phase 不匹配立即 ERROR。验证 PASS 后只向 controller 提交绑定 identity、mode、test/SUT/harness revision、configuration fingerprint 与安全 summary 的结构化报告，由 `record-verifier` 决定是否提升 phase；本 skill 不直接改 state。
+首先读取状态。已接入 execution 且有 development 的 design 审核走 test-execution-cycle.md 的 review-design：核对当前 designBinding，审核业务设计及静态产物，不受旧执行预算或旧运行 revision 锁阻断，不使用下面的旧 phase 门禁；完整设计缺项仍不能 PASS。implementation 的版本接纳走 resume，result 沿用执行结果审核。尚未接入 execution 的旧流程才读取 controller `status`/`next`，design、implementation、result 分别只接受 `VERIFY_DESIGN`、`VERIFY_IMPLEMENTATION`、`VERIFY_RESULT`；phase 不匹配立即 ERROR。验证 PASS 后只向 controller 提交绑定 identity、mode、test/SUT/harness revision、configuration fingerprint 与安全 summary 的结构化报告，由 `record-verifier` 决定是否提升 phase；本 skill 不直接改 state。
 
 要求提供 `change_name` 与 `verify_mode`（`design`、`implementation` 或 `result`）；初始 `testAuthorization` 从 manifest 读取；初始化后的当前上限读取 controller `authorization.maxPhase` 和 grants（协议中的追加授权记录）。旧state可无grants，继续沿用原锁定上限；任何新增授权必须入账。授权缺失、与用户授权不一致或由流程自行提升均为 ERROR。
 只读检查；

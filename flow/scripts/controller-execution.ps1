@@ -89,9 +89,30 @@ function Assert-ExecutionCurrent($State) {
         Stop-Controller 'ERROR_EXECUTION_DRIFT' 'Candidate changed. Use resume with repair evidence and an impact review; previous results remain in history.'
     }
 }
+function Get-DevelopmentBinding($State) {
+    $root=Join-Path $State.repositories.systemTest "changes/$($State.changeName)"
+    $files=@('test-design.md','test-plan.md','test-cases.yaml','manifest.yaml')
+    $hashes=@(); $missing=@()
+    foreach($name in $files) {
+        $path=Join-Path $root $name
+        if(Test-Path -LiteralPath $path -PathType Leaf){$hashes += "$($name):$(Get-FileHashValue $path)"}
+        else{$missing += $name; $hashes += "$($name):MISSING"}
+    }
+    $sut=Get-GitHead $State.repositories.sut
+    return [pscustomobject]@{key=(Get-StringHash (($hashes -join '|')+'|'+$sut));sut=$sut;test=(Get-GitHead $State.repositories.systemTest);missing=$missing}
+}
+function Assert-DevelopmentReview($State) {
+    if(-not $State.execution.development){return}
+    $current=Get-DevelopmentBinding $State
+    if(-not $State.execution.development.designReview -or $current.key -ne $State.execution.development.designKey){
+        Stop-Controller 'ERROR_DESIGN_REVIEW_REQUIRED' 'Review current design via flow-test.ps1 review-design before accepting the executable candidate; old budget does not block design work.'
+    }
+}
 function Get-ExecutionSummary($State) {
     $cycle = $State.execution
     if ($null -eq $cycle) { return [pscustomobject]@{ next='prepare'; phase=$State.phase } }
+    $development=$cycle.development
+    $designCurrent=if($development){Get-DevelopmentBinding $State}else{$null}
     $drift=$false
     if ($cycle.binding) {
         $resolved=Join-Path $State.repositories.systemTest "changes/$($State.changeName)/resolved-manifest.json"
@@ -124,11 +145,15 @@ function Get-ExecutionSummary($State) {
         if ($drift -and $last) { $result='STALE' }
         [pscustomobject]@{ id=$id; result=$result; evidence=$last.evidence }
     })
+    if($development -and -not $development.accepted){$drift=$true; foreach($row in $rows){$row.result='STALE'}}
     $complete=($rows.Count -gt 0 -and @($rows | Where-Object { $_.result -ne 'PASS' }).Count -eq 0)
     $selectedComplete=(@($cycle.selected).Count -gt 0 -and @($rows | Where-Object { $_.id -in @($cycle.selected) -and $_.result -ne 'PASS' }).Count -eq 0)
     $selectionHash=(Get-StringHash (@($cycle.selected | Sort-Object) -join ',')).Substring(0,12)
     $inputRoot=Join-Path (Split-Path -Parent $StatePath) 'execution-evidence'
     [pscustomobject]@{
+        development=$development; designBinding=$designCurrent
+        designReviewInputPath=$(if($designCurrent){Join-Path $inputRoot "design-$($designCurrent.key)-$($designCurrent.test).json"}else{$null})
+        developmentNext=$(if(-not $development){'revise-with-user-request'}elseif(-not $development.designReview -or $development.designKey -ne $designCurrent.key){'review-design'}elseif(-not $development.accepted){'implement-then-resume'}else{'candidate-accepted'})
         phase=$State.phase; deadlineUtc=$cycle.deadlineUtc
         remainingSeconds=[Math]::Max(0,[int]([DateTime]::Parse($cycle.deadlineUtc).ToUniversalTime()-[DateTime]::UtcNow).TotalSeconds)
         binding=$cycle.binding; bindingKey=$cycle.key; candidateDrift=$drift; selected=$cycle.selected; scenarios=$rows
@@ -166,6 +191,34 @@ function Invoke-Execution($State) {
     }
     if (-not $State.PSObject.Properties['execution']) { Stop-Controller 'ERROR_EXECUTION_ENTRY' 'Run prepare first' }
     $cycle = $State.execution
+    if ($Action -eq 'revise') {
+        Require-Ceiling $State 'design'
+        $report=Read-StructuredJson $ReportPath 'authorized development request'
+        if($report.grantedBy -ne 'user' -or -not $report.requestRef -or -not $report.requestText -or -not $report.reason){Stop-Controller 'ERROR_DEVELOPMENT_AUTHORIZATION' 'Supply the actual user request authorizing new design/development; exhausted retries are not a new request.'}
+        if($cycle.development -and $cycle.development.requestRef -eq $report.requestRef){Get-ExecutionSummary $State | ConvertTo-Json -Depth 16;return}
+        if(-not $cycle.PSObject.Properties['developmentHistory']){$cycle | Add-Member -NotePropertyName developmentHistory -NotePropertyValue @()}
+        if(@($cycle.developmentHistory | Where-Object {$_.requestRef -eq $report.requestRef}).Count){Stop-Controller 'ERROR_DEVELOPMENT_REPLAY' 'This development request was already used.'}
+        if($cycle.development){$cycle.developmentHistory += $cycle.development}
+        $cycle | Add-Member -Force -NotePropertyName development -NotePropertyValue ([pscustomobject]@{requestRef=$report.requestRef;request=(Save-ExecutionEvidence $ReportPath);openedAt=[DateTime]::UtcNow.ToString('o');designKey=$null;designReview=$null;accepted=$false;executionRequestRef=$null})
+        Add-History $State $State.phase $State.phase 'authorized development reopened; execution budget and active resources preserved'
+        Write-State $State;Get-ExecutionSummary $State | ConvertTo-Json -Depth 16;return
+    }
+    if ($Action -eq 'review-design') {
+        Require-Ceiling $State 'design'
+        if(-not $cycle.development){Stop-Controller 'ERROR_DEVELOPMENT_AUTHORIZATION' 'Use revise with the actual user request first'}
+        $binding=Get-DevelopmentBinding $State
+        $report=Read-StructuredJson $ReportPath 'development design review'
+        if(@($binding.missing).Count -or $report.designKey -ne $binding.key -or $report.testRevision -ne $binding.test -or $report.sutRevision -ne $binding.sut -or
+           $report.result -ne 'PASS' -or $report.review -notin @('self','independent') -or -not $report.reviewer -or -not $report.summary -or
+           -not $report.counterexample -or $report.staticValidation.result -ne 'PASS' -or @($report.staticValidation.evidencePaths).Count -eq 0 -or @($report.evidencePaths).Count -eq 0){
+            Stop-Controller 'ERROR_DESIGN_REVIEW' 'Need complete design artifacts, current revisions/key, actual semantic review and static validation evidence; no environment or runtime budget required.'
+        }
+        foreach($path in @($report.evidencePaths)+@($report.staticValidation.evidencePaths)){$null=Save-ExecutionEvidence $path}
+        $cycle.development.designKey=$binding.key;$cycle.development.designReview=Save-ExecutionEvidence $ReportPath
+        $cycle.development.accepted=$false
+        Add-History $State $State.phase $State.phase 'current development design reviewed; no implementation, environment or result PASS granted'
+        Write-State $State;Get-ExecutionSummary $State | ConvertTo-Json -Depth 16;return
+    }
     if ($Action -eq 'result') {
         Require-Ceiling $State 'result'
         Assert-ExecutionCurrent $State
@@ -208,8 +261,21 @@ function Invoke-Execution($State) {
             $grant = $report.budgetGrant
             if ($grant.grantedBy -ne 'user' -or -not $grant.requestRef -or -not $grant.requestText -or [int]$grant.minutes -le 0) { Stop-Controller 'ERROR_BUDGET_GRANT' 'Extension needs an explicit positive user grant with original request reference and text' }
             $previousGrants = @($cycle.repairs | Where-Object { $_.budgetRequestRef -eq $grant.requestRef })
+            $previousGrants += @($cycle.budgetHistory | Where-Object { $_.requestRef -eq $grant.requestRef })
             if ($previousGrants.Count) { Stop-Controller 'ERROR_BUDGET_GRANT' 'A budget request cannot be replayed' }
-            $cycle.deadlineUtc=[DateTime]::Parse($cycle.deadlineUtc).ToUniversalTime().AddMinutes([int]$grant.minutes).ToString('o')
+            if($grant.kind -eq 'new-cycle') {
+                Assert-DevelopmentReview $State
+                if(-not $cycle.development -or $grant.developmentRequestRef -ne $cycle.development.requestRef -or $cycle.cleanupRequired -or $State.activeRun){Stop-Controller 'ERROR_BUDGET_GRANT' 'A new execution cycle needs the current reviewed development request and completed cleanup.'}
+                if(-not $cycle.PSObject.Properties['budgetHistory']){$cycle | Add-Member -NotePropertyName budgetHistory -NotePropertyValue @()}
+                $cycle.budgetHistory += [pscustomobject]@{startedAt=$cycle.startedAt;deadlineUtc=$cycle.deadlineUtc;requestRef=$grant.requestRef;evidence=(Save-ExecutionEvidence $ReportPath)}
+                $cycle.startedAt=[DateTime]::UtcNow.ToString('o')
+                $cycle.deadlineUtc=[DateTime]::UtcNow.AddMinutes([int]$grant.minutes).ToString('o')
+                $cycle.development.executionRequestRef=$grant.requestRef
+                # Persist before candidate validation: failed preparation also consumes time.
+                Write-State $State
+            } else {
+                $cycle.deadlineUtc=[DateTime]::Parse($cycle.deadlineUtc).ToUniversalTime().AddMinutes([int]$grant.minutes).ToString('o')
+            }
         }
         if ([DateTime]::UtcNow -ge [DateTime]::Parse($cycle.deadlineUtc).ToUniversalTime().AddSeconds(-120)) {
             if ($report.cleanupRestored -eq $true) {
@@ -217,8 +283,9 @@ function Invoke-Execution($State) {
                 $cycle.repairs += [pscustomobject]@{at=[DateTime]::UtcNow.ToString('o');reason=$report.reason;evidence=$evidence;review=(Save-ExecutionEvidence $ReportPath)}
                 Write-State $State; Get-ExecutionSummary $State | ConvertTo-Json -Depth 16; return
             }
-            Assert-ExecutionTime $State
+            if(-not $cycle.development){Assert-ExecutionTime $State}
         }
+        Assert-DevelopmentReview $State
         $binding = Get-ExecutionBinding $State
         $scopeBase=$State.revisions.test
         if (-not $cycle.binding) {
@@ -271,6 +338,10 @@ function Invoke-Execution($State) {
             # Conservative default: all checks expire. No inferred dependency reuse.
             $cycle.binding=$binding; $cycle.key=$newKey
         }
+        if($cycle.development){
+            $cycle.development.accepted=$true
+            if($report.budgetGrant.kind -eq 'new-cycle'){$cycle.development.executionRequestRef=$report.budgetGrant.requestRef}
+        }
         $cycle.selected=@($selected); $cycle.review=$null; $cycle.cleanupRequired=$false
         Set-ExecutionLocks $State $binding
         if ($report.rootCause -and $report.appliedRepair -and $report.repairReview -eq 'PASS') {
@@ -317,7 +388,9 @@ function Invoke-Execution($State) {
         Write-State $State; Write-Output '[FLOW_CONTROLLER] PASS environment verified'; return
     }
     if ($Action -eq 'start') {
-        Require-Ceiling $State 'execution'; Assert-ExecutionTime $State; Assert-ExecutionCurrent $State
+        if($cycle.development -and -not $cycle.development.accepted){Stop-Controller 'ERROR_CANDIDATE_NOT_ACCEPTED' 'Development is open; complete design/implementation and resume before execution'}
+        Require-Ceiling $State 'execution'; Assert-DevelopmentReview $State; Assert-ExecutionTime $State; Assert-ExecutionCurrent $State
+        if($cycle.development -and -not $cycle.development.executionRequestRef){Stop-Controller 'ERROR_EXECUTION_AUTHORIZATION' 'New development requires explicit new-cycle execution authorization; design/implementation approval alone cannot start tests'}
         if ($State.activeRun -or $cycle.cleanupRequired -or -not $cycle.review -or $State.phase -ne 'TEST_ENVIRONMENT_VERIFIED') { Stop-Controller 'ERROR_SLICE_NOT_READY' 'Active run, incomplete cleanup, or missing selected review/environment check; no input was delivered' }
         $selectionKey=(@($cycle.selected | Sort-Object) -join ',')
         if (@($State.runs | Where-Object { $_.executionKey -eq $cycle.key -and (@($_.scenarioIds | Sort-Object) -join ',') -eq $selectionKey }).Count -and -not $cycle.retryPermit) { Stop-Controller 'ERROR_REPEAT_WITHOUT_CHANGE' 'Same candidate and selection already ran. Diagnose and provide an actual reviewed repair; increasing timeout/restarting is not a repair.' }
