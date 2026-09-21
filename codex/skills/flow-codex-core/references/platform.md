@@ -1,5 +1,9 @@
 # Codex 平台规则
 
+## 工作站点
+
+任意 Flow 阶段需要浏览器工作时，相对于当前公开 skill 目录读取 `../flow-codex-sites/SKILL.md`，先检索用户主目录 `.flow/worksites/README.md` 和对应操作。Edge 扩展控制优先，CDP 仅明确指定或具体能力缺失时备用。调用站点技能不启动 feedback，不增加流程阶段；查询结果返回原任务，保持原授权与运行预算。
+
 ## 资源位置
 
 所有 Codex 模板均位于已安装的同级 skill 下：

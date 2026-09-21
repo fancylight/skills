@@ -1,0 +1,4 @@
+interface:
+  display_name: "Flow 工作站点"
+  short_description: "优先通过 Edge 复用工作平台手册，按环境和操作定位并验证结果"
+  default_prompt: "使用 $flow-codex-sites 查个人站点索引，通过 Edge 完成当前授权操作，核实结果并沉淀可复用步骤。"

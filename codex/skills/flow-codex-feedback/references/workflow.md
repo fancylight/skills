@@ -56,7 +56,7 @@ Close：更新 status=closed、resolution、updated、closed 日期
 - `feedback-index.md.tmpl`
 - `feedback-record.md.tmpl`
 - `feedback-report.md.tmpl`
-- `cdp-playbook.md.tmpl`（渲染到 `{root}/.flow/cdp/{slug}-ops.md`）
+- 旧 `cdp-playbook.md.tmpl` 仅保留兼容；新站点操作用 `flow-codex-sites/assets/` 的平台／操作模板，写入个人 `.flow/worksites/`，不再新建第二份主手册。
 
 占位符：`{{feedback_id}}`、`{{title}}`、`{{received_date}}`、`{{created_date}}`、`{{updated_date}}`、`{{scenario}}`、`{{platform_url}}`、`{{script_name}}`、`{{slug}}` 等；未提供字段留空或 `unknown`。
 

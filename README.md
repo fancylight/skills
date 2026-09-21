@@ -1,5 +1,7 @@
 # Flow Skill
 
+全局工作站点能力见 [flow-codex-sites](codex/skills/flow-codex-sites/SKILL.md)：任意阶段或独立任务需要操作工作平台时，优先通过 Edge 查对应手册；普通查询不触发 feedback 建档。个人索引位于用户主目录 `.flow/worksites/README.md`，按平台、环境、操作维护，安装与回退不覆盖个人资料。成功的新操作自动沉淀，未验证范围明确保留；不将劳务动态菜单或 GBP 的某一模块当作通用固定路径。
+
 Codex 默认支持单对话完成设计、自查、实施、测试及交付，多对话仅在用户授权时采用。首轮质量改进保留四项责任：独立预期、最小真实链路、受影响重验、当前构件与证据汇合。项目命令可接入本地执行器，实际执行 JUnit 断言并复查原始报告；详见 [首轮交付与本地闭环](codex/skills/flow-codex-core/references/first-delivery.md)。本地通过不替代完整 Flow 或目标部署验收。
 
 多服务、多 Agent 协作研发的 **Skills 工作流框架**。把需求拆分、设计、编码、审核、测试、汇报、集成验证和知识沉淀，编码成可被 AI Agent 重复执行的指令集。

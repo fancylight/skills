@@ -1,6 +1,6 @@
 ---
 name: flow-codex-feedback
-description: 调查线上用户反馈或生产问题，产出结构化调查报告。Intake 后自动 Discover（已有 feedback、KB、CDP playbook）。与 change 体系无关；不修代码、不写 task.md。在收到 bug 反馈、字段异常、接口行为投诉或需 data-fix 时使用。
+description: 调查线上用户反馈或生产问题，产出结构化调查报告。Intake 后自动 Discover（已有 feedback、KB、工作站点手册）。与 change 体系无关；不修代码、不写 task.md。在收到 bug 反馈、字段异常、接口行为投诉或需 data-fix 时使用。
 ---
 
 # Codex Flow 反馈调查
@@ -34,11 +34,11 @@ description: 调查线上用户反馈或生产问题，产出结构化调查报�
 2. **Discover**（用户材料齐后立即执行；产出写入调查日志一轮）
    - **2.1 已有 feedback**：读 `.flow/feedback/_index.md`；按接口/主键/标题关键词 grep 历史目录；命中则日志记 `相关 feedback：{id}`（可填 `duplicate_of`）
    - **2.2 知识库选篇**：按 `references/discover-kb.md`（3 跳、每跳≤3、全程≤8）；日志 `已读 KB：[…]`
-   - **2.3 CDP**：按 `references/cdp.md` 读 `{root}/.flow/cdp/README.md` 索引并选用 playbook；缺口记 `CDP 缺口：{场景}`（不阻塞）；**勿**把维护规则写进 `.flow/cdp/README`
+   - **2.3 工作站点**：按 `references/cdp.md` 调用 `flow-codex-sites` 查个人索引及对应操作，未命中才读项目 `.flow/cdp/README.md`；缺口不阻塞调查。
 
 3. **Orient** — 理解端/页面/操作/期望 vs 实际；缺材料写入调查日志「待补」
 
-4. **Trace** — 追踪 Controller → Service → SQL → Adapter/Job；先读 `../flow-codex-core/assets/templates/feedback-trace-rules.md`。按目标服务 / 模块判定语言：Java 优先 IDEA MCP，不可用时暂停并提示用户打开对应工程或明确授权 GitNexus，禁止静默回退；非 Java 保留 GitNexus 优先策略。需要查库时遵循已选用的 CDP playbook
+4. **Trace** — 追踪 Controller → Service → SQL → Adapter/Job；先读 `../flow-codex-core/assets/templates/feedback-trace-rules.md`。按目标服务 / 模块判定语言：Java 优先 IDEA MCP，不可用时暂停并提示用户打开对应工程或明确授权 GitNexus，禁止静默回退；非 Java 保留 GitNexus 优先策略。需要查库时遵循 flow-codex-sites 已选用的站点操作手册
 
 5. **Verify** — 假设 → SQL/日志 → 用户回传 → 更新「数据验证」表与调查日志（默认只读查询）
 
@@ -90,6 +90,6 @@ description: 调查线上用户反馈或生产问题，产出结构化调查报�
 - 禁止修改 `task.md`、禁止创建 OpenSpec change
 - 禁止在 Intake 之后修改 `反馈记录.md`
 - 禁止自动执行写库 SQL；禁止把反馈流水账 / 运维 SQL / 单次 MERGE 灌进 `local_rag`
-- CDP 维护规则只在 `references/cdp.md`，不在 `.flow/cdp/README.md`
+- 站点操作与维护统一由 `flow-codex-sites` 定义；旧 `.flow/cdp` 仅兼容资料。
 - 多轮调查只追加「调查日志」「数据验证」行
 - 根/子均可执行；产物始终写**根** `.flow/feedback/`

@@ -75,6 +75,7 @@ Discover 自动查已有 feedback、KB 选篇、`{root}/.flow/cdp` playbook（�
 | Skill | 角色 | 说明 |
 |-------|------|------|
 | `flow-codex-init` | 根/执行 | 初始化 `.flow/` |
+| `flow-codex-sites` | 任意阶段/独立 | Edge 优先，按个人平台与操作手册完成站点工作；不触发 feedback 建档 |
 | `flow-codex-design` | 根/执行 | 设计阶段；根产出概要设计、开发文档、task、OpenSpec |
 | `flow-codex-assign` | 根 | 派发 spec |
 | `flow-codex-receive` | 执行 | 加载任务与协议 |

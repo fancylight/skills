@@ -16,6 +16,8 @@ description: Codex Flow 适配层的内部公共资源和平台规则。仅在�
 
 ## 按任务加载
 
+- 任意阶段的浏览器工作：读取 `../flow-codex-sites/SKILL.md`，按平台与操作加载个人手册，不启动 feedback 流程。
+
 - 需求命名、分支及提交：读取 `references/git-conventions.md`，使用 `assets/scripts/flow-git.py`；仅 Codex 接线，不安装 Git hook。
 
 - 需求实施、原范围修复及交付收尾：读取 `references/delivery.md`；不应用于 feedback。

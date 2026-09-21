@@ -5,6 +5,7 @@ $skillsDir = Join-Path $scriptDir "skills"
 $errors = @()
 $requiredSkills = @(
     "flow-codex-core",
+    "flow-codex-sites",
     "flow-codex-check",
     "flow-codex-init",
     "flow-codex-design",
