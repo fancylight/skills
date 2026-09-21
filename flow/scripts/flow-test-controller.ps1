@@ -44,6 +44,8 @@ $ceilingRank = @{ design = 1; implementation = 2; execution = 3; result = 4 }
 function Stop-Controller([string]$Code, [string]$Message) {
     Write-Output "[FLOW_CONTROLLER] $Code"
     Write-Output "message: $Message"
+    $next=if($Code -match 'BUDGET'){'CLEANUP_AND_REPORT'}elseif($Code -match 'AUTHORIZATION'){'USE_EXISTING_GRANT_OR_REQUEST_MISSING_AUTHORIZATION'}elseif($Code -match 'STATE_CORRUPT|REPOSITORY'){'INVESTIGATE_IDENTITY_OR_STATE'}else{'DIAGNOSE_AND_REPAIR_WITHIN_AUTHORIZATION'}
+    [ordered]@{status='ACTION_REJECTED';reason=$Code;affectedAction=$Command;nextAction=$next;evidencePath=$StatePath;taskStopped=$false} | ConvertTo-Json -Compress
     exit 1
 }
 function Require-Ceiling($State, [string]$Required) {

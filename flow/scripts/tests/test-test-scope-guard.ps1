@@ -46,6 +46,10 @@ if ($LASTEXITCODE -eq 0) { throw 'Expected review-stage write to be blocked.' }
 if ($LASTEXITCODE -eq 0) { throw 'Expected business-repository target to be blocked.' }
 
 $evidenceTarget = Join-Path $repo 'changes\example\evidence\current\summary.md'
+foreach($stageName in @('design','review','result')) {
+    & powershell.exe -NoProfile -File $guard -AuthorizedRepo $repo -TargetPath $repo -Stage $stageName -Action test -CommandKind static
+    if($LASTEXITCODE -ne 0){throw "read-only static validation blocked at $stageName"}
+}
 & powershell.exe -NoProfile -File $guard -AuthorizedRepo $repo -TargetPath $evidenceTarget -Stage execution -Action write
 if ($LASTEXITCODE -ne 0) { throw 'Expected execution-stage evidence write to pass.' }
 

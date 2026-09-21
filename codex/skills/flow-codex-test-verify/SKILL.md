@@ -5,6 +5,9 @@ description: 只读验证 Flow 集成测试的 canonical test-cases、派生 sid
 
 # Codex Flow 集成测试验证
 
+进入本技能先按 `../flow-codex-core/references/test-observation.md` 记录阶段 `review`；阶段切换、暂停、恢复与交付由 Agent 调用计时入口，运行细分由 runner 生成。计时异常只警告，不阻断测试。
+
+
 正式测试先读取 `../flow-codex-core/references/test-execution-cycle.md`。已接入 execution 的需求使用 `flow-test.ps1 status`，按其 prepare/advance/resume 路径推进；以下旧 next/租约步骤仅用于尚未接入的需求。允许已审核的最小切片先正式运行，其余场景保持未验证；同一对话继续，不新增用户阶段。
 
 审核业务判断时先读取 `../flow-codex-core/references/design-challenge.md`，在现有审核中核对原始依据和可证伪输入；结构检查不得自动产生语义 PASS。
@@ -44,7 +47,7 @@ description: 只读验证 Flow 集成测试的 canonical test-cases、派生 sid
    读取根概要设计验收、操作链路/数据访问契约、已提交 SUT revision、`test-design.md`、
    `test-plan.md`、manifest 与 fixtures。按 TD.1–TD.11 验证三产物职责、AC 场景映射、拓扑、真实/桩边界、
    夹具、SQL 计划、scoped-clean 基线与配置契约；仅允许对用户确认的来源执行一次最小只读探针，失败即
-   `[TEST_CONFIGURATION] BLOCKED` / `STOP_AWAIT_HUMAN_CONFIGURATION`。
+   具体配置诊断及证据；已有授权内可修复的问题返回修复步骤，只有缺失用户信息或权限才暂停对应动作。
 2. `implementation`：读取设计 PASS、进度文件、review 结果、测试代码、静态实现校验记录与测试仓 Git 状态。若用户在实施中修订范围，按test-controller.md复核当前提交绑定的scopeDesignReviews及删除证据；它仅补充范围设计审核，不代替代码review和本模式门禁。
    按 TI.1–TI.8 验证场景/断言落实、无必需 skip、外部桩一致、同一可恢复 revision 和 local-only waiver；运行
    `validate-test-cases.ps1 -Mode implementation -CanonicalRevision <test baseline revision from controller> -ManifestPath <manifest>

@@ -5,6 +5,9 @@ description: 在测试实现生命周期独立验证后编排 Flow 集成测试 
 
 # Codex Flow 集成测试编排
 
+进入本技能先按 `../flow-codex-core/references/test-observation.md` 记录阶段 `preparation`；阶段切换、暂停、恢复与交付由 Agent 调用计时入口，运行细分由 runner 生成。计时异常只警告，不阻断测试。
+
+
 用户已授权整理/切换现有工作目录并继续测试时，旧 controller 绑定不符由 Agent 按 test-execution-cycle.md 的 rebind 同步业务仓/测试仓；兼容无 execution 的旧状态，不重复确认，不先启动测试来获得迁移资格。仅真实仓库身份冲突、缺失产物或残留运行资源需要具体处理，不能把过时绑定当成用户目录错误。
 
 
@@ -23,7 +26,7 @@ description: 在测试实现生命周期独立验证后编排 Flow 集成测试 
 
 已完成 rebind 的需求以 flow-test.ps1 status 返回的 prepare/resume 为准，不再套用本节旧 next 的 BLOCKED；prepare 仍检查执行授权，不会由目录迁移自动授权运行。以下仅用于未接入新入口的旧流程。
 
-每轮只执行 controller `next` 返回的一个动作。`BLOCKED` 立即停止，`COMPLETE` 才输出完成；不得根据本文步骤、用户“尽量完成”或 skill 建议自行选择后续 skill。`VERIFY_ENVIRONMENT` 对 v2 resolved manifest 调用 core
+旧状态先经 flow-test.ps1 prepare/rebind 接入统一恢复入口。按 next 连续推进已授权动作；BLOCKED 必须区分可修复输入、授权不足及预算耗尽，不能直接结束整个任务；只有 COMPLETE 才输出全量完成。`VERIFY_ENVIRONMENT` 对 v2 resolved manifest 调用 core
 `assets/scripts/validate-test-environment.ps1`；v1 继续消费认证 harness 的最小配置探针。只有结构化 PASS 才调用
 `record-verifier -VerifyMode environment`；`RUN_ONCE` 才委托 system-test。
 
@@ -45,7 +48,7 @@ description: 在测试实现生命周期独立验证后编排 Flow 集成测试 
    `validate-test-environment.ps1`；
 2. verifier 只读检查输入 hash、test/provider/SUT revision、配置 target、环境引用、managed executable/start script/端口，
    并只执行 descriptor 中 `stage=preflight` 的 external TCP/HTTP probe；
-3. verifier BLOCKED/ERROR 时停止，不调用 controller、不启动 config provider、SUT、Docker 或 runner；
+3. verifier BLOCKED/ERROR 时不启动服务或投递；记录失败并在原授权内诊断修复，经 resume 重验，预算不足则收尾；
 4. verifier PASS 后，用 report 内完全一致的 test/SUT/harness revision 与 configuration fingerprint 调用 controller
    `record-verifier -VerifyMode environment`；
 5. controller 推进到 `TEST_ENVIRONMENT_VERIFIED` 后可在当前对话继续 `RUN_ONCE`，无需另起一轮用户操作。

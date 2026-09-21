@@ -1,14 +1,45 @@
 ﻿[CmdletBinding()]
 param(
-    [Parameter(Mandatory=$true,Position=0)] [ValidateSet('prepare','advance','resume','status','revise','review-design','rebind')] [string]$Command,
+    [Parameter(Mandatory=$true,Position=0)] [ValidateSet('prepare','advance','resume','status','revise','review-design','rebind','timeline')] [string]$Command,
     [Parameter(Mandatory=$true)] [string]$StatePath,
     [string[]]$ScenarioIds,
     [string]$ReviewPath,
     [string]$ResultReviewPath,
     [string]$RepairPath,
-    [string]$ImportEvidencePath
+    [string]$ImportEvidencePath,
+    [ValidateSet('enter','pause','resume','finish','summary')] [string]$TimelineAction='summary',
+    [string]$Stage, [string]$Reason, [string]$EventId, [string]$Reference,
+    [string]$Intervention, [string]$Outcome, [string]$CycleId, [string]$SessionId
 )
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'test-timeline.ps1')
+if ($Command -eq 'timeline') {
+    $observation=Invoke-TestTimeline -StatePath $StatePath -Action $TimelineAction -Stage $Stage -Reason $Reason -EventId $EventId -Reference $Reference -Intervention $Intervention -Outcome $Outcome -CycleId $CycleId -SessionId $SessionId
+    $observation | ConvertTo-Json -Depth 12
+    if($TimelineAction -ne 'summary' -and $observation){
+        $presentationLock=$null
+        try {
+            $presentationLock=[IO.File]::Open(([IO.Path]::GetFullPath($StatePath)+'.execution.lock'),'OpenOrCreate','ReadWrite','None')
+            $directory=Split-Path -Parent ([IO.Path]::GetFullPath($StatePath))
+            $summaryPath=Join-Path $directory 'execution-summary.json'
+            if(Test-Path $summaryPath){
+                $presentation=Get-Content $summaryPath -Raw | ConvertFrom-Json
+                $presentation | Add-Member -NotePropertyName timeline -NotePropertyValue $observation -Force
+                [IO.File]::WriteAllText($summaryPath,($presentation|ConvertTo-Json -Depth 20),[Text.UTF8Encoding]::new($false))
+            }
+            $markdownPath=Join-Path $directory 'execution-summary.md'
+            if(Test-Path $markdownPath){
+                $markdown=Get-Content $markdownPath -Raw -Encoding utf8
+                $section=Get-TimelineMarkdown $observation
+                $pattern='(?s)<!-- FLOW_TIMELINE:START -->.*?<!-- FLOW_TIMELINE:END -->'
+                if($markdown -match $pattern){$markdown=[regex]::Replace($markdown,$pattern,[Text.RegularExpressions.MatchEvaluator]{param($match) $section})}
+                else{$markdown+="`n$section"}
+                [IO.File]::WriteAllText($markdownPath,$markdown,[Text.UTF8Encoding]::new($false))
+            }
+        }catch{Write-Warning "Timeline presentation not refreshed; testing may continue: $($_.Exception.Message)"}finally{if($presentationLock){$presentationLock.Dispose()}}
+    }
+    exit 0
+}
 $controller=Join-Path $PSScriptRoot 'flow-test-controller.ps1'
 function Read-ExecutionJson([string]$Raw) {
     if ((Get-Command ConvertFrom-Json).Parameters.ContainsKey('DateKind')) { return $Raw | ConvertFrom-Json -DateKind String }
@@ -31,7 +62,7 @@ $lock=$null
 try {
     if ($Command -ne 'status') { $lock=[IO.File]::Open($lockPath,'OpenOrCreate','ReadWrite','None') }
     switch ($Command) {
-        'status' { Invoke-Controller 'status'; break }
+        'status' { $current=Read-ExecutionJson (Invoke-Controller 'status' | Out-String); $current | Add-Member -NotePropertyName timeline -NotePropertyValue (Invoke-TestTimeline -StatePath $StatePath) -Force; $current | ConvertTo-Json -Depth 18; break }
         'rebind' { Invoke-Controller 'rebind' @{ReportPath=$RepairPath}; break }
         'revise' { Invoke-Controller 'revise' @{ReportPath=$RepairPath}; break }
         'review-design' { Invoke-Controller 'review-design' @{ReportPath=$ReviewPath}; break }
@@ -90,6 +121,9 @@ try {
         try {
             $summaryText=Invoke-Controller 'status' | Out-String
             $summary=Read-ExecutionJson $summaryText
+            $timeline=Invoke-TestTimeline -StatePath $StatePath
+            $summary | Add-Member -NotePropertyName timeline -NotePropertyValue $timeline -Force
+            $summaryText=$summary | ConvertTo-Json -Depth 18
             if($summary.designReviewInputPath){
                 Write-ReviewInput $summary.designReviewInputPath @{designKey=$summary.designBinding.key;testRevision=$summary.designBinding.test;sutRevision=$summary.designBinding.sut;result='PENDING';review='self';reviewer='current-agent';summary='';counterexample='';evidencePaths=@();staticValidation=@{result='PENDING';evidencePaths=@()}}
             }
@@ -108,6 +142,9 @@ try {
                 "截止时间（UTC）：$($summary.deadlineUtc)；剩余 $($summary.remainingSeconds) 秒。",'',
                 '## 业务场景验证进度','','| 场景 | 当前结果 |','|---|---|')
             foreach ($row in @($summary.scenarios)) { $lines += "| $($row.id) | $($row.result) |" }
+            $lines+=Get-TimelineMarkdown $timeline
+            $first=@($summary.timings | Where-Object { $_.firstBusinessAssertionAt } | Sort-Object firstBusinessAssertionAt | Select-Object -First 1)
+            $lines+=if($first.Count){"首次业务断言（UTC）：$($first[0].firstBusinessAssertionAt)"}else{'首次业务断言时间：未知（缺少实际断言埋点，不以启动时间替代）'}
             $lines+=@('','## 发现的问题','')
             foreach ($issue in @($summary.issues)) { $lines += "- $($issue.reason)" }
             $lines+=@('','## 各次运行耗时','')

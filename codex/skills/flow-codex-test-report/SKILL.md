@@ -5,6 +5,9 @@ description: 在审核、冒烟和可恢复提交完成后记录 st-api 集成�
 
 # Codex Flow 集成测试汇报
 
+进入本技能先按 `../flow-codex-core/references/test-observation.md` 记录阶段 `delivery`；阶段切换、暂停、恢复与交付由 Agent 调用计时入口，运行细分由 runner 生成。计时异常只警告，不阻断测试。
+
+
 已接入 execution 且有 development 的后续开发，优先按 core/references/test-execution-cycle.md 的 revise / review-design / resume 推进；不套用下文旧 phase、派发租约或报告转换去阻断该路径。原授权范围、测试仓写入边界、代码审核和真实提交仍须满足；resume 不代表运行或结果 PASS。
 
 

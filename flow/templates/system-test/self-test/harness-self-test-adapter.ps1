@@ -69,7 +69,7 @@ switch ($Operation) {
     if ($Scenario -eq 'maven-arguments') {
       $arguments = @($payload.arguments | ForEach-Object { [string]$_ })
       if (@($arguments | Where-Object { $_ -eq '-Dtest=*Test' }).Count -ne 1) { Stop-Adapter '[TEST_HARNESS] Maven filter argument was not preserved' }
-      if (@($arguments | Where-Object { $_ -match '\s' }).Count -eq 0) { Stop-Adapter '[TEST_HARNESS] Maven path containing spaces was not preserved' }
+      if ($arguments.Count -lt 2 -or $arguments[0] -ne '-f' -or $arguments[1] -ne (Join-Path $TestRoot 'pom.xml')) { Stop-Adapter '[TEST_HARNESS] Maven project path was split or changed' }
       Write-Utf8 (Join-Path $RuntimeDir 'raw\maven-arguments.json') ($arguments | ConvertTo-Json)
     }
     if ($Scenario -eq 'utf8-log') {

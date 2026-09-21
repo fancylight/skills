@@ -907,3 +907,16 @@ KB 沉淀：`flow-codex-kb feedback/{id}` 或 `/flow:kb feedback/{id}`，读取�
 首次 design 的命名身份保存在 `.flow/changes/<change_name>/change.json`：`version: 1`、`requirement_id`（小写 glw-数字）、`title`（中文）、`slug`（英文 kebab-case）、`delivery_date`（初始交期 YYYYMMDD）、`change_name`（slug-交期）、`branch`（完整 feature/change_name）、`legacy: false`。这不是设计方案，不解除 domain 门禁；task 与概要设计读取该身份，延期不改路径。
 
 定点接入存量需求使用 `legacy: true`，slug/delivery_date 为 null，保留真实旧 change_name/branch，另记 `evidence_repo`（核实当前分支的仓库）；不自动批量迁移。工作目录绑定及 Agent 提交回执存于实际 Git dir，不纳入业务版本库。详细命令见 `codex/skills/flow-codex-core/references/git-conventions.md`。
+
+
+## Codex 集成测试观测增量（2026-09）
+
+本节仅用于 Codex 新版，不改变旧 Claude 安装。`test-cases.yaml` 的 `business.tables` 可选，为具名表数组（当前严格 YAML 解析器接受单行 JSON 数组）：每表含 `name`、文本列名 `columns`、等宽文本二维数组 `rows`。旧 business 字符串、ID 与技术绑定保留。表格只表达原用例，不生成通过结论。
+
+v2 manifest 可选 `runner.check` 为非空命令 token 数组，在资源启动前用实际运行环境执行依赖检查；纳入 resolved 执行契约和指纹，缺省保持旧行为。不得在 check 中写业务数据。
+
+manifest 可选 `nonBuildInputs` 为精确内容的构建影响审核记录：repository（绝对仓路径）、path（Git 相对文件）、sha256、reason、evidencePath。用于保留经核实不参与构建或运行的文件，不接受通配排除，不默认按扩展名忽略；内容变化即失效。该记录参与 execution binding，源码及配置不因存在无关文件而被清理。
+
+根 change 的 `test-timeline.jsonl` 是观测日志，不是 controller 状态：schemaVersion=1，eventId、cycleId、parentCycleId、UTC at、action、stage、reason、reference、intervention、outcome、sessionId。事件追加、重复 eventId 幂等；损坏尾行保留并报告缺失。部分交付可 resume 原周期，完整完成或取消后新范围使用显式新周期。计时不重置执行预算，不授予权限、不影响 PASS。
+
+runner 的可选 `businessMetrics` 来源于测试适配器实际断言埋点，事件包含 kind=assertion、scenarioId、UTC at；controller 仅收录当前选中场景。缺失埋点时未知，不从 suite 启动时间推导。计时、运行摘要及业务验收分别保留责任边界。

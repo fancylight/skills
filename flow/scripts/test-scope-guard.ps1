@@ -25,9 +25,9 @@ $allowed = switch ($Stage) {
 }
 $matches = $insideRepo -and $relative -and (@($allowed | Where-Object { $relative -like $_ }).Count -gt 0)
 $commandAllowed = switch ($Stage) {
-    'design' { $CommandKind -eq 'none' }
+    'design' { $CommandKind -in @('none','static') }
     'apply' { $CommandKind -in @('none', 'static') }
-    'review' { $CommandKind -eq 'none' }
+    'review' { $CommandKind -in @('none','static') }
     'execution' { $CommandKind -in @('none', 'static', 'docker', 'doctor', 'service', 'api', 'runner') }
     'result' { $CommandKind -in @('none', 'static') }
     default { $false }
@@ -35,7 +35,7 @@ $commandAllowed = switch ($Stage) {
 $operationAllowed = if ($Action -eq 'read') {
     $insideRepo -and $CommandKind -eq 'none'
 } elseif ($Action -eq 'test') {
-    $insideRepo -and $commandAllowed -and $Stage -notin @('design', 'review', 'result')
+    $insideRepo -and $commandAllowed -and ($CommandKind -eq 'static' -or $Stage -in @('apply','execution'))
 } elseif ($Action -eq 'commit') {
     $insideRepo -and $commandAllowed -and (
         ($Stage -eq 'design' -and $matches) -or
@@ -51,6 +51,8 @@ if (-not $operationAllowed) {
     Write-Output "authorized_repo: $repo"
     Write-Output "authorized_paths: $($allowed -join ', ')"
     Write-Output "command_kind: $CommandKind"
+    $next=if(-not $insideRepo){'USE_AUTHORIZED_REPOSITORY'}elseif(-not $commandAllowed){'CORRECT_COMMAND_KIND_OR_ENTER_AUTHORIZED_STAGE'}else{'USE_AUTHORIZED_TARGET_PATH'}
+    [ordered]@{status='ACTION_REJECTED';reason='scope-or-stage-mismatch';affectedAction=$Action;target=$target;nextAction=$next;taskStopped=$false;guidance='Correct the invocation within existing authorization. Real out-of-scope writes remain forbidden; independent authorized work may continue.'} | ConvertTo-Json -Compress
     exit 1
 }
 Write-Output '[FLOW_GUARD] PASS'

@@ -19,6 +19,16 @@ try {
     $preview = Get-Content $plan -Raw -Encoding utf8
     Check ($preview.Contains('首次A日3小时/B日0小时') -and $preview.Contains('非严格模式同样更正仍保留3小时')) 'preview lost concrete independent expected result or counterexample'
     Check (-not $preview.Contains('com.example') -and -not (Test-Path $derived)) 'business preview must not fabricate technical bindings'
+    $tables='      tables: [{"name":"请求结果","columns":["操作","次数"],"rows":[["首次","1"],["重复","1"]]}]'
+    $withTables=$businessOnly.Replace('    business:',("    business:`n"+$tables))
+    [IO.File]::WriteAllText($source,$withTables,$utf8)
+    & $validator -TestCasesPath $source -Mode business -Generate -TestPlanPath $plan | Out-Null
+    Check ($LASTEXITCODE -eq 0) 'named tables rejected'
+    $tablePlan=Get-Content $plan -Raw -Encoding utf8
+    Check ($tablePlan.Contains('| 用例 |') -and $tablePlan.Contains('| 重复 | 1 |')) 'readable overview/table missing'
+    [IO.File]::WriteAllText($source,$withTables.Replace('["首次","1"]','["首次"]'),$utf8)
+    & $validator -TestCasesPath $source -Mode business | Out-Null
+    Check ($LASTEXITCODE -ne 0) 'invalid table width accepted'
     foreach ($field in @('purpose','preconditions','inputs','steps','expected','oracle','counterexamples','evidenceBoundary')) {
         $bad = [regex]::Replace($businessOnly, "(?m)^      ${field}:.*\r?\n", '')
         [IO.File]::WriteAllText($source, $bad, $utf8)

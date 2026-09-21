@@ -45,7 +45,7 @@ $entry = '<core>/assets/scripts/flow-test.ps1'
 
 `advance` 不自动生成审核 PASS。它接收当前 Agent 的真实审核结果，校验版本与场景绑定，先登记 active run，再启动 manifest runner，最后登记原始结果。选中 runner PASS 仍是 AWAITING_REVIEW；只有对应语义结果审核通过才成为场景 PASS，全部 canonical 场景均有效通过才进入 TEST_RESULT_VERIFIED。
 
-环境预检同时核对实际构件：每个 SUT 的启动契约须提供经审核的只读 `-ValidateOnly`，验证构建回执、源码版本、JDK、产物路径和哈希，不能启动服务。未支持时给出具体阻断，不猜测该参数可用。预检失败记录为 `TEST_ENVIRONMENT_FAILED`，保留报告并经 `resume` 修复；不循环直接 `advance`。SUT 仅豁免未跟踪的 `logs/**/*.log` 运行日志，保留原文件；源码和其他未知文件仍须处理。
+环境预检同时核对实际构件：每个 SUT 的启动契约须提供经审核的只读 `-ValidateOnly`，验证构建回执、源码版本、JDK、产物路径和哈希，不能启动服务。未支持时给出具体阻断，不猜测该参数可用。预检失败记录为 `TEST_ENVIRONMENT_FAILED`，保留报告并经 `resume` 修复；不循环直接 `advance`。SUT 保留运行日志；其他无关文件按 test-observation.md 的 nonBuildInputs 精确内容审核排除，不清理业务仓。真实构建输入及未判明影响的变化仍须调查。
 
 旧需求某服务使用已核实的历史分支时，`flow-git bind --change <change.json> --existing` 将例外限定到该需求和当前 Git 工作目录；不改根分支、不创建 worktree，不把 Flow 临时降级为无编号任务。
 

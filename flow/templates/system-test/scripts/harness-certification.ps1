@@ -99,7 +99,7 @@ function Assert-SelfTestReport($Report, [string]$Revision) {
     }
     $runnerOutput = Get-Content -LiteralPath (Resolve-ControlledPath ([string]$scenario[0].runnerOutputPath)) -Raw -Encoding UTF8
     if ($runnerOutput -notmatch '\[SYSTEM_TEST_RESULT\]') { throw "Harness scenario did not execute the runner completion path: $id" }
-    $structuredPath = Resolve-ControlledPath ("self-test/artifacts/$id/structured-result.json")
+    $structuredPath = Resolve-ControlledPath (Join-Path (Split-Path -Parent ([string]$scenario[0].runnerOutputPath)) 'structured-result.json')
     $structured = Read-Json $structuredPath "Harness scenario structured result $id"
     if ($structured.scenario -ne $id -or [int]$structured.exitCode -ne [int]$scenario[0].exitCode -or $structured.status -ne $scenario[0].status -or $structured.phase -ne $scenario[0].phase -or $structured.classification -ne $scenario[0].classification) {
       throw "Harness report is not bound to its runner structured result: $id"
@@ -110,7 +110,7 @@ function Assert-SelfTestReport($Report, [string]$Revision) {
 function Get-ScenarioEvidence($Report) {
   $inventory = @()
   foreach ($scenario in @($Report.scenarios)) {
-    $artifactRoot = Resolve-ControlledPath ("self-test/artifacts/$($scenario.id)")
+    $artifactRoot = Resolve-ControlledPath (Split-Path -Parent ([string]$scenario.runnerOutputPath))
     if (-not (Test-Path -LiteralPath $artifactRoot -PathType Container)) { throw "Harness scenario artifact directory missing: $($scenario.id)" }
     foreach ($file in @(Get-ChildItem -LiteralPath $artifactRoot -File -Recurse | Sort-Object FullName)) {
       $inventory += [pscustomobject]@{ scenarioId=[string]$scenario.id; path=(Get-RelativePath $file.FullName); sha256=(Get-Hash $file.FullName) }

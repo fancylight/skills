@@ -1,4 +1,4 @@
-﻿# Functions are loaded inside the canonical controller. All writes use its signed,
+# Functions are loaded inside the canonical controller. All writes use its signed,
 # atomic state; reports are immutable attachments, never an alternative state file.
 function Save-ExecutionEvidence([string]$Path) {
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { Stop-Controller 'ERROR_EVIDENCE' "Missing evidence: $Path" }
@@ -14,12 +14,12 @@ function Save-ExecutionEvidence([string]$Path) {
 function Get-ExecutionBinding($State) {
     $repo = [string]$State.repositories.systemTest
     Assert-HarnessRepairWorktreeClean $repo ([string]$State.changeName)
-    Assert-ExecutionSutClean ([string]$State.repositories.sut)
     $manifestPath = Join-Path $repo "changes/$($State.changeName)/manifest.yaml"
     $resolvedPath = Join-Path $repo "changes/$($State.changeName)/resolved-manifest.json"
     # Manifests can contain secret *references*. Read locally, never archive or
     # print their values; the binding exposes only hashes and revisions.
     $manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding utf8 | ConvertFrom-Json
+    Assert-ExecutionSutClean ([string]$State.repositories.sut) @($manifest.nonBuildInputs)
     $resolved = Get-Content -LiteralPath $resolvedPath -Raw -Encoding utf8 | ConvertFrom-Json
     if ([int]$manifest.schemaVersion -ne 2) { Stop-Controller 'ERROR_EXECUTION_MANIFEST' 'Slices require the v2 runner contract' }
     $contractPath = Join-Path (Split-Path -Parent $manifestPath) ([string]$manifest.testCasesContract.path)
@@ -36,18 +36,30 @@ function Get-ExecutionBinding($State) {
         test=(Get-GitHead $repo); sut=(Get-GitHead ([string]$State.repositories.sut)); harness=$harnessRevision
         configuration=[string]$resolved.configurationFingerprint; resolvedHash=(Get-FileHashValue $resolvedPath)
         contractHash=(Get-FileHashValue $contractPath); allScenarioIds=$all; certification=$cert.certificationHash
+        buildInputReviewHash=(Get-StringHash (@($manifest.nonBuildInputs) | ConvertTo-Json -Depth 8 -Compress))
         environmentInputs=(Get-ExecutionEnvironmentInputs $State $resolved)
     }
     if($State.repositoryBindingKey){$binding | Add-Member -NotePropertyName repositoryBindingKey -NotePropertyValue $State.repositoryBindingKey}
     return $binding
 }
 function Get-ExecutionKey($Binding) { return Get-StringHash ($Binding | ConvertTo-Json -Depth 8 -Compress) }
-function Assert-ExecutionSutClean([string]$Repository) {
+function Assert-ExecutionSutClean([string]$Repository, [object[]]$NonBuildInputs=@()) {
     foreach ($line in @(Get-GitOutput $Repository @('status','--porcelain=v1','--untracked-files=all'))) {
         if ([string]::IsNullOrWhiteSpace($line)) { continue }
         # Runtime logs are retained, never deleted or mistaken for source changes.
         if ($line -match '^\?\? logs/.+\.log$') { continue }
-        Stop-Controller 'ERROR_SCOPE_WORKTREE_DIRTY' "SUT contains source or unknown-file drift: $line"
+        # Only exact reviewed content can be excluded, never a wildcard or extension.
+        # Git may quote unusual names: leave them unresolved rather than misclassify.
+        $relative=$line.Substring(3).Replace('\','/')
+        $full=Join-Path $Repository $relative
+        $exclusion=@($NonBuildInputs | Where-Object {
+            $_ -and $_.path -eq $relative -and $_.repository -eq $Repository -and
+            $_.reason -and $_.evidencePath -and $_.sha256 -and
+            (Test-Path -LiteralPath $_.evidencePath -PathType Leaf)
+        } | Select-Object -First 1)
+        if($exclusion.Count -and (Test-Path -LiteralPath $full -PathType Leaf) -and
+            (Get-FileHashValue $full) -eq $exclusion[0].sha256) { continue }
+        Stop-Controller 'ERROR_SCOPE_WORKTREE_DIRTY' "Build-input relevance unresolved: $line. Inspect build inputs; preserve unrelated files and record exact nonBuildInputs content with review evidence in the manifest. Do not clean the repository."
     }
 }
 function Set-ExecutionLocks($State,$Binding) {
@@ -165,7 +177,7 @@ function Get-ExecutionSummary($State) {
         complete=$complete
         activeRun=$State.activeRun; cleanupRequired=$cycle.cleanupRequired
         issues=@($cycle.repairs)+@($State.runs | Where-Object { $_.executionKey -and $_.result -ne 'pass' } | ForEach-Object { [pscustomobject]@{reason="Run $($_.runId): $($_.failureCategory) $($_.primaryFailure.summary)";evidence=$_.evidence} })
-        timings=@($State.runs | Where-Object { $_.executionKey } | Select-Object runId,startedAt,at,durationSeconds,stages)
+        timings=@($State.runs | Where-Object { $_.executionKey } | Select-Object runId,startedAt,at,durationSeconds,stages,firstBusinessAssertionAt)
         invalidations=@($cycle.invalidations); next=$(if ($State.activeRun) {'recover-active-run'} elseif ($cycle.cleanupRequired) {'restore-owned-resources'} elseif ($complete) {'complete'} elseif (@($rows | Where-Object {$_.result -eq 'AWAITING_REVIEW'}).Count) {'review-results'} elseif ([DateTime]::UtcNow -ge [DateTime]::Parse($cycle.deadlineUtc).ToUniversalTime().AddSeconds(-120)) {'budget-exhausted'} elseif ($drift -or -not $cycle.binding -or $State.phase -in @('TEST_EXECUTED_FAIL','TEST_ENVIRONMENT_FAILED')) {'resume'} elseif ($selectedComplete) {'select-next-slice'} elseif (-not $cycle.review) {'review-selected-slice'} else {'advance'})
     }
 }
@@ -478,14 +490,16 @@ function Invoke-Execution($State) {
         $report=Read-StructuredJson $ReportPath 'runner result'
         if ($report.flowRunId -ne $run.runId -or $report.executionKey -ne $run.executionKey -or (@($report.scenarioIds | Sort-Object) -join ',') -ne (@($run.scenarioIds | Sort-Object) -join ',')) { Stop-Controller 'ERROR_RUN_EVIDENCE' 'Result run/binding/selection mismatch' }
         $saved=Save-ExecutionEvidence $ReportPath
-        $stages=@()
+        $stages=@(); $firstAssertion=$null
         if ($report.counts.raw -and (Test-Path -LiteralPath $report.counts.raw -PathType Leaf) -and (Test-PathWithin $report.counts.raw (Join-Path $State.repositories.systemTest "changes/$($State.changeName)/evidence"))) {
             $runtime=Read-StructuredJson $report.counts.raw 'runtime timing evidence'
+            $firstAssertion=@($runtime.businessMetrics | Where-Object { $_.kind -eq 'assertion' -and $_.scenarioId -in $run.scenarioIds } | Sort-Object at | Select-Object -First 1)
+            $firstAssertion=if($firstAssertion.Count){$firstAssertion[0].at}else{$null}
             $stages=@($runtime.steps | Where-Object { $_.elapsedSeconds -ge 0 } | Group-Object phase | ForEach-Object { [pscustomobject]@{phase=$_.Name;seconds=[Math]::Round(($_.Group | Measure-Object elapsedSeconds -Sum).Sum,3)} })
         }
         $cycle.cleanupRequired=($report.cleanup.succeeded -ne $true -or $report.cleanup.retainedState -eq $true)
         $passed=($report.status -eq 'PASS' -and -not $cycle.cleanupRequired -and [int]$report.counts.failed -eq 0 -and [int]$report.counts.skipped -eq 0 -and [int]$report.counts.passed -gt 0)
-        $State.runs += [pscustomobject]@{ runId=$run.runId; executionKey=$run.executionKey; scenarioIds=@($run.scenarioIds); review=$run.review; result=$(if ($passed) {'pass'} else {'fail'}); evidence=$saved; startedAt=$run.startedAt; at=[DateTime]::UtcNow.ToString('o'); durationSeconds=[int]([DateTime]::UtcNow-[DateTime]::Parse($run.startedAt).ToUniversalTime()).TotalSeconds; stages=$stages; primaryFailure=$report.primaryFailure; failureCategory=$report.classification; cleanupRequired=$cycle.cleanupRequired }
+        $State.runs += [pscustomobject]@{ runId=$run.runId; executionKey=$run.executionKey; scenarioIds=@($run.scenarioIds); review=$run.review; result=$(if ($passed) {'pass'} else {'fail'}); evidence=$saved; startedAt=$run.startedAt; firstBusinessAssertionAt=$firstAssertion; at=[DateTime]::UtcNow.ToString('o'); durationSeconds=[int]([DateTime]::UtcNow-[DateTime]::Parse($run.startedAt).ToUniversalTime()).TotalSeconds; stages=$stages; primaryFailure=$report.primaryFailure; failureCategory=$report.classification; cleanupRequired=$cycle.cleanupRequired }
         $State.activeRun=$null
         Set-Phase $State $(if ($passed) {'TEST_EXECUTED_PASS'} else {'TEST_EXECUTED_FAIL'}) 'selected run reconciled; result semantic review still required'
         Write-State $State; Get-ExecutionSummary $State | ConvertTo-Json -Depth 16; return

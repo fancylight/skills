@@ -5,6 +5,9 @@ description: 将 st-api 集成测试 spec 加载到 config 中 type=system-test 
 
 # Codex Flow 集成测试接收
 
+进入本技能先按 `../flow-codex-core/references/test-observation.md` 记录阶段 `implementation`；阶段切换、暂停、恢复与交付由 Agent 调用计时入口，运行细分由 runner 生成。计时异常只警告，不阻断测试。
+
+
 用户已授权整理/切换现有工作目录并继续测试时，旧 controller 绑定不符由 Agent 按 test-execution-cycle.md 的 rebind 同步业务仓/测试仓；兼容无 execution 的旧状态，不重复确认，不先启动测试来获得迁移资格。仅真实仓库身份冲突、缺失产物或残留运行资源需要具体处理，不能把过时绑定当成用户目录错误。
 
 

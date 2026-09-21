@@ -1,4 +1,5 @@
-﻿$ErrorActionPreference = 'Stop'
+﻿param([switch]$Focused)
+$ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $resolver = Join-Path (Split-Path -Parent $PSScriptRoot) 'resolve-test-environment.ps1'
 $runtime = Join-Path $repositoryRoot 'templates\system-test\scripts\run-resolved-environment.ps1'
@@ -216,6 +217,73 @@ function Enable-CertifiedHarness($Fixture) {
 try {
     $happy = New-Fixture 'happy'
     Assert-Result (Invoke-Runtime $happy) 'PASS' 'NONE' 'happy path'
+    # Non-attendance asynchronous projection through the real runtime suite command.
+    $async=New-Fixture 'async-order-projection'
+    $asyncScript=@'
+$ErrorActionPreference='Stop'
+$dir=Join-Path $env:TEMP ('flow-order-'+[guid]::NewGuid().ToString('N'))
+[void][IO.Directory]::CreateDirectory($dir)
+$job=$null
+try {
+    $job=Start-Job -ArgumentList $dir -ScriptBlock {
+        param($dir)
+        $seen=@{}; $deadline=[datetime]::UtcNow.AddSeconds(15)
+        while([datetime]::UtcNow -lt $deadline) {
+            foreach($file in @(Get-ChildItem $dir -Filter '*.request')) {
+                $request=Get-Content $file.FullName -Raw | ConvertFrom-Json
+                if(-not $seen.ContainsKey($request.id)) {
+                    $seen[$request.id]=$true
+                    Start-Sleep -Milliseconds 120
+                    [IO.File]::WriteAllText((Join-Path $dir 'projection.tmp'),[string]$request.amount)
+                    Move-Item -LiteralPath (Join-Path $dir 'projection.tmp') -Destination (Join-Path $dir 'projection.txt') -Force
+                }
+            }
+            Start-Sleep -Milliseconds 20
+        }
+    }
+    foreach($phase in @(@{id='ordinary';amount=100},@{id='correction';amount=60})) {
+        foreach($copy in @(1,2)) {
+            $tmp=Join-Path $dir 'input.tmp'
+            [IO.File]::WriteAllText($tmp,($phase|ConvertTo-Json -Compress))
+            Move-Item -LiteralPath $tmp -Destination (Join-Path $dir "$($phase.id)-$copy.request")
+        }
+        $deadline=[datetime]::UtcNow.AddSeconds(12)
+        do {
+            $value=if(Test-Path (Join-Path $dir 'projection.txt')){[IO.File]::ReadAllText((Join-Path $dir 'projection.txt'))}else{''}
+            if($value -eq [string]$phase.amount){break}
+            Start-Sleep -Milliseconds 40
+        }while([datetime]::UtcNow -lt $deadline)
+        Write-Output ('FLOW_TEST_METRIC '+(@{kind='assertion';scenarioId=$phase.id;at=[datetime]::UtcNow.ToString('o')}|ConvertTo-Json -Compress))
+        if($value -ne [string]$phase.amount){throw "Projection did not reach expected amount: $($phase.amount)"}
+    }
+} finally {
+    if($job){Stop-Job $job; Remove-Job $job}
+    if(([IO.Path]::GetFullPath($dir)).StartsWith([IO.Path]::GetFullPath($env:TEMP))){Remove-Item -LiteralPath $dir -Recurse -Force}
+}
+'@
+    Set-Content -LiteralPath (Join-Path $async.testRepo 'scripts/run-suite.ps1') -Value $asyncScript -Encoding utf8
+    $asyncResult=Invoke-Runtime $async
+    Assert-Result $asyncResult 'PASS' 'NONE' 'asynchronous order and correction'
+    if(@($asyncResult.report.businessMetrics).Count -ne 2){throw 'Actual assertion timestamps missing from runtime report'}
+    $dependency=New-Fixture 'missing-runtime-dependency'
+    $dependencyManifest=Join-Path $dependency.testRepo 'changes/sample/manifest.json'
+    $dependencyConfig=Get-Content $dependencyManifest -Raw | ConvertFrom-Json
+    $dependencyConfig.runner | Add-Member -NotePropertyName check -NotePropertyValue @('powershell.exe','-NoProfile','-Command','exit 19')
+    Write-Json $dependencyManifest $dependencyConfig
+    & $resolver -OrchRoot $dependency.orch -SystemTestRepo $dependency.testRepo -ManifestPath $dependencyManifest -OutputPath $dependency.resolved | Out-Null
+    if($LASTEXITCODE -ne 0){throw 'dependency command resolution failed'}
+    $dependency.fingerprint=(Get-Content $dependency.resolved -Raw | ConvertFrom-Json).configurationFingerprint
+    $failedDependency=Invoke-Runtime $dependency
+    Assert-Result $failedDependency 'BLOCKED' 'TEST_HARNESS' 'actual interpreter dependency failure'
+    if(@($failedDependency.report.steps | Where-Object phase -in @('resource-start','sut-start','suite')).Count){throw 'started services after dependency check failure'}
+    $exited=New-Fixture 'startup-process-exits'
+    Set-Content -LiteralPath (Join-Path $exited.providerRepo 'scripts/start-native.ps1') -Value 'exit 7'
+    # This file is not a config input; the fixture exercises runtime process supervision.
+    $exitedResult=Invoke-Runtime $exited
+    Assert-Result $exitedResult 'BLOCKED' 'CONFIG_INFRA' 'exited startup process'
+    $startupFailure=@($exitedResult.report.steps | Where-Object stepId -eq 'runtime-failure')[0]
+    if($startupFailure.elapsedSeconds -ge 4.5){throw 'runner waited full readiness timeout after process exited'}
+    if($Focused){Write-Output '[RUNTIME_FOCUSED_TEST] PASS async projection, actual assertion metrics, dependency check before startup'; return}
     $multi = New-Fixture 'four-sut-target-association' -SutCount 4
     $multiResult = Invoke-Runtime $multi
     Assert-Result $multiResult 'PASS' 'NONE' 'four SUT target association'

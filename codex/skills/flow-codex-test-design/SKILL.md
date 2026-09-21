@@ -5,6 +5,9 @@ description: 在业务代码已审核提交后，基于概要设计验收、as-b
 
 # Codex Flow 集成测试设计
 
+进入本技能先按 `../flow-codex-core/references/test-observation.md` 记录阶段 `business`；阶段切换、暂停、恢复与交付由 Agent 调用计时入口，运行细分由 runner 生成。计时异常只警告，不阻断测试。
+
+
 业务服务默认直接从本次已有业务开发 worktree 构建和启动；测试代码使用已有测试仓 worktree。两者可以位于编排根目录外，不要求另建第三个“运行副本”。保留 manifest 明确路径、Git revision、构件指纹及启动契约校验。仅存在明确隔离需要且用户已授权时才增加副本，不能为满足目录限制复制代码。
 
 
@@ -49,6 +52,7 @@ description: 在业务代码已审核提交后，基于概要设计验收、as-b
 1. 为概要设计每条验收分配稳定 `AC-n`，确定集成 Y/N、Non-Goal 或后续阶段；N 不得伪装为覆盖。
 2. 先在 `test-cases.yaml` 编写稳定 id、acceptance、required、integration 与结构化 `business`，暂不要求测试类、方法、HTTP路径或夹具。
    business 必须让业务用户能审核：验证目的、规则配置与初态、具体输入、操作顺序、独立预期最终结果、预期依据及推导、关键反例、Y/N与证据边界。
+   复杂场景按 test-observation.md 使用 business.tables 展开具名配置、输入和逐阶段结果；总览必须可直接审核，不用“遍历全部策略”省略预期。
    先用 `validate-test-cases.ps1 -TestCasesPath <source> -Mode business -TestPlanPath <plan> -Generate` 生成业务预览（只更新既有标记区，无 sidecar）。
    对照需求逐条审核业务覆盖并补齐：区分配置分支、边界、变更重算、重复/乱序及真实最终落点；仅在当前需求适用时纳入。
    单对话由当前执行者自查并在 test-design 的既有覆盖策略中记明依据、发现与补充及源 hash；不得冒称用户已审核。
@@ -68,16 +72,15 @@ description: 在业务代码已审核提交后，基于概要设计验收、as-b
    场景 ID、测试类/方法、关联字段、普通/外部证据路径和可判定类别；
    未映射或证据缺失时必须允许 `UNDETERMINED`，不得预设业务缺陷。
    当设计引用数据库、缓存、SUT 或 WireMock 配置时，v2 登记 environment、configuration targets、结构化 probes、resources 生命周期及 resolved fingerprint；v1 才登记 `configurationSource`、`requiredEndpoints`、
-   `connectivityProbe` 和 `ownership`。来源只能由用户确认，preflight probe 只能是单次最小只读连接/metadata 检查。
+   `connectivityProbe` 和 `ownership`。配置来源复用已有用户确认及项目登记；仅存在歧义或缺失时询问，不反复索要确认。设计 probe 使用最小只读连接/metadata 检查，服务就绪由正式运行验证。
 6. 数据访问风险必须在 plan 中列最终列表 SQL/count、代表性参数、只读 EXPLAIN 命令/阈值/evidence 路径；不可得则 BLOCKED。
 7. 对每一个首次写入、静态校验和提交目标，先执行
    `flow-codex-core/assets/scripts/test-scope-guard.ps1 -AuthorizedRepo <system-test> -TargetPath <target> -Stage design`；任何
-   `[FLOW_GUARD] BLOCKED_SCOPE_VIOLATION` 均停止。只可写 system-test 的
+   `[FLOW_GUARD] BLOCKED_SCOPE_VIOLATION` 拒绝对应动作；参数错误在原授权内纠正，真实越界不执行，不因此冻结整个任务。只可写 system-test 的
    `changes/<change>/test-design.md`、`test-plan.md`、`test-cases.yaml`、`test-cases.generated.json`、manifest 和
    `fixtures/**`，不得改根 task/progress。
 8. 只允许 Markdown/JSON/SQL 静态解析与 lint；配置契约已完整且用户明确授权时，允许执行一次其声明的
-   `connectivityProbe`。probe 失败必须输出 `[TEST_CONFIGURATION] BLOCKED` 和
-   `next: STOP_AWAIT_HUMAN_CONFIGURATION`；不得猜测 schema、改 `.env.local`、安装工具、切换来源或继续实现。
+   `connectivityProbe`。probe 失败报告具体端点类别与证据；已授权的本地依赖、连接或参数问题由 Agent 定位修复后继续。缺失凭据、来源歧义或需超范围改动才请求用户；不猜测 schema、凭据或替换配置来源。与故障独立的测试实现可以继续。
    除该 probe 外，禁止编译、`mvn test`、Docker、doctor、服务启动和 runner。
 9. READY 前先取得初始化前 system-test 仓当前提交，作为稳定的 `<test baseline revision>`。sidecar 只绑定该基线、
    `test-cases.yaml` 内容 hash 与 test-plan 人工区 hash；不得尝试绑定包含 sidecar 自身的设计提交，否则会形成不可收敛的

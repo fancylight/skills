@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [ValidateSet('run','cleanup')] [string]$Command = 'run',
     [string]$ResolvedManifestPath,
@@ -23,6 +23,7 @@ $runtimeStatePath = ''
 $sensitiveValues = @()
 $logDirectory = ''
 $prepareAttempted = $false
+$runStartedAt=[datetime]::UtcNow
 $cleanupMode = $false
 $primaryFailure = $null
 $stepClock=[DateTime]::UtcNow
@@ -226,6 +227,7 @@ function Assert-ContractIntegrity($Resolved) {
         suts=@($Resolved.suts | ForEach-Object { [ordered]@{ id=$_.id; repository=$_.repository; lifecycle=$_.lifecycle; startContract=$_.startContract; healthProbe=$_.healthProbe } })
         runner=[ordered]@{ workingDirectory=[string]$Resolved.runner.workingDirectory; command=@($Resolved.runner.command); failureCategory=[string]$Resolved.runner.failureCategory; prepare=@($Resolved.runner.prepare); cleanup=@($Resolved.runner.cleanup) }
     }
+    if ($Resolved.runner.check) { $contract.runner.check=@($Resolved.runner.check) }
     $contractHash = Get-StringHash ($contract | ConvertTo-Json -Depth 16 -Compress)
     $fingerprintInput = [ordered]@{
         manifest=[ordered]@{ path=[string]$Resolved.inputs.manifest.path; sha256=[string]$Resolved.inputs.manifest.sha256 }
@@ -319,6 +321,12 @@ try {
     $logDirectory = Join-Path ([IO.Path]::GetTempPath()) ('.flow-runtime-' + [guid]::NewGuid().ToString('N'))
     [void](New-Item -ItemType Directory -Path $logDirectory -Force)
 
+    if (@($resolved.runner.check | Where-Object { $_ }).Count -gt 0) {
+        $check=@($resolved.runner.check)
+        $checkExit=Invoke-OwnedCommand 'dependency-check' ([string]$check[0]) @($check | Select-Object -Skip 1) $testRoot $logDirectory
+        if($checkExit -ne 0){Stop-Run 'TEST_HARNESS' "Actual runtime dependency check failed (exit $checkExit); repair the declared interpreter/dependencies before starting services"}
+        Add-Step 'dependency-check' 'dependency-check' 'PASS' 'NONE' 'Actual declared runtime dependency command succeeded; no business readiness claimed'
+    }
     foreach ($resourceId in @($resolved.executionOrder)) {
         $null=Get-BudgetTimeout $StartupTimeoutMs
         $resource = @($resolved.resources | Where-Object { [string]$_.id -eq [string]$resourceId } | Select-Object -First 1)[0]
@@ -336,8 +344,8 @@ try {
             Add-Step "resource-$resourceId" 'resource-start' 'PASS' 'NONE' 'healthy existing instance reused; ownership not acquired' ([string]$resourceId)
             continue
         }
-        [void](Start-OwnedProcess ([string]$resource.id) ([string]$resource.executable) @($resource.arguments) ([string]$resource.workingDirectory) $logDirectory)
-        if ($null -eq $probe -or -not (Wait-Probe $probe $StartupTimeoutMs)) { Stop-Run 'CONFIG_INFRA' "managed resource readiness failed: $resourceId" }
+        $resourceRecord=Start-OwnedProcess ([string]$resource.id) ([string]$resource.executable) @($resource.arguments) ([string]$resource.workingDirectory) $logDirectory
+        if ($null -eq $probe -or -not (Wait-Probe $probe $StartupTimeoutMs $resourceRecord.process)) { Stop-Run 'CONFIG_INFRA' "managed resource readiness failed or startup process exited: $resourceId; inspect its stdout/stderr" }
         Add-Step "resource-$resourceId" 'resource-start' 'PASS' 'NONE' 'managed resource created and ready' ([string]$resourceId)
     }
 
@@ -448,7 +456,23 @@ try {
         }
         Remove-Item -LiteralPath $logDirectory -Force
     }
+    # Test adapters emit this marker at an actual assertion, not on startup.
+    # Missing/invalid instrumentation remains unknown and never changes PASS.
+    $businessMetrics=@()
+    $suiteLog=Join-Path $outputDirectory 'logs/test-suite.stdout.log'
+    if (Test-Path -LiteralPath $suiteLog) {
+        foreach($line in [IO.File]::ReadAllLines($suiteLog)) {
+            if($line -match '^FLOW_TEST_METRIC (.+)$') {
+                try {
+                    $metric=$Matches[1]|ConvertFrom-Json
+                    $at=[datetime]::Parse([string]$metric.at).ToUniversalTime()
+                    if($metric.kind -eq 'assertion' -and $metric.scenarioId -and $at -le [datetime]::UtcNow -and $at -ge $runStartedAt) { $businessMetrics+=$metric }
+                } catch { Write-Warning 'Invalid test metric ignored' }
+            }
+        }
+    }
     $report = [ordered]@{
+        businessMetrics=$businessMetrics
         schemaVersion=1; result=$result; mode='resolved-environment-runtime'; configurationFingerprint=$ExpectedFingerprint
         fullSuite=[string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable('FLOW_SCENARIO_IDS'))
         scenarioIds=@(([string][Environment]::GetEnvironmentVariable('FLOW_SCENARIO_IDS')).Split(',') | Where-Object { $_ })

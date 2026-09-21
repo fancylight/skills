@@ -148,12 +148,14 @@ function Read-StrictTestCases([string]$Path) {
             if ($null -eq $current -or [string]::IsNullOrWhiteSpace($section) -or $trimmed -notmatch '^([A-Za-z][A-Za-z0-9]*)\s*:\s*(.*)$') { throw "line $lineNumber has invalid nested mapping" }
             $key = $Matches[1]; $value = $Matches[2]
             $allowedBySection = @{
-                business = @('purpose','preconditions','inputs','steps','expected','oracle','counterexamples','evidenceBoundary')
+                business = @('purpose','preconditions','inputs','steps','expected','oracle','counterexamples','evidenceBoundary','tables')
                 setup = @('fixtures'); action = @('method','path'); assertions = @('response','database','sideEffects'); observability = @('correlationField','allowedEvidence')
             }
             if ($key -notin $allowedBySection[$section]) { throw "line $lineNumber contains unknown '$section' field '$key'" }
             $mapping = Get-Field $current $section
-            if ($section -in @('setup','assertions') -or ($section -eq 'observability' -and $key -eq 'allowedEvidence')) {
+            if ($section -eq 'business' -and $key -eq 'tables') {
+                Add-UniqueField $mapping $key @($value | ConvertFrom-Json) $lineNumber
+            } elseif ($section -in @('setup','assertions') -or ($section -eq 'observability' -and $key -eq 'allowedEvidence')) {
                 Add-UniqueField $mapping $key (Convert-StrictArray $value $lineNumber) $lineNumber
             } else {
                 Add-UniqueField $mapping $key (Convert-StrictString $value $lineNumber) $lineNumber
@@ -221,6 +223,16 @@ function Test-DocumentSchema($Document) {
             foreach ($field in $businessFields) {
                 $value = Get-Field $business $field
                 if ($value -isnot [string] -or (Test-Unfinished ([string]$value))) { Add-ValidationError "scenario $id business.$field must describe a concrete business case" }
+            }
+        }
+        if ($null -ne $business -and (Test-HasField $business 'tables')) {
+            foreach ($table in @(Get-Field $business 'tables')) {
+                if ([string]::IsNullOrWhiteSpace([string]$table.name) -or @($table.columns).Count -eq 0 -or @($table.rows).Count -eq 0) { Add-ValidationError "scenario $id table needs name, columns and rows"; continue }
+                foreach ($column in @($table.columns)) { if ($column -isnot [string] -or (Test-Unfinished $column)) { Add-ValidationError "scenario $id table column must be concrete text" } }
+                foreach ($row in @($table.rows)) {
+                    if (@($row).Count -ne @($table.columns).Count) { Add-ValidationError "scenario $id table row width differs from columns" }
+                    foreach ($cell in @($row)) { if ($cell -isnot [string] -or (Test-Unfinished $cell)) { Add-ValidationError "scenario $id table cell must be concrete text" } }
+                }
             }
         }
         if ($Mode -eq 'business') { continue }
@@ -317,6 +329,13 @@ function Get-GeneratedPlanText($Document) {
     [void]$lines.Add('')
     [void]$lines.Add('以下由 test-cases.yaml 派生。业务审核检查输入、独立预期及反例；技术契约齐全不等于覆盖合理，设计审核通过不等于运行通过。')
     $sorted = @((Get-Field $Document 'scenarios') | Sort-Object { [string](Get-Field $_ 'id') })
+    [void]$lines.Add('| 用例 | 验证目的 | 规则与初态 | 输入及操作 | 预期结果 | 不应发生 |')
+    [void]$lines.Add('|---|---|---|---|---|---|')
+    foreach ($scenario in $sorted) {
+        $b=Get-Field $scenario 'business'
+        $cells=@((Get-Field $scenario 'id'),(Get-Field $b 'purpose'),(Get-Field $b 'preconditions'),("$(Get-Field $b 'inputs')；$(Get-Field $b 'steps')"),(Get-Field $b 'expected'),(Get-Field $b 'counterexamples'))
+        [void]$lines.Add('| '+(($cells|ForEach-Object {Convert-PlanText ([string]$_)}) -join ' | ')+' |')
+    }
     $labels = [ordered]@{ purpose='验证目的'; preconditions='规则配置与前提'; inputs='具体输入'; steps='业务操作'; expected='预期最终结果'; oracle='独立预期依据与推导'; counterexamples='关键反例与边界'; evidenceBoundary='集成范围与证据边界' }
     foreach ($scenario in $sorted) {
         $id = Convert-PlanText (Get-Field $scenario 'id')
@@ -329,6 +348,15 @@ function Get-GeneratedPlanText($Document) {
         if ($null -eq $business) { [void]$lines.Add('业务用例缺失：存量技术映射须补充业务输入和独立预期后重新审核。') }
         else {
             foreach ($key in $labels.Keys) { [void]$lines.Add("- $($labels[$key])：$(Convert-PlanText (Get-Field $business $key))") }
+            foreach ($table in @(Get-Field $business 'tables' | Where-Object { $_ })) {
+                [void]$lines.Add('')
+                [void]$lines.Add("##### $(Convert-PlanText $table.name)")
+                [void]$lines.Add('')
+                [void]$lines.Add('| '+(($table.columns|ForEach-Object {Convert-PlanText $_}) -join ' | ')+' |')
+                [void]$lines.Add('| '+(($table.columns|ForEach-Object {'---'}) -join ' | ')+' |')
+                foreach ($row in $table.rows) { [void]$lines.Add('| '+(($row|ForEach-Object {Convert-PlanText $_}) -join ' | ')+' |') }
+            }
+
         }
     }
     if ($Mode -ne 'business') {

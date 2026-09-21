@@ -5,6 +5,9 @@ description: 使用 system-test manifest runner 执行 Flow change 的 API/UI/E2
 
 # Codex Flow 系统测试执行
 
+进入运行按 `../flow-codex-core/references/test-observation.md` 记录 execution，离开时记录下一阶段或暂停；计时异常不阻断执行。
+
+
 用户已授权整理/切换现有工作目录并继续测试时，旧 controller 绑定不符由 Agent 按 test-execution-cycle.md 的 rebind 同步业务仓/测试仓；兼容无 execution 的旧状态，不重复确认，不先启动测试来获得迁移资格。仅真实仓库身份冲突、缺失产物或残留运行资源需要具体处理，不能把过时绑定当成用户目录错误。
 
 

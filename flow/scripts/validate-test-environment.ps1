@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)] [string]$ResolvedManifestPath,
     [Parameter(Mandatory = $true)] [string]$StatePath,
@@ -164,6 +164,7 @@ try {
         suts=@($resolved.suts | ForEach-Object { [ordered]@{ id=$_.id; repository=$_.repository; lifecycle=$_.lifecycle; startContract=$_.startContract; healthProbe=$_.healthProbe } })
         runner=[ordered]@{ workingDirectory=[string]$resolved.runner.workingDirectory; command=@($resolved.runner.command); failureCategory=[string]$resolved.runner.failureCategory; prepare=@($resolved.runner.prepare); cleanup=@($resolved.runner.cleanup) }
     }
+    if ($resolved.runner.check) { $executionContract.runner.check=@($resolved.runner.check) }
     $actualExecutionContractHash = Get-StringHash ($executionContract | ConvertTo-Json -Depth 16 -Compress)
     $fingerprintInput = [ordered]@{
         manifest=[ordered]@{ path=[string]$resolved.inputs.manifest.path; sha256=[string]$resolved.inputs.manifest.sha256 }
@@ -301,7 +302,12 @@ try {
                     else { Add-Step "managed-tool-$resourceId" 'preflight' 'PASS' 'NONE' 'managed executable and start script exist' $resourceId }
                 } else { Add-Step "managed-tool-$resourceId" 'preflight' 'PASS' 'NONE' 'managed executable exists' $resourceId }
             }
-            if (-not (Test-PortAvailable ([int]$resource.port))) { Add-Step "managed-port-$resourceId" 'preflight' 'BLOCKED' 'CONFIG_INFRA' "managed port is already occupied: $($resource.port)" $resourceId }
+            if (-not (Test-PortAvailable ([int]$resource.port))) {
+                $identity=@($resolved.probes | Where-Object { $_.id -eq $resource.identityProbe })
+                if($identity.Count -eq 1 -and $identity[0].expectBodyRegex){
+                    Add-Step "managed-port-$resourceId" 'preflight' 'PASS' 'NONE' 'Existing endpoint may be reused only after runtime identity and health verification; static preflight does not establish readiness' $resourceId
+                } else { Add-Step "managed-port-$resourceId" 'preflight' 'BLOCKED' 'CONFIG_INFRA' "Occupied endpoint lacks an identity contract: $($resource.port); identify it, do not stop an unknown process" $resourceId }
+            }
             else { Add-Step "managed-port-$resourceId" 'preflight' 'PASS' 'NONE' "managed port is available: $($resource.port)" $resourceId }
         }
     }
@@ -323,7 +329,7 @@ try {
         else { Add-Step "probe-$probeId" 'preflight' 'BLOCKED' ([string]$probe.failureCategory) 'external preflight probe failed or is unsupported' $probeId }
     }
 
-    Write-ReportAndExit ($blockers.Count -eq 0) $(if ($blockers.Count -eq 0) { "environment preflight passed ($($steps.Count) steps)" } else { "environment preflight blocked ($($blockers.Count) blockers)" })
+    Write-ReportAndExit ($blockers.Count -eq 0) $(if ($blockers.Count -eq 0) { "static prerequisites passed ($($steps.Count) steps); runtime dependencies, service readiness and consumers remain to be verified" } else { "environment preflight blocked ($($blockers.Count) blockers)" })
 } catch {
     Add-Step 'verifier-internal' 'preflight' 'BLOCKED' 'TEST_HARNESS' $_.Exception.Message
     Write-ReportAndExit $false 'environment preflight could not complete'

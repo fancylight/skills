@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)] [string]$OrchRoot,
     [Parameter(Mandatory = $true)] [string]$SystemTestRepo,
@@ -338,7 +338,7 @@ if ($runnerFileIndex -ge 0) {
     }
 }
 $runnerFailureCategory = if ([string]::IsNullOrWhiteSpace([string]$manifest.runner.failureCategory)) { 'SUT_BUSINESS' } else { [string]$manifest.runner.failureCategory }
-foreach ($hook in @('prepare','cleanup')) {
+foreach ($hook in @('check','prepare','cleanup')) {
     if ($null -eq $manifest.runner.$hook) { continue }
     if ($manifest.runner.$hook -is [string] -or @($manifest.runner.$hook).Count -eq 0 -or @($manifest.runner.$hook | Where-Object { [string]::IsNullOrWhiteSpace([string]$_) }).Count -gt 0) {
         Stop-Resolver 'INVALID_TEST_RUNNER' "runner $hook must be a nonempty token-array command"
@@ -367,6 +367,7 @@ $executionContract = [ordered]@{
     suts=@($resolvedSuts | ForEach-Object { [ordered]@{ id=$_.id; repository=$_.repository; lifecycle=$_.lifecycle; startContract=$_.startContract; healthProbe=$_.healthProbe } })
     runner=[ordered]@{ workingDirectory=$runnerWorkingDirectory; command=$runnerCommand; failureCategory=$runnerFailureCategory; prepare=@($manifest.runner.prepare); cleanup=@($manifest.runner.cleanup) }
 }
+if ($manifest.runner.check) { $executionContract.runner.check=@($manifest.runner.check) }
 $executionContractHash = Get-StringHash ($executionContract | ConvertTo-Json -Depth 16 -Compress)
 $fingerprintInput = [ordered]@{
     manifest=[ordered]@{ path=$manifestFile; sha256=$manifestHash }
@@ -398,6 +399,7 @@ $resolved = [ordered]@{
     configurationFingerprint=$fingerprint
 }
 
+if ($manifest.runner.check) { $resolved.runner.check=@($manifest.runner.check) }
 Assert-NoJsonSecrets $resolved 'resolvedManifest'
 $outputParent = Split-Path -Parent $resolvedOutput
 if ([string]::IsNullOrWhiteSpace($outputParent) -or -not (Test-PathWithin $resolvedOutput $testRepo)) { Stop-Resolver 'PATH_CONFLICT' 'resolved manifest output must be inside the system-test repository' }

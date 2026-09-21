@@ -30,6 +30,8 @@ function Get-StringHash([string]$Value) {
   finally { $sha.Dispose() }
 }
 if (-not (Test-PathWithin $HarnessRoot ([IO.Path]::GetTempPath())) -or (Test-Path -LiteralPath (Join-Path $HarnessRoot '.git'))) { throw 'Harness self-test must be invoked only for an isolated temporary harness copy.' }
+if (-not (Test-PathWithin $ArtifactRoot $HarnessRoot)) { throw 'Self-test artifacts must stay inside the isolated harness' }
+$artifactRelative=[IO.Path]::GetFullPath($ArtifactRoot).Substring($HarnessRoot.TrimEnd('\','/').Length+1).Replace('\','/')
 
 function Write-Utf8([string]$Path, [string]$Value) {
   $directory = Split-Path -Parent $Path
@@ -136,8 +138,8 @@ foreach ($definition in $definitions) {
   if (Test-Path -LiteralPath $structuredResult) {
     $scenarioArtifact = Copy-ScenarioArtifacts $change $definition.id $runnerOutput $structuredResult
     $rawEvidenceFile = Join-Path $scenarioArtifact 'evidence\current\index.md'
-    $rawEvidencePath = "self-test/artifacts/$($definition.id)/evidence/current/index.md"
-    $runnerEvidencePath = "self-test/artifacts/$($definition.id)/runner-output.log"
+    $rawEvidencePath = "$artifactRelative/$($definition.id)/evidence/current/index.md"
+    $runnerEvidencePath = "$artifactRelative/$($definition.id)/runner-output.log"
     if (-not (Test-Path -LiteralPath $rawEvidenceFile -PathType Leaf)) { $errors.Add('raw evidence index is missing') }
   } else {
     $rawEvidencePath = ''
