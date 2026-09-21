@@ -91,6 +91,26 @@ try {
                 Invoke-Controller 'review' @{ReportPath=$ReviewPath} | Out-Host
             }
             $candidate=Read-ExecutionJson (Get-Content -LiteralPath $StatePath -Raw -Encoding utf8)
+            # Also cover existing project runners: prepare before their static endpoint checks.
+            $null=Invoke-Controller 'status'
+            $projectHelper=Join-Path $PSScriptRoot '../templates/system-test/scripts/project-test-environment.ps1'
+            if (Test-Path -LiteralPath $projectHelper) {
+                . $projectHelper
+                $resolvedPath=Join-Path $candidateRoot 'resolved-manifest.json'
+                $projectResolved=Get-Content -LiteralPath $resolvedPath -Raw -Encoding utf8 | ConvertFrom-Json
+                $projectPolicy=Find-ProjectEnvironmentPolicy $projectResolved
+                if ($projectPolicy) {
+                    if ($candidate.authorization.maxPhase -notin @('execution','result') -or $candidate.phase -notin @('TEST_IMPLEMENTATION_VERIFIED','TEST_ENVIRONMENT_VERIFIED') -or ($candidate.execution.development -and -not $candidate.execution.development.executionRequestRef)) { throw 'Project environment preparation requires current execution authorization and verified implementation.' }
+                    $previousDeadline=$env:FLOW_EXECUTION_DEADLINE
+                    try {
+                        $env:FLOW_EXECUTION_DEADLINE=[string]$candidate.execution.deadlineUtc
+                        $preparation=Invoke-ProjectEnvironmentPrepare -Resolved $projectResolved -PolicyPath $projectPolicy -Ensure
+                    } finally { $env:FLOW_EXECUTION_DEADLINE=$previousDeadline }
+                    $preparationPath=Join-Path (Split-Path -Parent $StatePath) ('project-environment-'+[guid]::NewGuid().ToString('N')+'.json')
+                    [IO.File]::WriteAllText($preparationPath,($preparation|ConvertTo-Json -Depth 12),[Text.UTF8Encoding]::new($false))
+                    if ($preparation.result -ne 'INPUTS_ACCEPTED') { throw "Project environment needs targeted repair; see $preparationPath. No new run or business input was created." }
+                }
+            }
             if ($candidate.phase -eq 'TEST_IMPLEMENTATION_VERIFIED') {
                 $environmentPath=Join-Path (Split-Path -Parent $StatePath) ('execution-evidence/environment-'+[guid]::NewGuid().ToString('N')+'.json')
                 $output=@(& (Join-Path $PSScriptRoot 'validate-test-environment.ps1') -ResolvedManifestPath (Join-Path $candidateRoot 'resolved-manifest.json') -StatePath $StatePath -OutputPath $environmentPath -VerifierId 'flow-test-preflight' -ControllerPath $controller)

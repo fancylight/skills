@@ -13,12 +13,12 @@
 .\scripts\system-test.ps1 cleanup -Change <change> -EnvFile .env.local
 ```
 
-manifest 的 `configuration.source` 是唯一配置来源，`configuration.ownership` 只能是 `human` 或 `harness`。人工配置探针失败只输出 `[TEST_CONFIGURATION] BLOCKED` 与 `STOP_AWAIT_HUMAN_CONFIGURATION`；平台配置失败路由到独立 harness 修复，不猜测密码、不扫描或切换配置来源。PASS、FAIL、BLOCKED 都执行 cleanup 并保留原始报告索引。
+manifest 的 `configuration.source` 是唯一配置来源，`configuration.ownership` 只能是 `human` 或 `harness`。配置探针失败返回具体原因与证据，在已有授权内修复并重新检查；只有缺少凭据、权限或明确配置选择才请求用户补充，不猜测密码、不扫描或切换配置来源。框架缺陷在当前对话修复并重验受影响部分，不强制另开角色。PASS、FAIL、BLOCKED 都执行 cleanup 并保留原始报告索引。
 
 上段 `configuration.source` 仅适用于 v1。v2 以配置中心 `configuration.provider/targets` 为唯一配置来源，
 `environmentFile` 仅承载必要运行参数；Git 忽略的 human 本地配置可保留既有凭据，完整文件 hash 绑定快照。
 测试夹具从 `FLOW_RESOLVED_MANIFEST` 定位同一配置中心，不复制连接账号。共享细则见 core 安装模板 `system-test/README.md`。
-外部中间件只执行探针，不由 runner 启停或重建；managed 复用必须通过显式 identityProbe 和健康检查。
+存在根 `.flow/test-environment.json` 时，run 必须先执行项目环境准备：仅复用或启动清单中明确允许的既有容器，未选依赖不检查，不创建、替换、删除容器。没有项目授权清单的外部中间件仍只执行探针。共享中间件不归本次 cleanup 所有；managed 复用必须通过显式 identityProbe 和健康检查。
 `runner.prepare` 负责本次 WireMock mapping 注册与响应契约验证，失败停止后续业务；cleanup 只回收本次数据、mapping、文件和已验证所属进程树。
 
 独立 v2 运行可追加 `-ScenarioIds SMOKE-1`，过滤器与 JUnit 集合来自 canonical 派生契约，runner.command 消费

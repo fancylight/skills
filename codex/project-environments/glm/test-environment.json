@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "configurationRepository": "C:/Users/chenk-u/code/glm/config-center",
+  "middleware": [
+    {"kind":"zookeeper","container":"zealous_bose","hostPort":2181,"containerPort":"2181/tcp"},
+    {"kind":"mongodb","container":"tender_albattani","hostPort":27017,"containerPort":"27017/tcp"},
+    {"kind":"mysql","container":"suspicious_curran","hostPort":3306,"containerPort":"3306/tcp"},
+    {"kind":"rabbitmq","container":"sad_rubin","hostPort":5672,"containerPort":"5672/tcp"},
+    {"kind":"redis","container":"redis","hostPort":6379,"containerPort":"6379/tcp"},
+    {"kind":"postgresql","container":"infallible_dirac","hostPort":5432,"containerPort":"5432/tcp"},
+    {"kind":"clickhouse","container":"magical_gauss","hostPort":8123,"containerPort":"8123/tcp"},
+    {"kind":"wiremock","container":"compose-wiremock-1","hostPort":18080,"containerPort":"8080/tcp"},
+    {"kind":"elasticsearch","container":"es","hostPort":9200,"containerPort":"9200/tcp"},
+    {"kind":"kafka","container":"kafka-server","hostPort":9092,"containerPort":"9092/tcp"}
+  ]
+}

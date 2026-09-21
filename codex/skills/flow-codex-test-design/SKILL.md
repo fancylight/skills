@@ -46,7 +46,7 @@ description: 在业务代码已审核提交后，基于概要设计验收、as-b
 
 以下环境约束在业务用例审核补齐后应用。新配置中心环境使用共享 v2 manifest：引用平台已登记的 repo 级 descriptor，声明 configuration targets、ownership、SUT 启动契约、runner 与 harness；旧 v1 才使用 configurationSource 等旧字段。先用 core `assets/scripts/resolve-test-environment.ps1` 生成 resolved manifest，再进行设计校验。native 模式可以由启动契约传入 profile/search locations，无须在业务源码新增配置文件。
 本地 dev 配置保存在配置中心；Git 忽略的 human 本地输入允许已有凭据，设计产物只记录来源和完整文件 hash。夹具读取同一配置来源，`.env` 仅用于必要运行参数。配置迁移属于已获授权的平台准备，不在业务 test-design 内生成替代 dev 配置。
-外部中间件登记 external，runner 不启停或重建；WireMock 的方法、路径、参数、鉴权及响应契约提前明确，由 `runner.prepare` 注册并验证本次 mapping，失败阻断后续业务，cleanup 只清理本次资源。
+外部中间件登记 external，不创建或重建替代实例。项目 `.flow/test-environment.json` 可明确允许准备入口启动既有容器，未使用的 ES/Kafka 等不列为必需依赖；配置中心不机械依赖全部中间件。WireMock 的方法、路径、参数、鉴权及响应契约提前明确，由 `runner.prepare` 注册并验证本次 mapping，失败只拒绝依赖它的业务运行，cleanup 只清理本次资源。
 
 0. 按 `scaffold.md` 解析或初始化 config 中的 system-test 仓；已存在完整仓时只增量更新 change 产物。
 1. 为概要设计每条验收分配稳定 `AC-n`，确定集成 Y/N、Non-Goal 或后续阶段；N 不得伪装为覆盖。

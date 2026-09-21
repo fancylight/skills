@@ -30,8 +30,7 @@ description: 使用 system-test manifest runner 执行 Flow change 的 API/UI/E2
 要求 `change_name`、`testAuthorization` 和 design verify 已核验的配置契约。v2 使用 `environment`、
 `configuration.targets/ownership/environmentFile`、`suts`、`runner` 和 resolved fingerprint；v1 保留 `configurationSource`、`requiredEndpoints`、`connectivityProbe`、`ownership` 旧契约。`suite` 可选。`execution_mode` 为
 `orchestrated` 或 `standalone`，未由 `flow-codex-test` 委托时默认为 standalone。任何模式均不得绕过授权：
-配置契约缺失/漂移、最近一次最小只读探针失败、ceiling<execution 时拒绝健康检查、up、run、Docker 和服务启动，
-并输出 `STOP_AWAIT_USER_AUTHORIZATION`。解析根 config、概要设计、manifest、test-design、test-plan 与 system-test 仓。
+ceiling<execution 时拒绝运行和服务启动，说明缺少的授权。配置契约缺失/漂移或探针失败只拒绝依赖该配置的运行；在既有授权内修复、重新解析并复验，不将普通环境故障自动当成授权不足。解析根 config、概要设计、manifest、test-design、test-plan 与 system-test 仓。
 
 ## 执行
 
@@ -42,7 +41,7 @@ v2 `-ScenarioIds` 支持 standalone smoke 或由 flow-test.ps1 登记的正式�
 结果必须 `fullSuite=false`，不能登记全量 PASS。新证据写入 `evidence/runs/<run-id>/`，保留旧全量结果和控制状态。
 配置中心是本地 dev 配置唯一来源；Git 忽略且 `ownership=human` 的本地文件允许已有凭据，完整文件摘要参与指纹，
 日志脱敏后才能进入 evidence。测试夹具使用 `FLOW_RESOLVED_MANIFEST` 查找同一配置，不维护第二份连接凭据。
-外部中间件只执行只读探针。managed 复用必须同时通过显式身份与健康探针；无法确认的占用端口直接阻断。
+run 前必须执行项目环境准备（根 `.flow/test-environment.json`）；仅复用或启动明确允许的既有容器，ES/Kafka 等按本次依赖选择，禁止为隔离自行创建替代容器。无项目清单时外部中间件只执行只读探针。配置中心与所有必要服务继续通过 runner 的配置、身份、健康及消费者证据检查后才投递业务输入；无法确认的占用端口只拒绝对应启动，不停止独立工作。
 WireMock 本次 mapping 的注册及响应验证放在 `runner.prepare`，失败立即阻断 SUT/业务执行；`runner.cleanup` 仅清理本次夹具。
 服务启动默认 120 秒，业务 suite 默认 600 秒；启动适配器同步等待子进程，清理只针对已验证 PID/启动时间的本次进程树。
 

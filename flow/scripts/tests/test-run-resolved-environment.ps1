@@ -283,7 +283,13 @@ try {
     Assert-Result $exitedResult 'BLOCKED' 'CONFIG_INFRA' 'exited startup process'
     $startupFailure=@($exitedResult.report.steps | Where-Object stepId -eq 'runtime-failure')[0]
     if($startupFailure.elapsedSeconds -ge 4.5){throw 'runner waited full readiness timeout after process exited'}
-    if($Focused){Write-Output '[RUNTIME_FOCUSED_TEST] PASS async projection, actual assertion metrics, dependency check before startup'; return}
+    $policyBlocked=New-Fixture 'project-policy-before-start'
+    Write-Json (Join-Path $policyBlocked.orch '.flow/test-environment.json') @{schemaVersion=1;configurationRepository=(Join-Path $policyBlocked.orch 'wrong-config-center');middleware=@()}
+    $policyResult=Invoke-Runtime $policyBlocked
+    Assert-Result $policyResult 'BLOCKED' 'CONFIG_INFRA' 'project policy before startup'
+    if (@($policyResult.steps | Where-Object {$_.phase -in @('sut-start','suite','resource-start')}).Count) {throw 'Rejected project policy started resources or suite'}
+    if (-not (Test-Path (Join-Path $policyBlocked.orch 'project-environment.json'))) {throw 'Missing actionable project environment report'}
+    if($Focused){Write-Output '[RUNTIME_FOCUSED_TEST] PASS async projection, actual assertion metrics, dependency check and project policy before startup'; return}
     $multi = New-Fixture 'four-sut-target-association' -SutCount 4
     $multiResult = Invoke-Runtime $multi
     Assert-Result $multiResult 'PASS' 'NONE' 'four SUT target association'

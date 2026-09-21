@@ -58,6 +58,7 @@ function Get-RelativePath([string]$Path) {
 
 function Get-HarnessFiles {
   $relativePaths = @('scripts/system-test.ps1','scripts/run-resolved-environment.ps1','scripts/test-runtime-contract.ps1','scripts/collect-failure-evidence.ps1','scripts/harness-certification.ps1','self-test/invoke-harness-self-test.ps1','self-test/harness-self-test-adapter.ps1')
+  if (Test-Path -LiteralPath (Join-Path $HarnessRoot 'scripts/project-test-environment.ps1')) { $relativePaths += 'scripts/project-test-environment.ps1' }
   $items = @()
   foreach ($relativePath in $relativePaths) {
     $path = Resolve-ControlledPath $relativePath

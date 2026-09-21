@@ -12,6 +12,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'test-runtime-contract.ps1')
+. (Join-Path $PSScriptRoot 'project-test-environment.ps1')
 $steps = [System.Collections.Generic.List[object]]::new()
 $ownedProcesses = [System.Collections.Generic.List[object]]::new()
 $environmentRestore = @{}
@@ -321,6 +322,14 @@ try {
     $logDirectory = Join-Path ([IO.Path]::GetTempPath()) ('.flow-runtime-' + [guid]::NewGuid().ToString('N'))
     [void](New-Item -ItemType Directory -Path $logDirectory -Force)
 
+    $projectPolicy = Find-ProjectEnvironmentPolicy $resolved
+    if ($projectPolicy) {
+        $preparation = Invoke-ProjectEnvironmentPrepare -Resolved $resolved -PolicyPath $projectPolicy -Ensure
+        $preparationPath = Join-Path $outputParent 'project-environment.json'
+        [IO.File]::WriteAllText($preparationPath, ($preparation | ConvertTo-Json -Depth 12), [Text.UTF8Encoding]::new($false))
+        if ($preparation.result -ne 'INPUTS_ACCEPTED') { Stop-Run 'CONFIG_INFRA' "Project environment needs targeted repair; see $preparationPath. No business input was submitted; do not create replacement containers." }
+        Add-Step 'project-environment' 'preparation' 'PASS' 'NONE' 'Approved existing middleware selected; protocol/configuration/SUT readiness is checked next'
+    }
     if (@($resolved.runner.check | Where-Object { $_ }).Count -gt 0) {
         $check=@($resolved.runner.check)
         $checkExit=Invoke-OwnedCommand 'dependency-check' ([string]$check[0]) @($check | Select-Object -Skip 1) $testRoot $logDirectory
